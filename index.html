@@ -325,7 +325,7 @@ document.getElementById("start-btn").onclick = () => {
 // ── API ─────────────────────────────────────────────────
 function getKey() { return document.getElementById("api-key").value.trim(); }
 
-async function gemini(messages, system) {
+async function gemini(messages, system, retries=3) {
   const body = {
     system_instruction: system ? { parts:[{text:system}] } : undefined,
     contents: messages.map(m => ({
@@ -336,15 +336,32 @@ async function gemini(messages, system) {
     })),
     generationConfig: { maxOutputTokens:1024, temperature:0.7 }
   };
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-    { method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":getKey()}, body:JSON.stringify(body) }
-  );
-  const raw = await res.text();
-  if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
-  const data = JSON.parse(raw);
-  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+  for (let attempt=1; attempt<=retries; attempt++) {
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      { method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":getKey()}, body:JSON.stringify(body) }
+    );
+    const raw = await res.text();
+    if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
+    const data = JSON.parse(raw);
+
+    // 503 / high demand → wait and retry
+    if (res.status === 503 || data?.error?.code === 503 ||
+        (data?.error?.message||"").includes("high demand") ||
+        (data?.error?.message||"").includes("overloaded")) {
+      if (attempt < retries) {
+        const wait = attempt * 3000; // 3s, 6s
+        console.log(`Gemini混雑中、${wait/1000}秒後にリトライ(${attempt}/${retries})`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw new Error(`Geminiが混雑しています。しばらくしてからもう一度お試しください。`);
+    }
+
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  }
 }
 
 async function generateSentence() {
