@@ -5,138 +5,175 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>中国語シャドーイング</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#f0ede8; min-height:100vh; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#f0ede8; min-height:100vh; }
 
-.hero { background:#1a1a2e; padding:24px 20px 18px; text-align:center; color:white; }
-.hero-kanji { font-size:44px; font-weight:900; font-family:serif; color:#f0c040; line-height:1; margin-bottom:4px; }
-.hero-title { font-size:18px; font-weight:700; letter-spacing:3px; }
+/* ── Layout ── */
+.hero { background:#1a1a2e; padding:22px 20px 16px; text-align:center; color:white; }
+.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:#f0c040; line-height:1; margin-bottom:3px; }
+.hero-title { font-size:17px; font-weight:700; letter-spacing:3px; }
 
-/* Setup */
-.setup-body { padding:20px 16px; max-width:520px; margin:0 auto; }
-.sec-label { font-size:11px; font-weight:700; color:#777; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; margin-top:20px; }
-.level-row { display:flex; gap:7px; flex-wrap:wrap; }
-.level-btn { flex:1 1 65px; background:white; border:2px solid #ddd; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; }
+.tabs { display:flex; background:#111827; border-bottom:1px solid #333; }
+.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:#666; border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
+.tab.active { color:#f0c040; border-bottom-color:#f0c040; }
+
+.setup-body { padding:18px 15px; max-width:520px; margin:0 auto; }
+.sec-label { font-size:11px; font-weight:700; color:#777; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
+
+/* ── Form elements ── */
+.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; outline:none; font-family:inherit; }
+.api-input { font-family:monospace; }
+.level-row { display:flex; gap:6px; flex-wrap:wrap; }
+.level-btn { flex:1 1 65px; background:white; border:2px solid #ddd; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
 .level-btn.active { color:white; }
 .level-lbl { font-weight:700; font-size:13px; }
 .level-desc { font-size:10px; opacity:.8; }
-.topic-grid { display:flex; flex-wrap:wrap; gap:7px; }
-.topic-btn { background:white; border:1.5px solid #ddd; border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer; font-family:inherit; }
+.topic-grid { display:flex; flex-wrap:wrap; gap:6px; }
+.topic-btn { background:white; border:1.5px solid #ddd; border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
 .topic-btn.active { background:#1a1a2e; color:white; border-color:#1a1a2e; }
 .speed-row { display:flex; align-items:center; gap:10px; }
 .speed-row input { flex:1; accent-color:#1a1a2e; }
-.api-input { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; outline:none; font-family:monospace; }
-.start-btn { width:100%; padding:14px; font-size:16px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:20px; letter-spacing:1px; font-family:inherit; }
+.start-btn { width:100%; padding:13px; font-size:15px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:18px; letter-spacing:1px; font-family:inherit; }
 
-/* Topbar */
+/* ── Topbar ── */
 .topbar { display:flex; align-items:center; justify-content:space-between; background:#1a1a2e; padding:9px 13px; position:sticky; top:0; z-index:10; }
 .topbar-back { background:transparent; border:1px solid rgba(255,255,255,.25); color:white; border-radius:6px; padding:4px 9px; font-size:12px; cursor:pointer; font-family:inherit; }
 .badge { border-radius:10px; padding:2px 8px; font-size:11px; font-weight:700; color:white; }
 .topbar-stats { font-size:12px; color:#f0c040; font-weight:600; }
 
-/* Step progress */
-.step-bar { background:#111827; padding:10px 14px; display:flex; align-items:center; gap:0; overflow-x:auto; }
-.step-item { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:52px; }
-.step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; border:2px solid #444; color:#666; background:#1f2937; flex-shrink:0; transition:all .2s; }
+/* ── Step bar ── */
+.step-bar { background:#111827; padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
+.step-item { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; }
+.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid #444; color:#666; background:#1f2937; transition:all .2s; }
 .step-dot.done { background:#22c55e; border-color:#22c55e; color:white; }
-.step-dot.active { border-color:#f0c040; color:#f0c040; background:#1f2937; }
+.step-dot.active { border-color:#f0c040; color:#f0c040; }
 .step-name { font-size:9px; color:#666; text-align:center; white-space:nowrap; }
 .step-name.active { color:#f0c040; }
 .step-name.done { color:#22c55e; }
-.step-line { width:18px; height:2px; background:#333; flex-shrink:0; margin-bottom:14px; }
+.step-line { width:14px; height:2px; background:#333; flex-shrink:0; margin-bottom:13px; }
 .step-line.done { background:#22c55e; }
 
-/* Practice body */
-.practice-body { padding:12px 13px 40px; display:flex; flex-direction:column; gap:11px; max-width:600px; margin:0 auto; }
+/* ── Practice ── */
+.practice-body { padding:11px 13px 40px; display:flex; flex-direction:column; gap:10px; max-width:600px; margin:0 auto; }
+.card { background:white; border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+.card-title { font-size:10px; font-weight:700; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
 
-/* Cards */
-.card { background:white; border-radius:14px; padding:16px 15px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
-.card-title { font-size:11px; font-weight:700; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
-
-/* Sentence display */
-.hanzi { font-size:26px; font-weight:700; color:#1a1a2e; text-align:center; letter-spacing:.05em; line-height:1.5; }
+/* ── Sentence ── */
+.hanzi { font-size:25px; font-weight:700; color:#1a1a2e; text-align:center; letter-spacing:.05em; line-height:1.5; }
 .pinyin { font-size:15px; color:#6366f1; letter-spacing:.08em; line-height:2; text-align:center; }
-.trans { font-size:13px; color:#888; text-align:center; margin-top:4px; }
-.reveal-btn { background:#f3f4f6; border:none; border-radius:20px; padding:5px 16px; font-size:12px; color:#666; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
+.trans { font-size:13px; color:#888; text-align:center; margin-top:3px; }
+.reveal-btn { background:#f3f4f6; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#666; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
+.hide-btn { background:#fff5f5; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#e53935; cursor:pointer; display:block; margin:8px auto 0; font-family:inherit; }
 
-/* Controls */
+/* ── Buttons ── */
 .btn { border:none; border-radius:11px; padding:12px 16px; font-size:14px; font-weight:700; color:white; cursor:pointer; width:100%; font-family:inherit; transition:opacity .15s; margin-top:8px; }
 .btn:disabled { opacity:.4; cursor:not-allowed; }
 .btn-dark { background:#1a1a2e; }
 .btn-red { background:#e53935; }
 .btn-stop { background:#333; }
-.btn-green { background:#16a34a; }
 .btn-gray { background:#6b7280; }
 .btn-row { display:flex; gap:8px; margin-top:8px; }
 .btn-row .btn { flex:1; margin-top:0; }
-.btn-sm { padding:8px 14px; font-size:13px; border-radius:8px; }
 
-/* Step instructions */
-.step-instruction { background:#f8f7f4; border-left:3px solid #f0c040; border-radius:0 8px 8px 0; padding:10px 12px; font-size:13px; color:#555; line-height:1.65; margin-bottom:4px; }
-.step-num { font-weight:700; color:#f0c040; }
+/* ── Step instruction ── */
+.step-instruction { background:#f8f7f4; border-left:3px solid #f0c040; border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
+.step-num { font-weight:700; color:#b8860b; }
 
-/* Recording */
+/* ── Repeat counter ── */
+.repeat-counter { display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; }
+.repeat-dots { display:flex; gap:5px; }
+.rdot { width:12px; height:12px; border-radius:50%; background:#e5e7eb; transition:all .2s; }
+.rdot.done { background:#22c55e; }
+.rdot.active { background:#f0c040; transform:scale(1.2); }
+.repeat-label { font-size:13px; color:#888; }
+
+/* ── Recording ── */
 .rec-status { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0; }
 .rec-dot { width:11px; height:11px; border-radius:50%; background:#e53935; animation:pulse 1s infinite; }
 @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(229,57,53,.2)} 50%{box-shadow:0 0 0 7px rgba(229,57,53,.06)} }
 .rec-label { font-size:15px; font-weight:700; color:#e53935; }
 
-/* Audio player */
-.audio-player { background:#f3f4f6; border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; margin-top:8px; }
-.audio-player audio { flex:1; height:36px; }
-.play-icon { font-size:20px; cursor:pointer; }
+/* ── Waveform ── */
+#waveform { width:100%; height:50px; background:#f8f7f4; border-radius:8px; margin:6px 0; }
 
-/* Result */
+/* ── Audio ── */
+.audio-row { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
+.audio-item { background:#f3f4f6; border-radius:10px; padding:8px 11px; }
+.audio-label { font-size:10px; color:#888; font-weight:700; margin-bottom:4px; }
+.audio-item audio { width:100%; height:32px; }
+
+/* ── Result ── */
 .score-row { text-align:center; margin-bottom:6px; }
-.stars { font-size:22px; }
 .match-pct { font-size:13px; color:#888; margin-top:2px; }
-.diff-box { background:#f8f7f4; border-radius:10px; padding:11px 13px; margin:8px 0; }
-.diff-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
-.diff-text { font-size:19px; letter-spacing:.05em; line-height:1.6; word-break:break-all; }
-.diff-target { font-size:17px; color:#1a1a2e; }
-.ok  { color:#16a34a; }
+.diff-box { background:#f8f7f4; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.diff-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
+.diff-text { font-size:18px; letter-spacing:.05em; line-height:1.6; word-break:break-all; }
+.diff-target { font-size:16px; color:#1a1a2e; }
+.ok { color:#16a34a; }
 .err { color:#dc2626; font-weight:700; }
-
-/* Pronunciation detail */
-.pronun-box { background:#eef2ff; border:1.5px solid #818cf8; border-radius:10px; padding:11px 13px; margin:8px 0; }
-.pronun-title { font-size:11px; font-weight:700; color:#4f46e5; margin-bottom:6px; }
+.pronun-box { background:#eef2ff; border:1.5px solid #818cf8; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.pronun-title { font-size:10px; font-weight:700; color:#4f46e5; margin-bottom:5px; }
 .pronun-text { font-size:13px; color:#312e81; line-height:1.75; white-space:pre-wrap; }
-
-.feedback-box { background:#fffbee; border:1.5px solid #f0c040; border-radius:10px; padding:11px 13px; margin:8px 0; }
-.feedback-title { font-size:11px; font-weight:700; color:#b8860b; margin-bottom:6px; }
+.feedback-box { background:#fffbee; border:1.5px solid #f0c040; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.feedback-title { font-size:10px; font-weight:700; color:#b8860b; margin-bottom:5px; }
 .feedback-text { font-size:13px; color:#4a3800; line-height:1.75; white-space:pre-wrap; }
 
-/* History */
+/* ── Weak list ── */
+.weak-item { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:10px; }
+.weak-zh { font-size:16px; font-weight:600; color:#1a1a2e; flex:1; }
+.weak-score { font-size:13px; color:#dc2626; font-weight:700; }
+.weak-btn { background:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; color:white; cursor:pointer; font-family:inherit; white-space:nowrap; }
+.weak-del { background:none; border:1px solid #ddd; border-radius:8px; padding:5px 8px; font-size:12px; color:#aaa; cursor:pointer; font-family:inherit; }
+
+/* ── History ── */
 .history-wrap { display:flex; flex-direction:column; gap:7px; }
 .history-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:1px; padding-left:2px; }
 .history-item { background:white; border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
 .history-zh { font-size:14px; font-weight:600; color:#1a1a2e; margin-bottom:3px; }
-.history-meta { display:flex; align-items:center; gap:8px; font-size:12px; color:#888; flex-wrap:wrap; }
+.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:#888; flex-wrap:wrap; }
 
-/* Loading */
+/* ── Custom sentence tab ── */
+.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; }
+.saved-set { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+.saved-set-name { font-size:14px; font-weight:600; color:#1a1a2e; flex:1; }
+.saved-set-count { font-size:12px; color:#aaa; }
+
+/* ── Shortcuts ── */
+.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
+.shortcut-key { background:#f3f4f6; border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:#444; }
+
+/* ── Loading / Error ── */
 .loading-box { display:flex; flex-direction:column; align-items:center; gap:9px; padding:16px 0; }
-.spinner { width:26px; height:26px; border-radius:50%; border:3px solid #eee; border-top:3px solid #1a1a2e; animation:spin .8s linear infinite; }
+.spinner { width:24px; height:24px; border-radius:50%; border:3px solid #eee; border-top:3px solid #1a1a2e; animation:spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-
-/* Error */
-.err-text { font-size:13px; color:#dc2626; background:#fff5f5; border-radius:8px; padding:8px 12px; line-height:1.6; white-space:pre-wrap; }
+.err-text { font-size:13px; color:#dc2626; background:#fff5f5; border-radius:8px; padding:8px 11px; line-height:1.6; white-space:pre-wrap; }
+.info-text { font-size:13px; color:#555; background:#f8f7f4; border-radius:8px; padding:10px 12px; line-height:1.7; }
 
 .hidden { display:none!important; }
 </style>
 </head>
 <body>
 
-<!-- SETUP -->
+<!-- ══ SETUP ══════════════════════════════════════════ -->
 <div id="screen-setup">
   <div class="hero">
     <div class="hero-kanji">跟读</div>
     <div class="hero-title">シャドーイング練習</div>
   </div>
-  <div class="setup-body">
+
+  <div class="tabs">
+    <button class="tab active" onclick="showSetupTab('main')">設定</button>
+    <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
+    <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
+    <button class="tab" onclick="showSetupTab('shortcuts')">ショートカット</button>
+  </div>
+
+  <!-- Main settings -->
+  <div id="stab-main" class="setup-body">
     <div class="sec-label">Gemini APIキー（無料）</div>
     <input class="api-input" type="password" id="api-key" placeholder="Google AI StudioのAPIキー">
-    <div style="font-size:11px;color:#aaa;margin-top:5px">
-      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#6366f1">aistudio.google.com</a> で無料取得
+    <div style="font-size:11px;color:#aaa;margin-top:4px">
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#6366f1">aistudio.google.com</a> で無料取得・ブラウザに保存されます
     </div>
 
     <div class="sec-label">レベル</div>
@@ -145,6 +182,12 @@ body { font-family: 'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backg
     <div class="sec-label">トピック</div>
     <div class="topic-grid" id="topic-grid"></div>
 
+    <div class="sec-label">HSK重要単語を優先 <span id="hsk-prio-val"></span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="hsk-prio-row">
+      <button class="topic-btn active" id="prio-off" onclick="setPrio(false)">オフ</button>
+      <button class="topic-btn" id="prio-on" onclick="setPrio(true)">オン（HSK重要単語を含む文を生成）</button>
+    </div>
+
     <div class="sec-label">手本の速度 <span id="speed-val">85%</span></div>
     <div class="speed-row">
       <span style="font-size:11px;color:#aaa">遅</span>
@@ -152,26 +195,69 @@ body { font-family: 'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backg
       <span style="font-size:11px;color:#aaa">速</span>
     </div>
 
+    <div class="sec-label">追読の繰り返し回数</div>
+    <div style="display:flex;gap:7px">
+      <button class="topic-btn" id="rep2" onclick="setReps(2)">2回</button>
+      <button class="topic-btn active" id="rep3" onclick="setReps(3)">3回</button>
+      <button class="topic-btn" id="rep5" onclick="setReps(5)">5回</button>
+    </div>
+
+    <div class="sec-label">履歴 <span id="hist-count"></span></div>
+    <div style="background:white;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div id="hist-summary" style="font-size:13px;color:#555;line-height:1.6"></div>
+      <button onclick="clearHistory()" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 9px;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
+    </div>
+
     <div class="sec-label">練習ステップ</div>
-    <div style="background:white;border-radius:12px;padding:13px 15px;font-size:13px;color:#444;line-height:1.9">
+    <div style="background:white;border-radius:12px;padding:12px 14px;font-size:13px;color:#444;line-height:1.9">
       <div>① <b>初聴</b>　音だけ聞いて耳を慣らす</div>
-      <div>② <b>確認</b>　テキスト・訳・拼音を見て意味把握</div>
+      <div>② <b>確認</b>　テキスト・訳・拼音で意味把握</div>
       <div>③ <b>音読</b>　テキストを見ながら声に出す</div>
-      <div>④ <b>追読</b>　音声に重ねてシャドーイング</div>
+      <div>④ <b>追読</b>　音声に重ねてシャドーイング（N回）</div>
       <div>⑤ <b>録音</b>　テキストを隠して録音・提出</div>
       <div>⑥ <b>採点</b>　自分の音声を聞く＋AI発音評価</div>
     </div>
 
-    <div class="sec-label">履歴 <span id="hist-count"></span></div>
-    <div style="background:white;border-radius:12px;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div id="hist-summary" style="font-size:13px;color:#555;line-height:1.6"></div>
-      <button id="clear-hist-btn" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 10px;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit">履歴を消去</button>
-    </div>
     <button class="start-btn" id="start-btn">練習スタート →</button>
+  </div>
+
+  <!-- Custom sentence tab -->
+  <div id="stab-custom" class="setup-body hidden">
+    <div class="sec-label">文を入力して練習</div>
+    <textarea class="custom-textarea" id="custom-input" placeholder="練習したい中国語を入力（例：我每天都在练习中文。）"></textarea>
+    <button class="btn btn-dark" style="margin-top:8px" onclick="startWithCustom()">この文で練習 →</button>
+
+    <div class="sec-label" style="margin-top:20px">文セットを保存</div>
+    <input class="text-input-field" id="set-name-input" placeholder="セット名（例：教材第3課）" style="margin-bottom:8px">
+    <button class="btn" style="background:#6366f1;margin-top:0" onclick="saveSet()">現在の文を保存</button>
+
+    <div class="sec-label">保存済みセット</div>
+    <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+
+  <!-- Weak list tab -->
+  <div id="stab-weak" class="setup-body hidden">
+    <div class="sec-label">苦手な文（スコア3以下）</div>
+    <div id="weak-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+
+  <!-- Shortcuts tab -->
+  <div id="stab-shortcuts" class="setup-body hidden">
+    <div class="sec-label">キーボードショートカット</div>
+    <div style="background:white;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
+      <div class="shortcut-row"><span>手本を再生</span><span class="shortcut-key">Space</span></div>
+      <div class="shortcut-row"><span>次のステップへ</span><span class="shortcut-key">→</span></div>
+      <div class="shortcut-row"><span>録音開始/停止</span><span class="shortcut-key">R</span></div>
+      <div class="shortcut-row"><span>拼音を表示/非表示</span><span class="shortcut-key">P</span></div>
+      <div class="shortcut-row"><span>日本語訳を表示/非表示</span><span class="shortcut-key">T</span></div>
+      <div class="shortcut-row"><span>テキストを隠す/表示</span><span class="shortcut-key">H</span></div>
+      <div class="shortcut-row" style="border:none"><span>次の文へ（採点後）</span><span class="shortcut-key">N</span></div>
+    </div>
+    <div class="info-text" style="margin-top:12px">練習画面でも同じショートカットが使えます。</div>
   </div>
 </div>
 
-<!-- PRACTICE -->
+<!-- ══ PRACTICE ════════════════════════════════════════ -->
 <div id="screen-practice" class="hidden">
   <div class="topbar">
     <button class="topbar-back" id="back-btn">← 設定</button>
@@ -181,576 +267,662 @@ body { font-family: 'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backg
     </div>
     <div class="topbar-stats" id="top-stats"></div>
   </div>
-
-  <!-- Step progress bar -->
   <div class="step-bar" id="step-bar"></div>
-
   <div class="practice-body" id="practice-body"></div>
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────
+// ══ Config ═══════════════════════════════════════════════
 const LEVELS = [
-  { id:"hsk3", label:"HSK 3", color:"#16a34a", desc:"初級" },
-  { id:"hsk4", label:"HSK 4", color:"#2563eb", desc:"初中級" },
-  { id:"hsk5", label:"HSK 5", color:"#7c3aed", desc:"中上級" },
-  { id:"hsk6", label:"HSK 6", color:"#dc2626", desc:"上級" },
+  {id:"hsk3",label:"HSK 3",color:"#16a34a",desc:"初級"},
+  {id:"hsk4",label:"HSK 4",color:"#2563eb",desc:"初中級"},
+  {id:"hsk5",label:"HSK 5",color:"#7c3aed",desc:"中上級"},
+  {id:"hsk6",label:"HSK 6",color:"#dc2626",desc:"上級"},
 ];
 const TOPICS = ["日常生活","仕事・学習","旅行","食べ物","健康","社会・ニュース","感情・意見","自然・環境"];
-const STEPS = [
-  { id:"listen",  label:"①初聴",  name:"初聴" },
-  { id:"check",   label:"②確認",  name:"確認" },
-  { id:"read",    label:"③音読",  name:"音読" },
-  { id:"shadow",  label:"④追読",  name:"追読" },
-  { id:"record",  label:"⑤録音",  name:"録音" },
-  { id:"result",  label:"⑥採点",  name:"採点" },
-];
+const STEPS = [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}];
+const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
-// ── State ───────────────────────────────────────────────
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem("shadowing_history") || "[]"); } catch { return []; }
-}
-function saveHistory(history) {
-  try { localStorage.setItem("shadowing_history", JSON.stringify(history.slice(-200))); } catch {}
-}
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem("shadowing_settings") || "{}"); } catch { return {}; }
-}
-function saveSettings() {
-  try {
-    localStorage.setItem("shadowing_settings", JSON.stringify({
-      levelId: S.level.id, topic: S.topic, speed: S.speed
-    }));
-  } catch {}
-}
-
-const savedSettings = loadSettings();
-const S = {
-  level: LEVELS.find(l=>l.id===savedSettings.levelId) || LEVELS[2],
-  topic: TOPICS.includes(savedSettings.topic) ? savedSettings.topic : TOPICS[0],
-  speed: savedSettings.speed || 0.85,
-  sentence: null,
-  phase: "loading",
-  isSpeaking: false,
-  recSeconds: 0, recTimer: null,
-  mediaRecorder: null, chunks: [],
-  recordedBlob: null, recordedUrl: null,
-  result: null,
-  history: loadHistory(), used: [],
-  showPinyin: false, showTrans: false,
+// ══ Persistence helpers ═══════════════════════════════════
+const LS = {
+  get: k => { try{return JSON.parse(localStorage.getItem(k))}catch{return null} },
+  set: (k,v) => { try{localStorage.setItem(k,JSON.stringify(v))}catch{} },
 };
 
-// ── Setup UI ────────────────────────────────────────────
-LEVELS.forEach(lv => {
-  const b = document.createElement("button");
-  b.className = "level-btn" + (lv.id === S.level.id ? " active" : "");
-  if (lv.id === S.level.id) { b.style.background = lv.color; b.style.borderColor = lv.color; }
-  b.innerHTML = `<span class="level-lbl">${lv.label}</span><span class="level-desc">${lv.desc}</span>`;
-  b.onclick = () => {
-    S.level = lv;
-    document.querySelectorAll(".level-btn").forEach(x => {
-      x.classList.remove("active"); x.style.background = ""; x.style.borderColor = ""; x.style.color = "";
-    });
-    b.classList.add("active"); b.style.background = lv.color; b.style.borderColor = lv.color; b.style.color = "white";
-    document.getElementById("start-btn").style.background = lv.color;
+function loadHistory()    { return LS.get("sh_history") || []; }
+function saveHistory(h)   { LS.set("sh_history", h.slice(-300)); }
+function loadSettings()   { return LS.get("sh_settings") || {}; }
+function saveSettings()   { LS.set("sh_settings",{levelId:S.level.id,topic:S.topic,speed:S.speed,reps:S.reps,hskPrio:S.hskPrio}); }
+function loadWeakList()   { return LS.get("sh_weak") || []; }
+function saveWeakList(w)  { LS.set("sh_weak", w); }
+function loadSavedSets()  { return LS.get("sh_sets") || []; }
+function saveSavedSets(s) { LS.set("sh_sets", s); }
+
+// ══ State ════════════════════════════════════════════════
+const saved = loadSettings();
+const S = {
+  level:    LEVELS.find(l=>l.id===saved.levelId)||LEVELS[2],
+  topic:    TOPICS.includes(saved.topic)?saved.topic:TOPICS[0],
+  speed:    saved.speed||0.85,
+  reps:     saved.reps||3,
+  hskPrio:  saved.hskPrio||false,
+  sentence: null,
+  phase:    "loading",
+  repCount: 0,
+  isSpeaking:   false,
+  recSeconds:   0, recTimer:null,
+  mediaRecorder:null, chunks:[],
+  recordedBlob: null, recordedUrl:null, modelUrl:null,
+  result:   null,
+  history:  loadHistory(),
+  weakList: loadWeakList(),
+  used:     [],
+  showPinyin:false, showTrans:false, hideHanzi:false,
+  customMode:false, customSentence:null,
+};
+
+// ══ Setup UI ══════════════════════════════════════════════
+// API key
+const savedKey = LS.get("sh_apikey") || "";
+document.getElementById("api-key").value = savedKey;
+document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.value.trim());
+
+// Levels
+LEVELS.forEach(lv=>{
+  const b=document.createElement("button");
+  b.className="level-btn"+(lv.id===S.level.id?" active":"");
+  if(lv.id===S.level.id){b.style.background=lv.color;b.style.borderColor=lv.color;b.style.color="white";}
+  b.innerHTML=`<span class="level-lbl">${lv.label}</span><span class="level-desc">${lv.desc}</span>`;
+  b.onclick=()=>{
+    S.level=lv;
+    document.querySelectorAll(".level-btn").forEach(x=>{x.classList.remove("active");x.style.background="";x.style.borderColor="";x.style.color="";});
+    b.classList.add("active");b.style.background=lv.color;b.style.borderColor=lv.color;b.style.color="white";
+    document.getElementById("start-btn").style.background=lv.color;
   };
   document.getElementById("level-row").appendChild(b);
 });
-document.getElementById("start-btn").style.background = S.level.color;
+document.getElementById("start-btn").style.background=S.level.color;
 
-TOPICS.forEach(t => {
-  const b = document.createElement("button");
-  b.className = "topic-btn" + (t === S.topic ? " active" : "");
-  b.textContent = t;
-  b.onclick = () => { S.topic = t; document.querySelectorAll(".topic-btn").forEach(x => x.classList.remove("active")); b.classList.add("active"); };
+// Topics
+TOPICS.forEach(t=>{
+  const b=document.createElement("button");
+  b.className="topic-btn"+(t===S.topic?" active":"");
+  b.textContent=t;
+  b.onclick=()=>{S.topic=t;document.querySelectorAll(".topic-btn").forEach(x=>x.classList.remove("active"));b.classList.add("active");};
   document.getElementById("topic-grid").appendChild(b);
 });
 
-document.getElementById("speed-slider").oninput = e => {
-  S.speed = parseFloat(e.target.value);
-  document.getElementById("speed-val").textContent = Math.round(S.speed * 100) + "%";
-};
+// Speed
+document.getElementById("speed-slider").value=S.speed;
+document.getElementById("speed-val").textContent=Math.round(S.speed*100)+"%";
+document.getElementById("speed-slider").oninput=e=>{S.speed=parseFloat(e.target.value);document.getElementById("speed-val").textContent=Math.round(S.speed*100)+"%";};
 
-document.getElementById("back-btn").onclick = () => { stopAll(); show("setup"); updateSetupStats(); };
-function updateSetupStats() {
-  const h = S.history;
-  const countEl = document.getElementById("hist-count");
-  const summEl  = document.getElementById("hist-summary");
-  if (!countEl || !summEl) return;
-  if (h.length === 0) {
-    countEl.textContent = "";
-    summEl.textContent = "まだ練習記録がありません";
-    return;
-  }
-  const avg = (h.reduce((s,x)=>s+x.result.score,0)/h.length).toFixed(1);
-  const avgMatch = Math.round(h.reduce((s,x)=>s+x.result.match,0)/h.length);
-  const last = h[h.length-1];
-  const lastDate = last.date ? new Date(last.date).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}) : "";
-  countEl.textContent = `（${h.length}文）`;
-  summEl.innerHTML = `平均スコア <b>${avg}★</b>　平均一致率 <b>${avgMatch}%</b><br><span style="font-size:11px;color:#aaa">最終練習：${lastDate}　最後の文：${last.sentence.zh}</span>`;
-}
+// Reps
+function setReps(n){S.reps=n;["rep2","rep3","rep5"].forEach(id=>document.getElementById(id)?.classList.remove("active"));document.getElementById("rep"+n)?.classList.add("active");}
+setReps(S.reps);
 
-document.getElementById("clear-hist-btn").onclick = () => {
-  if (!confirm("履歴をすべて消去しますか？")) return;
-  S.history = [];
-  saveHistory([]);
-  updateSetupStats();
-};
+// HSK priority
+function setPrio(v){S.hskPrio=v;document.getElementById("prio-off").classList.toggle("active",!v);document.getElementById("prio-on").classList.toggle("active",v);}
+setPrio(S.hskPrio);
 
-// Init stats on load
-updateSetupStats();
-
-// Restore level/topic/speed UI from saved settings
-(()=>{
-  document.querySelectorAll(".level-btn").forEach(b => {
-    const lv = LEVELS.find(l=>b.querySelector(".level-lbl")?.textContent===l.label);
-    if (lv && lv.id===S.level.id) {
-      b.classList.add("active"); b.style.background=lv.color; b.style.borderColor=lv.color; b.style.color="white";
-    }
-  });
-  document.getElementById("start-btn").style.background = S.level.color;
-  document.querySelectorAll(".topic-btn").forEach(b => {
-    if (b.textContent===S.topic) b.classList.add("active");
-  });
-  const slider = document.getElementById("speed-slider");
-  if (slider) { slider.value=S.speed; document.getElementById("speed-val").textContent=Math.round(S.speed*100)+"%"; }
-})();
-
-document.getElementById("start-btn").onclick = () => {
-  const key = document.getElementById("api-key").value.trim();
-  if (!key || key.length < 8) { alert("APIキーを入力してください"); return; }
+// Back / start
+document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
+document.getElementById("start-btn").onclick=()=>{
+  const key=getKey();
+  if(!key||key.length<8){alert("APIキーを入力してください");return;}
+  S.customMode=false; S.customSentence=null;
   startPractice();
 };
 
-// ── API ─────────────────────────────────────────────────
-function getKey() { return document.getElementById("api-key").value.trim(); }
+// ── Setup tabs
+function showSetupTab(name){
+  ["main","custom","weak","shortcuts"].forEach(t=>{
+    document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
+  });
+  document.querySelectorAll(".tab").forEach((b,i)=>{
+    b.classList.toggle("active",["main","custom","weak","shortcuts"][i]===name);
+  });
+  if(name==="weak") renderWeakList();
+  if(name==="custom") renderSavedSets();
+}
 
-async function gemini(messages, system, retries=3) {
-  const body = {
-    system_instruction: system ? { parts:[{text:system}] } : undefined,
-    contents: messages.map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: Array.isArray(m.content)
-        ? m.content.map(c => c.type==="text" ? {text:c.text} : {inline_data:{mime_type:c.mime,data:c.data}})
-        : [{text: m.content}]
+// ── Custom sentence
+function startWithCustom(){
+  const text=document.getElementById("custom-input").value.trim();
+  if(!text){alert("文を入力してください");return;}
+  const key=getKey();
+  if(!key||key.length<8){alert("APIキーを入力してください");return;}
+  S.customMode=true;
+  S.customSentence={zh:text,py:"",ja:""};
+  startPractice();
+  // Fetch pinyin+translation in background
+  (async()=>{
+    try{
+      const raw=await gemini([{role:"user",content:`以下の中国語のピンイン（声調記号付き）と日本語訳を教えてください。\n文：${text}\n\n出力形式（厳守）：\n拼音：<ピンイン>\n訳：<日本語訳>`}]);
+      const py=raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim()||"";
+      const ja=raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim()||"";
+      if(S.sentence&&S.sentence.zh===text){S.sentence.py=py;S.sentence.ja=ja;render();}
+    }catch(e){console.warn(e);}
+  })();
+}
+
+function saveSet(){
+  const text=document.getElementById("custom-input").value.trim();
+  const name=document.getElementById("set-name-input").value.trim()||"セット"+Date.now();
+  if(!text){alert("文を入力してください");return;}
+  const sets=loadSavedSets();
+  sets.push({name,text,date:new Date().toISOString()});
+  saveSavedSets(sets);
+  renderSavedSets();
+}
+
+function renderSavedSets(){
+  const sets=loadSavedSets();
+  const el=document.getElementById("saved-sets-list");
+  if(!el)return;
+  if(!sets.length){el.innerHTML='<div class="info-text">保存済みセットはありません</div>';return;}
+  el.innerHTML=sets.map((s,i)=>`
+    <div class="saved-set">
+      <div style="flex:1">
+        <div class="saved-set-name">${s.name}</div>
+        <div class="saved-set-count" style="font-size:12px;color:#aaa">${s.text.slice(0,30)}${s.text.length>30?"…":""}</div>
+      </div>
+      <button class="weak-btn" style="background:#1a1a2e" onclick="loadSet(${i})">練習</button>
+      <button class="weak-del" onclick="deleteSet(${i})">削除</button>
+    </div>`).join("");
+}
+
+function loadSet(i){
+  const sets=loadSavedSets();
+  if(!sets[i])return;
+  document.getElementById("custom-input").value=sets[i].text;
+  showSetupTab("custom");
+}
+function deleteSet(i){
+  const sets=loadSavedSets();
+  sets.splice(i,1);
+  saveSavedSets(sets);
+  renderSavedSets();
+}
+
+// ── Weak list
+function renderWeakList(){
+  const el=document.getElementById("weak-list");
+  if(!el)return;
+  const w=S.weakList;
+  if(!w.length){el.innerHTML='<div class="info-text">苦手な文はまだありません。スコア3以下の文が自動追加されます。</div>';return;}
+  el.innerHTML=w.map((item,i)=>`
+    <div class="weak-item">
+      <div style="flex:1">
+        <div class="weak-zh">${item.zh}</div>
+        <div style="font-size:12px;color:#aaa">${item.py}</div>
+      </div>
+      <span class="weak-score">${"★".repeat(item.score)}</span>
+      <button class="weak-btn" onclick="practiceWeak(${i})">練習</button>
+      <button class="weak-del" onclick="deleteWeak(${i})">✕</button>
+    </div>`).join("");
+}
+
+function practiceWeak(i){
+  const item=S.weakList[i];
+  if(!item)return;
+  const key=getKey();
+  if(!key||key.length<8){alert("APIキーを入力してください");return;}
+  S.customMode=true;
+  S.customSentence={zh:item.zh,py:item.py,ja:item.ja||""};
+  startPractice();
+}
+function deleteWeak(i){
+  S.weakList.splice(i,1);
+  saveWeakList(S.weakList);
+  renderWeakList();
+}
+
+// ── History stats
+function updateSetupStats(){
+  const h=S.history;
+  const countEl=document.getElementById("hist-count");
+  const summEl=document.getElementById("hist-summary");
+  if(!countEl||!summEl)return;
+  if(!h.length){countEl.textContent="";summEl.textContent="まだ練習記録がありません";return;}
+  const avg=(h.reduce((s,x)=>s+x.result.score,0)/h.length).toFixed(1);
+  const avgM=Math.round(h.reduce((s,x)=>s+x.result.match,0)/h.length);
+  const last=h[h.length-1];
+  const d=last.date?new Date(last.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"}):"";
+  countEl.textContent=`（${h.length}文）`;
+  summEl.innerHTML=`平均 <b>${avg}★</b>　一致率 <b>${avgM}%</b><br><span style="font-size:11px;color:#aaa">最終：${d}　${last.sentence.zh}</span>`;
+}
+function clearHistory(){
+  if(!confirm("履歴をすべて消去しますか？"))return;
+  S.history=[];saveHistory([]);updateSetupStats();
+}
+updateSetupStats();
+renderWeakList();
+renderSavedSets();
+
+// ══ API ══════════════════════════════════════════════════
+function getKey(){return (document.getElementById("api-key")?.value||"").trim();}
+
+async function gemini(messages,system,retries=3){
+  const body={
+    system_instruction:system?{parts:[{text:system}]}:undefined,
+    contents:messages.map(m=>({
+      role:m.role==="assistant"?"model":"user",
+      parts:Array.isArray(m.content)
+        ?m.content.map(c=>c.type==="text"?{text:c.text}:{inline_data:{mime_type:c.mime,data:c.data}})
+        :[{text:m.content}]
     })),
-    generationConfig: { maxOutputTokens:1024, temperature:0.7 }
+    generationConfig:{maxOutputTokens:1024,temperature:0.7}
   };
-
-  for (let attempt=1; attempt<=retries; attempt++) {
-    const res = await fetch(
+  for(let attempt=1;attempt<=retries;attempt++){
+    const res=await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-      { method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":getKey()}, body:JSON.stringify(body) }
+      {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
     );
-    const raw = await res.text();
-    if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
-    const data = JSON.parse(raw);
-
-    // 503 / high demand → wait and retry
-    if (res.status === 503 || data?.error?.code === 503 ||
-        (data?.error?.message||"").includes("high demand") ||
-        (data?.error?.message||"").includes("overloaded")) {
-      if (attempt < retries) {
-        const wait = attempt * 3000; // 3s, 6s
-        console.log(`Gemini混雑中、${wait/1000}秒後にリトライ(${attempt}/${retries})`);
-        await new Promise(r => setTimeout(r, wait));
-        continue;
-      }
-      throw new Error(`Geminiが混雑しています。しばらくしてからもう一度お試しください。`);
+    const raw=await res.text();
+    if(!raw.trim().startsWith("{"))throw new Error(`サーバーエラー(${res.status})`);
+    const data=JSON.parse(raw);
+    if(res.status===503||(data?.error?.message||"").includes("high demand")||(data?.error?.message||"").includes("overloaded")){
+      if(attempt<retries){await new Promise(r=>setTimeout(r,attempt*3000));continue;}
+      throw new Error("Geminiが混雑しています。しばらくしてからお試しください。");
     }
-
-    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    if(!res.ok)throw new Error(data?.error?.message||`HTTP ${res.status}`);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
   }
 }
 
-async function generateSentence() {
-  const levelInstructions = {
-    hsk3: "HSK3級（15字以内）、簡単な日常表現",
-    hsk4: "HSK4級（20字以内）、日常的な話題",
-    hsk5: "HSK5級（25字以内）、社会・感情・意見表現",
-    hsk6: "HSK6級（30字以内）、成語・複雑構文・抽象的内容",
-  };
-  const avoid = S.used.length ? "\n使用済みなので避けること：" + S.used.slice(-5).join("、") : "";
-  const raw = await gemini([{role:"user", content:
+async function generateSentence(){
+  const lvMap={hsk3:"HSK3級（15字以内）簡単な日常表現",hsk4:"HSK4級（20字以内）日常的な話題",hsk5:"HSK5級（25字以内）社会・感情・意見表現",hsk6:"HSK6級（30字以内）成語・複雑構文・抽象的内容"};
+  const hskHint=S.hskPrio?`\n以下のHSK重要単語を1〜2個自然に含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
+  const avoid=S.used.length?"\n使用済みなので避けること："+S.used.slice(-5).join("、"):"";
+  const raw=await gemini([{role:"user",content:
     `シャドーイング練習用の中国語短文を1文だけ生成してください。
-レベル：${levelInstructions[S.level.id]}
-トピック：${S.topic}${avoid}
+レベル：${lvMap[S.level.id]}
+トピック：${S.topic}${hskHint}${avoid}
 
-出力形式（厳守、余計な文章不要）：
+出力形式（厳守）：
 文：<漢字のみ>
 拼音：<声調記号付きピンイン>
 訳：<日本語訳>`}]);
-  const zh = raw.match(/文[：:]\s*(.+)/)?.[1]?.trim();
-  const py = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const ja = raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim() || "";
-  if (!zh) throw new Error("生成失敗: " + raw.slice(0,80));
-  return { zh, py, ja };
+  const zh=raw.match(/文[：:]\s*(.+)/)?.[1]?.trim();
+  const py=raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim()||"";
+  const ja=raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim()||"";
+  if(!zh)throw new Error("生成失敗: "+raw.slice(0,80));
+  return{zh,py,ja};
 }
 
-async function reviewRecording(blob) {
-  // Convert to base64
-  const ab = await blob.arrayBuffer();
-  const bytes = new Uint8Array(ab);
-  let bin = ""; for (let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
-  const b64 = btoa(bin);
-  const mime = blob.type || "audio/webm";
-
-  const raw = await gemini([{role:"user", content:[
-    {type:"text", text:`シャドーイング練習の録音です。
+async function reviewRecording(blob){
+  const ab=await blob.arrayBuffer();
+  const bytes=new Uint8Array(ab);
+  let bin="";for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  const b64=btoa(bin);
+  const mime=blob.type||"audio/webm";
+  const raw=await gemini([{role:"user",content:[
+    {type:"text",text:`シャドーイング練習の録音です。
 お手本：「${S.sentence.zh}」
 拼音：「${S.sentence.py}」
 レベル：${S.level.label}
 
-以下を行ってください：
 1. 音声を文字起こし
-2. お手本との一致度を評価
-3. 声調・発音のズレを具体的に指摘（どの文字の声調が何声になっていたか等）
+2. 一致度を評価
+3. 声調・発音のズレを具体的に指摘
 4. 改善アドバイス
 
 出力形式（厳守）：
 認識：<文字起こし>
 スコア：<1〜5>
 一致率：<0〜100>
-発音詳細：<声調ミス・発音のズレを具体的に日本語で。問題なければ「声調・発音ともに正確です」>
-総評：<日本語で2文程度の総合コメント>`},
-    {type:"audio", mime, data:b64}
+発音詳細：<声調ミス・発音のズレを具体的に日本語で>
+総評：<日本語で2文程度>`},
+    {type:"audio",mime,data:b64}
   ]}]);
-
-  const recognized = raw.match(/認識[：:]\s*(.+)/)?.[1]?.trim() || "（認識できませんでした）";
-  const score = Math.min(5,Math.max(1,parseInt(raw.match(/スコア[：:]\s*(\d)/)?.[1]||"3")));
-  const match = Math.min(100,Math.max(0,parseInt(raw.match(/一致率[：:]\s*(\d+)/)?.[1]||"0")));
-  const pronun = raw.match(/発音詳細[：:]\s*([\s\S]+?)(?=総評|$)/)?.[1]?.trim() || "";
-  const feedback = raw.match(/総評[：:]\s*([\s\S]+)/)?.[1]?.trim() || raw;
-  return { recognized, score, match, pronun, feedback };
+  const recognized=raw.match(/認識[：:]\s*(.+)/)?.[1]?.trim()||"（認識できませんでした）";
+  const score=Math.min(5,Math.max(1,parseInt(raw.match(/スコア[：:]\s*(\d)/)?.[1]||"3")));
+  const match=Math.min(100,Math.max(0,parseInt(raw.match(/一致率[：:]\s*(\d+)/)?.[1]||"0")));
+  const pronun=raw.match(/発音詳細[：:]\s*([\s\S]+?)(?=総評|$)/)?.[1]?.trim()||"";
+  const feedback=raw.match(/総評[：:]\s*([\s\S]+)/)?.[1]?.trim()||raw;
+  return{recognized,score,match,pronun,feedback};
 }
 
-// ── TTS ─────────────────────────────────────────────────
-function speak(text, rate, onEnd) {
-  if (!window.speechSynthesis) { onEnd?.(); return; }
+// ══ TTS ══════════════════════════════════════════════════
+async function speak(text,rate,onEnd){
+  const key=getKey();
+  if(key&&key.length>8){
+    try{await speakWithGemini(text,rate,onEnd);return;}
+    catch(e){console.warn("Gemini TTS失敗:",e.message);}
+  }
+  speakWithWebSpeech(text,rate,onEnd);
+}
+
+async function speakWithGemini(text,rate,onEnd){
+  // Store model audio for playback comparison
+  const body={
+    contents:[{parts:[{text}],role:"user"}],
+    generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
+  };
+  const res=await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
+    {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
+  );
+  const data=await res.json();
+  if(!res.ok)throw new Error(data?.error?.message||`HTTP ${res.status}`);
+  const audioData=data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  if(!audioData)throw new Error("音声データなし");
+  const binary=atob(audioData);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  const blob=new Blob([bytes],{type:"audio/wav"});
+  if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
+  S.modelUrl=URL.createObjectURL(blob);
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+  const source=ctx.createBufferSource();
+  source.buffer=audioBuffer;
+  source.playbackRate.value=rate;
+  source.connect(ctx.destination);
+  source.onended=()=>{S.isSpeaking=false;onEnd?.();render();ctx.close();};
+  source.start();
+}
+
+function speakWithWebSpeech(text,rate,onEnd){
+  if(!window.speechSynthesis){S.isSpeaking=false;onEnd?.();return;}
   window.speechSynthesis.cancel();
-  const go = () => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang="zh-CN"; u.rate=rate; u.pitch=1.0;
-    const zh = window.speechSynthesis.getVoices().find(v=>v.lang.startsWith("zh"));
-    if (zh) u.voice=zh;
-    const t = setTimeout(()=>{ S.isSpeaking=false; onEnd?.(); render(); }, Math.max(4000,text.length*400));
-    u.onend = u.onerror = () => { clearTimeout(t); S.isSpeaking=false; onEnd?.(); render(); };
+  const go=()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="zh-CN";u.rate=rate;u.pitch=1.0;
+    const zh=window.speechSynthesis.getVoices().find(v=>v.lang.startsWith("zh"));
+    if(zh)u.voice=zh;
+    const t=setTimeout(()=>{S.isSpeaking=false;onEnd?.();render();},Math.max(4000,text.length*400));
+    u.onend=u.onerror=()=>{clearTimeout(t);S.isSpeaking=false;onEnd?.();render();};
     window.speechSynthesis.speak(u);
   };
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length>0) setTimeout(go,80);
-  else { window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.onvoiceschanged=null; setTimeout(go,80); }; setTimeout(go,800); }
+  const voices=window.speechSynthesis.getVoices();
+  if(voices.length>0)setTimeout(go,80);
+  else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;setTimeout(go,80);};setTimeout(go,800);}
 }
 
-// ── Recording ───────────────────────────────────────────
-async function startRecording() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    const mime = ["audio/webm","audio/mp4","audio/ogg"].find(m=>MediaRecorder.isTypeSupported(m)) || "";
-    const mr = new MediaRecorder(stream, mime ? {mimeType:mime} : {});
+// ══ Recording ════════════════════════════════════════════
+async function startRecording(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=["audio/webm","audio/mp4","audio/ogg"].find(m=>MediaRecorder.isTypeSupported(m))||"";
+    const mr=new MediaRecorder(stream,mime?{mimeType:mime}:{});
     S.chunks=[];
-    mr.ondataavailable = e => { if(e.data.size>0) S.chunks.push(e.data); };
-    mr.onstop = async () => {
+    mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};
+    mr.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
       clearInterval(S.recTimer);
-      if (!S.chunks.length) { setPhase("record"); showErr("録音データがありません"); return; }
-      const blob = new Blob(S.chunks, {type: mr.mimeType || "audio/webm"});
-      S.recordedBlob = blob;
-      S.recordedUrl = URL.createObjectURL(blob);
-      setPhase("reviewing"); render();
-      try {
-        S.result = await reviewRecording(blob);
-        S.history.push({sentence:{...S.sentence}, result:{...S.result}, date: new Date().toISOString()});
+      if(!S.chunks.length){setPhase("record");showErr("録音データがありません");return;}
+      const blob=new Blob(S.chunks,{type:mr.mimeType||"audio/webm"});
+      S.recordedBlob=blob;
+      if(S.recordedUrl)URL.revokeObjectURL(S.recordedUrl);
+      S.recordedUrl=URL.createObjectURL(blob);
+      setPhase("reviewing");render();
+      try{
+        S.result=await reviewRecording(blob);
+        S.history.push({sentence:{...S.sentence},result:{...S.result},date:new Date().toISOString()});
         saveHistory(S.history);
         S.used.push(S.sentence.zh);
+        // Add to weak list if score <= 3
+        if(S.result.score<=3){
+          const already=S.weakList.some(w=>w.zh===S.sentence.zh);
+          if(!already){
+            S.weakList.push({zh:S.sentence.zh,py:S.sentence.py,ja:S.sentence.ja,score:S.result.score});
+            saveWeakList(S.weakList);
+          }
+        }
         setPhase("result");
-      } catch(e) {
-        S.result = {recognized:"エラー",score:0,match:0,pronun:"",feedback:e.message};
+      }catch(e){
+        S.result={recognized:"エラー",score:0,match:0,pronun:"",feedback:e.message};
         setPhase("result");
       }
       render();
     };
-    mr.onerror = e => { showErr("録音エラー: "+(e.error?.message||"不明")); setPhase("record"); render(); };
+    mr.onerror=e=>{showErr("録音エラー: "+(e.error?.message||"不明"));setPhase("record");render();};
     mr.start(100);
-    S.mediaRecorder=mr; S.recSeconds=0;
-    S.recTimer = setInterval(()=>{ S.recSeconds++; render(); },1000);
-    setPhase("recording"); render();
-  } catch(e) {
+    S.mediaRecorder=mr;S.recSeconds=0;
+    S.recTimer=setInterval(()=>{S.recSeconds++;render();},1000);
+    setPhase("recording");render();
+  }catch(e){
     let msg;
-    if (e.name==="NotAllowedError"||e.name==="PermissionDeniedError") {
-      msg="マイクの許可が必要です。\nChromeの場合：アドレスバー左の🔒→マイク→許可\nSafariの場合：設定→Safari→マイク→許可";
-    } else if (e.name==="NotFoundError") {
-      msg="マイクが見つかりません";
-    } else {
-      msg="マイクエラー: "+e.message;
-    }
+    if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError")
+      msg="マイクの許可が必要です。\nChromeの場合：アドレスバー左の🔒→マイク→許可";
+    else if(e.name==="NotFoundError") msg="マイクが見つかりません";
+    else msg="マイクエラー: "+e.message;
     showErr(msg);
   }
 }
+function stopRecording(){if(S.mediaRecorder?.state==="recording")S.mediaRecorder.stop();clearInterval(S.recTimer);}
+function stopAll(){window.speechSynthesis?.cancel();stopRecording();S.isSpeaking=false;}
 
-function stopRecording() {
-  if (S.mediaRecorder?.state==="recording") S.mediaRecorder.stop();
-  clearInterval(S.recTimer);
-}
+// ══ Flow ═════════════════════════════════════════════════
+function setPhase(p){S.phase=p;}
+function showErr(msg){const el=document.getElementById("err-display");if(el){el.textContent=msg;el.classList.remove("hidden");}}
 
-function stopAll() {
-  window.speechSynthesis?.cancel();
-  stopRecording();
-  S.isSpeaking=false;
-}
+function stepIndex(){const m={listen:0,check:1,read:2,shadow:3,record:3,recording:3,reviewing:4,result:5};return m[S.phase]??0;}
 
-// ── Flow ────────────────────────────────────────────────
-function setPhase(p) { S.phase=p; }
-
-function showErr(msg) {
-  const el = document.getElementById("err-display");
-  if (el) { el.textContent=msg; el.classList.remove("hidden"); }
-}
-
-function currentStepIndex() {
-  const map={listen:0,check:1,read:2,shadow:3,record:3,recording:3,reviewing:4,result:5};
-  return map[S.phase] ?? 0;
-}
-
-async function loadSentence() {
+async function loadSentence(){
   stopAll();
-  S.sentence=null; S.result=null; S.showPinyin=false; S.showTrans=false;
+  S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.recordedBlob=null;
-  if (S.recordedUrl) { URL.revokeObjectURL(S.recordedUrl); S.recordedUrl=null; }
-  setPhase("loading"); render();
-  try {
-    S.sentence = await generateSentence();
+  if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
+  if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);S.modelUrl=null;}
+  setPhase("loading");render();
+  try{
+    if(S.customMode&&S.customSentence){
+      S.sentence=S.customSentence;
+    } else {
+      S.sentence=await generateSentence();
+    }
     setPhase("listen");
-  } catch(e) {
-    setPhase("listen");
-    setTimeout(()=>showErr(e.message),50);
-  }
+  }catch(e){setPhase("listen");setTimeout(()=>showErr(e.message),50);}
   render();
-  // Auto-play on listen step
-  if (S.sentence) { S.isSpeaking=true; render(); speak(S.sentence.zh, S.speed, ()=>{}); }
+  if(S.sentence){S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{});}
 }
 
-function startPractice() {
-  S.used=[];
+function startPractice(){
+  if(!S.customMode)S.used=[];
   saveSettings();
   document.getElementById("top-badge").textContent=S.level.label;
   document.getElementById("top-badge").style.background=S.level.color;
-  document.getElementById("top-topic").textContent=S.topic;
+  document.getElementById("top-topic").textContent=S.customMode?"カスタム文":S.topic;
   show("practice");
   loadSentence();
 }
 
-// ── Render helpers ──────────────────────────────────────
-function starsHtml(n,total=5) {
-  return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?'#f0c040':'#ddd'}">★</span>`).join("");
+function retryRecord(){
+  S.result=null;S.recordedBlob=null;
+  if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
+  setPhase("record");render();
 }
 
-function diffHtml(target, input) {
-  let h="";
-  for (let i=0;i<input.length;i++) {
-    const ok = i<target.length && input[i]===target[i];
-    h+=`<span class="${ok?'ok':'err'}">${input[i]}</span>`;
+function nextStep(){
+  const order=["listen","check","read","shadow","record"];
+  const i=order.indexOf(S.phase);
+  if(i>=0&&i<order.length-1){setPhase(order[i+1]);if(order[i+1]==="record")S.hideHanzi=true;render();}
+  else if(S.phase==="result")loadSentence();
+}
+
+// ══ Render ════════════════════════════════════════════════
+function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#f0c040":"#ddd"}">★</span>`).join("");}
+function matchColor(m){return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626";}
+function diffHtml(target,input){let h="";for(let i=0;i<input.length;i++){const ok=i<target.length&&input[i]===target[i];h+=`<span class="${ok?"ok":"err"}">${input[i]}</span>`;}return h;}
+
+function renderRepDots(){
+  const total=S.reps;
+  let h=`<div class="repeat-counter"><div class="repeat-dots">`;
+  for(let i=0;i<total;i++){
+    const cls=i<S.repCount?"done":i===S.repCount?"active":"";
+    h+=`<div class="rdot ${cls}"></div>`;
   }
+  h+=`</div><span class="repeat-label">${S.repCount}/${total}回</span></div>`;
   return h;
 }
 
-function matchColor(m) { return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626"; }
-
-// ── Main render ─────────────────────────────────────────
-function render() {
-  updateStats();
-  renderStepBar();
-
-  const body = document.getElementById("practice-body");
-  if (!body) return;
-  const ph = S.phase;
-  const s  = S.sentence;
-  const stepIdx = currentStepIndex();
-  let html = "";
-
-  // ── Sentence card ──
-  html += `<div class="card">`;
-  html += `<div class="card-title">${STEPS[Math.min(stepIdx,5)]?.label || ""}</div>`;
-  if (ph==="loading") {
-    html += `<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
-  } else if (s) {
-    // Hanzi: hidden on listen step, revealed after
-    if (ph==="listen") {
-      html += `<div style="text-align:center;font-size:15px;color:#aaa;padding:16px 0">🎧 まず音だけ聞いてください</div>`;
-    } else if (ph==="result") {
-      html += `<div class="hanzi">${s.zh}</div>`;
-      if (S.showPinyin) html += `<div class="pinyin">${s.py}</div>`;
-      html += `<div class="trans">${s.ja}</div>`;
-    } else {
-      // check / read / shadow / record phases - show hanzi
-      html += `<div class="hanzi">${s.zh}</div>`;
-      if (S.showPinyin) {
-        html += `<div class="pinyin">${s.py}</div>`;
-      } else {
-        html += `<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示</button>`;
-      }
-      if (S.showTrans) {
-        html += `<div class="trans">${s.ja}</div>`;
-      } else {
-        html += `<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示</button>`;
-      }
-    }
-  }
-  html += `<div id="err-display" class="err-text hidden" style="margin-top:8px"></div>`;
-  html += `</div>`;
-
-  // ── Controls card ──
-  html += `<div class="card">`;
-
-  // Step instructions + buttons by phase
-  if (ph==="listen" && s) {
-    html += `<div class="step-instruction"><span class="step-num">①初聴</span>　音だけ聞いて耳を慣らします。テキストはまだ見ません。</div>`;
-    html += `<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く"}
-    </button>`;
-    html += `<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 →</button>`;
-  }
-
-  if (ph==="check" && s) {
-    html += `<div class="step-instruction"><span class="step-num">②確認</span>　テキスト・拼音・訳で意味と発音を確認します。</div>`;
-    html += `<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く"}
-    </button>`;
-    html += `<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 →</button>`;
-  }
-
-  if (ph==="read" && s) {
-    html += `<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
-    html += `<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）"}
-    </button>`;
-    html += `<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');render()">次へ：シャドーイング →</button>`;
-  }
-
-  if (ph==="shadow" && s) {
-    html += `<div class="step-instruction"><span class="step-num">④追読</span>　手本の音声に0.5秒遅れで重ねて話しましょう。3回以上繰り返すと効果的です。</div>`;
-    html += `<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）"}
-    </button>`;
-    html += `<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');render()">次へ：録音へ →</button>`;
-  }
-
-  if (ph==="record" && s) {
-    html += `<div class="step-instruction"><span class="step-num">⑤録音</span>　テキストを見ずに、お手本の文を声に出して録音してください。</div>`;
-    html += `<button class="btn btn-red" onclick="startRecording()">🎤 録音開始</button>`;
-  }
-
-  if (ph==="recording") {
-    html += `<div class="rec-status"><span class="rec-dot"></span><span class="rec-label">録音中 ${S.recSeconds}秒</span></div>`;
-    html += `<p style="font-size:13px;color:#777;text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
-    html += `<button class="btn btn-stop" onclick="stopRecording()">⏹ 録音停止・送信</button>`;
-  }
-
-  if (ph==="reviewing") {
-    html += `<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">音声を解析・採点中…</span></div>`;
-  }
-
-  if (ph==="result" && S.result) {
-    const r = S.result;
-    html += `<div class="score-row">
-      <div class="stars">${starsHtml(r.score)} <span style="font-size:14px;color:#888;margin-left:4px">${r.score}/5</span></div>
-      <div class="match-pct">一致率 <span style="font-weight:700;color:${matchColor(r.match)}">${r.match}%</span></div>
-    </div>`;
-
-    // 自分の録音再生
-    if (S.recordedUrl) {
-      html += `<div class="audio-player">
-        <span style="font-size:12px;color:#666;white-space:nowrap">自分の録音</span>
-        <audio controls src="${S.recordedUrl}"></audio>
-      </div>`;
-    }
-
-    // diff
-    html += `<div class="diff-box">
-      <div class="diff-label">認識された発音</div>
-      <div class="diff-text">${diffHtml(s?.zh||"", r.recognized)}</div>
-      <div class="diff-label" style="margin-top:8px">お手本</div>
-      <div class="diff-text diff-target">${s?.zh||""}</div>
-    </div>`;
-
-    // 発音詳細
-    if (r.pronun) {
-      html += `<div class="pronun-box">
-        <div class="pronun-title">🎵 発音・声調の詳細</div>
-        <div class="pronun-text">${r.pronun}</div>
-      </div>`;
-    }
-
-    // 総評
-    html += `<div class="feedback-box">
-      <div class="feedback-title">💬 総評・アドバイス</div>
-      <div class="feedback-text">${r.feedback}</div>
-    </div>`;
-
-    html += `<div class="btn-row">
-      <button class="btn btn-gray" onclick="retryRecord()">⟳ 録り直す</button>
-      <button class="btn" style="background:${S.level.color}" onclick="loadSentence()">次の文 →</button>
-    </div>`;
-  }
-
-  html += `</div>`;
-
-  // History
-  if (S.history.length>0) {
-    html += `<div class="history-wrap"><div class="history-label">HISTORY</div>`;
-    [...S.history].reverse().forEach(h=>{
-      const dateStr = h.date ? new Date(h.date).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : "";
-      html+=`<div class="history-item">
-        <div class="history-zh">${h.sentence.zh}<span style="font-size:11px;color:#ccc;margin-left:8px">${dateStr}</span></div>
-        <div class="history-meta">
-          <span>${starsHtml(h.result.score)}</span>
-          <span style="color:${matchColor(h.result.match)};font-weight:600">${h.result.match}%</span>
-          <span>${h.result.recognized}</span>
-        </div>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  body.innerHTML = html;
-  if (ph==="result") body.scrollTop=body.scrollHeight;
-}
-
-function retryRecord() {
-  S.result=null;
-  S.recordedBlob=null;
-  if (S.recordedUrl) { URL.revokeObjectURL(S.recordedUrl); S.recordedUrl=null; }
-  setPhase("record"); render();
-}
-
-function renderStepBar() {
-  const bar = document.getElementById("step-bar");
-  if (!bar) return;
-  const cur = currentStepIndex();
-  let html="";
-  STEPS.forEach((st,i)=>{
-    const done = i<cur;
-    const active = i===cur;
-    if (i>0) html+=`<div class="step-line${done?" done":""}"></div>`;
-    html+=`<div class="step-item">
-      <div class="step-dot${done?" done":active?" active":""}">${done?"✓":(i+1)}</div>
-      <div class="step-name${done?" done":active?" active":""}">${st.name}</div>
-    </div>`;
-  });
-  bar.innerHTML=html;
-}
-
-function updateStats() {
-  const el=document.getElementById("top-stats"); if(!el) return;
-  const n=S.history.length; if(!n){el.textContent="";return;}
+function updateStats(){
+  const el=document.getElementById("top-stats");if(!el)return;
+  const n=S.history.length;if(!n){el.textContent="";return;}
   const avg=(S.history.reduce((s,h)=>s+h.result.score,0)/n).toFixed(1);
   el.textContent=`${n}文 avg ${avg}★`;
 }
 
-function show(name) {
-  document.getElementById("screen-setup").classList.toggle("hidden", name!=="setup");
-  document.getElementById("screen-practice").classList.toggle("hidden", name!=="practice");
+function renderStepBar(){
+  const bar=document.getElementById("step-bar");if(!bar)return;
+  const cur=stepIndex();let h="";
+  STEPS.forEach((st,i)=>{
+    const done=i<cur,active=i===cur;
+    if(i>0)h+=`<div class="step-line${done?" done":""}"></div>`;
+    h+=`<div class="step-item"><div class="step-dot${done?" done":active?" active":""}">${done?"✓":(i+1)}</div><div class="step-name${done?" done":active?" active":""}">${st.name}</div></div>`;
+  });
+  bar.innerHTML=h;
+}
+
+function render(){
+  updateStats();renderStepBar();
+  const body=document.getElementById("practice-body");if(!body)return;
+  const ph=S.phase,s=S.sentence;
+  let html="";
+
+  // ── Sentence card
+  html+=`<div class="card"><div class="card-title">${STEPS[Math.min(stepIndex(),5)]?.name||""}</div>`;
+  if(ph==="loading"){
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
+  } else if(s){
+    if(ph==="listen"){
+      html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず音だけ聞いてください</div>`;
+    } else if(ph==="result"){
+      html+=`<div class="hanzi">${s.zh}</div>`;
+      if(s.py)html+=`<div class="pinyin">${s.py}</div>`;
+      if(s.ja)html+=`<div class="trans">${s.ja}</div>`;
+    } else {
+      const isShadow=ph==="shadow";
+      if((ph==="record"||ph==="recording"||S.hideHanzi)&&isShadow===false){
+        // record: always hide
+        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
+      } else if(isShadow&&S.hideHanzi){
+        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
+      } else {
+        html+=`<div class="hanzi">${s.zh}</div>`;
+        if(S.showPinyin&&s.py)html+=`<div class="pinyin">${s.py}</div>`;
+        else if(s.py)html+=`<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示 [P]</button>`;
+        if(S.showTrans&&s.ja)html+=`<div class="trans">${s.ja}</div>`;
+        else if(s.ja)html+=`<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示 [T]</button>`;
+        if(isShadow)html+=`<button class="hide-btn" onclick="S.hideHanzi=true;render()">🙈 テキストを隠す [H]</button>`;
+      }
+    }
+  }
+  html+=`<div id="err-display" class="err-text hidden" style="margin-top:8px"></div></div>`;
+
+  // ── Controls card
+  html+=`<div class="card">`;
+
+  if(ph==="listen"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　音だけ聞いて耳を慣らします。</div>`;
+    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
+  }
+  if(ph==="check"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">②確認</span>　テキスト・拼音・訳で意味と発音を確認します。</div>`;
+    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
+  }
+  if(ph==="read"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
+    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
+  }
+  if(ph==="shadow"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　手本に0.5秒遅れて重ねて読みましょう。${S.reps}回繰り返します。</div>`;
+    html+=renderRepDots();
+    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+    html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');S.hideHanzi=true;render()">次へ：録音へ → [→]</button>`;
+  }
+  if(ph==="record"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">⑤録音</span>　テキストを見ずに声に出して録音してください。</div>`;
+    html+=`<button class="btn btn-red" onclick="startRecording()">🎤 録音開始 [R]</button>`;
+  }
+  if(ph==="recording"){
+    html+=`<div class="rec-status"><span class="rec-dot"></span><span class="rec-label">録音中 ${S.recSeconds}秒</span></div>`;
+    html+=`<p style="font-size:13px;color:#777;text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
+    html+=`<button class="btn btn-stop" onclick="stopRecording()">⏹ 録音停止・送信 [R]</button>`;
+  }
+  if(ph==="reviewing"){
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">音声を解析・採点中…</span></div>`;
+  }
+  if(ph==="result"&&S.result){
+    const r=S.result;
+    html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:#888">${r.score}/5</span></div>
+      <div class="match-pct">一致率 <span style="font-weight:700;color:${matchColor(r.match)}">${r.match}%</span></div></div>`;
+    // Audio comparison
+    html+=`<div class="audio-row">`;
+    if(S.modelUrl)html+=`<div class="audio-item"><div class="audio-label">🎙 手本</div><audio controls src="${S.modelUrl}"></audio></div>`;
+    if(S.recordedUrl)html+=`<div class="audio-item"><div class="audio-label">🎤 自分の録音</div><audio controls src="${S.recordedUrl}"></audio></div>`;
+    html+=`</div>`;
+    html+=`<div class="diff-box">
+      <div class="diff-label">認識された発音</div>
+      <div class="diff-text">${diffHtml(s?.zh||"",r.recognized)}</div>
+      <div class="diff-label" style="margin-top:8px">お手本</div>
+      <div class="diff-text diff-target">${s?.zh||""}</div>
+    </div>`;
+    if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${r.pronun}</div></div>`;
+    html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${r.feedback}</div></div>`;
+    html+=`<div class="btn-row">
+      <button class="btn btn-gray" onclick="retryRecord()">⟳ 録り直す</button>
+      <button class="btn" style="background:${S.level.color}" onclick="loadSentence()">次の文 → [N]</button>
+    </div>`;
+  }
+  html+=`</div>`;
+
+  // History
+  if(S.history.length>0){
+    html+=`<div class="history-wrap"><div class="history-label">HISTORY</div>`;
+    [...S.history].reverse().slice(0,10).forEach(h=>{
+      const d=h.date?new Date(h.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+      html+=`<div class="history-item">
+        <div class="history-zh">${h.sentence.zh}<span style="font-size:11px;color:#ccc;margin-left:8px">${d}</span></div>
+        <div class="history-meta"><span>${starsHtml(h.result.score)}</span><span style="color:${matchColor(h.result.match)};font-weight:600">${h.result.match}%</span><span>${h.result.recognized}</span></div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  body.innerHTML=html;
+  if(ph==="result")body.scrollTop=body.scrollHeight;
+}
+
+// ══ Keyboard shortcuts ═══════════════════════════════════
+document.addEventListener("keydown",e=>{
+  // Ignore in input fields
+  if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
+  const ph=S.phase;
+  if(e.code==="Space"){
+    e.preventDefault();
+    if(!S.isSpeaking&&S.sentence&&["listen","check","read","shadow"].includes(ph)){
+      S.isSpeaking=true;
+      if(ph==="shadow")S.repCount=Math.min(S.reps,S.repCount+1);
+      render();
+      speak(S.sentence.zh,S.speed,()=>{});
+    }
+  }
+  if(e.code==="ArrowRight"){nextStep();}
+  if(e.key==="r"||e.key==="R"){
+    if(ph==="record")startRecording();
+    else if(ph==="recording")stopRecording();
+  }
+  if(e.key==="p"||e.key==="P"){S.showPinyin=!S.showPinyin;render();}
+  if(e.key==="t"||e.key==="T"){S.showTrans=!S.showTrans;render();}
+  if(e.key==="h"||e.key==="H"){S.hideHanzi=!S.hideHanzi;render();}
+  if((e.key==="n"||e.key==="N")&&ph==="result"){loadSentence();}
+});
+
+// ══ Screen switch ══════════════════════════════════════════
+function show(name){
+  document.getElementById("screen-setup").classList.toggle("hidden",name!=="setup");
+  document.getElementById("screen-practice").classList.toggle("hidden",name!=="practice");
 }
 </script>
 </body>
