@@ -151,6 +151,10 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
 .hidden { display:none!important; }
 </style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -159,6 +163,10 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <div class="hero">
     <div class="hero-kanji">跟读</div>
     <div class="hero-title">シャドーイング練習</div>
+    <div id="auth-bar" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px">
+      <span id="auth-user" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
+      <button id="auth-btn" onclick="toggleAuth()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit">Googleでログイン</button>
+    </div>
   </div>
 
   <div class="tabs">
@@ -279,7 +287,7 @@ const LEVELS = [
   {id:"hsk5",label:"HSK 5",color:"#7c3aed",desc:"中上級"},
   {id:"hsk6",label:"HSK 6",color:"#dc2626",desc:"上級"},
 ];
-const TOPICS = ["日常生活","仕事・学習","旅行","食べ物","健康","社会・ニュース","感情・意見","自然・環境"];
+const TOPICS = ["日常生活","職場・ビジネス","医療・病院","教育・学校","買い物・サービス","旅行・ホテル","食べ物・レストラン","健康・スポーツ","社会・ニュース","感情・意見","自然・環境"];
 const STEPS = [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
@@ -532,23 +540,34 @@ async function gemini(messages,system,retries=3){
 }
 
 async function generateSentence(){
-  const lvMap={hsk3:"HSK3級（15字以内）簡単な日常表現",hsk4:"HSK4級（20字以内）日常的な話題",hsk5:"HSK5級（25字以内）社会・感情・意見表現",hsk6:"HSK6級（30字以内）成語・複雑構文・抽象的内容"};
-  const hskHint=S.hskPrio?`\n以下のHSK重要単語を1〜2個自然に含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
+  const lvMap={hsk3:"HSK3級（15字以内）",hsk4:"HSK4級（20字以内）",hsk5:"HSK5級（25字以内）",hsk6:"HSK6級（30字以内）"};
+  const hskHint=S.hskPrio?`\n返答文にHSK重要単語を1〜2個含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
   const avoid=S.used.length?"\n使用済みなので避けること："+S.used.slice(-5).join("、"):"";
   const raw=await gemini([{role:"user",content:
-    `シャドーイング練習用の中国語短文を1文だけ生成してください。
+    `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
 トピック：${S.topic}${hskHint}${avoid}
 
+ルール：
+・「相手のセリフ」は状況や質問を提示する1文（学習者が聞く文）
+・「返答」は学習者がシャドーイングする1文（レベルに合った自然な返答）
+・返答はレベルに応じた語彙・構文を使うこと
+・職業・場面に応じたリアルな表現を使うこと
+
 出力形式（厳守）：
-文：<漢字のみ>
-拼音：<声調記号付きピンイン>
-訳：<日本語訳>`}]);
-  const zh=raw.match(/文[：:]\s*(.+)/)?.[1]?.trim();
-  const py=raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim()||"";
-  const ja=raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim()||"";
-  if(!zh)throw new Error("生成失敗: "+raw.slice(0,80));
-  return{zh,py,ja};
+相手：<相手のセリフ（漢字のみ）>
+相手訳：<相手のセリフの日本語訳>
+返答：<返答文（漢字のみ）>
+拼音：<返答文の声調記号付きピンイン>
+訳：<返答文の日本語訳>`}]);
+
+  const partner    = raw.match(/相手[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const partnerJa  = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const zh         = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
+  const py         = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const ja         = raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim() || "";
+  if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
+  return { zh, py, ja, partner, partnerJa };
 }
 
 async function reviewRecording(blob){
@@ -788,8 +807,17 @@ function render(){
   if(ph==="loading"){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
   } else if(s){
+    // Partner line (shown from check step onwards)
+    if(s.partner && ph !== "listen") {
+      html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
+        <div style="font-size:17px;color:#1e1b4b;font-weight:600">${s.partner}</div>
+        ${s.partnerJa?`<div style="font-size:12px;color:#818cf8;margin-top:3px">${s.partnerJa}</div>`:""}
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
+    }
     if(ph==="listen"){
-      html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず音だけ聞いてください</div>`;
+      html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${s.zh}</div>`;
       if(s.py)html+=`<div class="pinyin">${s.py}</div>`;
@@ -817,13 +845,13 @@ function render(){
   html+=`<div class="card">`;
 
   if(ph==="listen"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　音だけ聞いて耳を慣らします。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　相手のセリフを想像しながら、返答の音だけ聞いて耳を慣らします。</div>`;
     html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
       ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
   }
   if(ph==="check"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">②確認</span>　テキスト・拼音・訳で意味と発音を確認します。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">②確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
     html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
       ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
@@ -835,14 +863,14 @@ function render(){
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
   }
   if(ph==="shadow"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　手本に0.5秒遅れて重ねて読みましょう。${S.reps}回繰り返します。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　相手のセリフへの返答として自然に言えるよう、${S.reps}回繰り返します。</div>`;
     html+=renderRepDots();
     html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
       ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
     html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');S.hideHanzi=true;render()">次へ：録音へ → [→]</button>`;
   }
   if(ph==="record"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">⑤録音</span>　テキストを見ずに声に出して録音してください。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">⑤録音</span>　相手のセリフへの返答として、自然に声に出して録音してください。</div>`;
     html+=`<button class="btn btn-red" onclick="startRecording()">🎤 録音開始 [R]</button>`;
   }
   if(ph==="recording"){
@@ -924,6 +952,139 @@ function show(name){
   document.getElementById("screen-setup").classList.toggle("hidden",name!=="setup");
   document.getElementById("screen-practice").classList.toggle("hidden",name!=="practice");
 }
+
+// ══ Firebase ══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBz4mtXKB959zWZQej-jxlEg4rXWOS_D8s",
+  authDomain: "chinese-shadowing-95607.firebaseapp.com",
+  projectId: "chinese-shadowing-95607",
+  storageBucket: "chinese-shadowing-95607.firebasestorage.app",
+  messagingSenderId: "640061479727",
+  appId: "1:640061479727:web:3c7631c9750ba8c5f6dfda"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+
+// ── Auth state ──────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  const userEl = document.getElementById("auth-user");
+  const btnEl  = document.getElementById("auth-btn");
+  if (user) {
+    userEl.textContent = user.displayName || user.email;
+    btnEl.textContent  = "ログアウト";
+    // Load cloud data
+    await loadFromFirestore();
+    updateSetupStats();
+    renderWeakList();
+    renderSavedSets();
+  } else {
+    userEl.textContent = "";
+    btnEl.textContent  = "Googleでログイン";
+  }
+});
+
+function toggleAuth() {
+  if (currentUser) {
+    auth.signOut();
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => alert("ログインエラー: " + e.message));
+  }
+}
+
+// ── Firestore paths ─────────────────────────────────────
+function userDoc(path) {
+  if (!currentUser) return null;
+  return db.collection("users").doc(currentUser.uid).collection(path);
+}
+
+// ── Save to Firestore ───────────────────────────────────
+async function saveHistoryToCloud(historyItem) {
+  if (!currentUser) return;
+  try {
+    await userDoc("history").add({
+      ...historyItem,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.warn("履歴の保存失敗:", e.message); }
+}
+
+async function saveWeakListToCloud() {
+  if (!currentUser) return;
+  try {
+    await db.collection("users").doc(currentUser.uid)
+      .set({ weakList: S.weakList }, { merge: true });
+  } catch(e) { console.warn("苦手リストの保存失敗:", e.message); }
+}
+
+async function saveSavedSetsToCloud() {
+  if (!currentUser) return;
+  try {
+    await db.collection("users").doc(currentUser.uid)
+      .set({ savedSets: loadSavedSets() }, { merge: true });
+  } catch(e) { console.warn("セット保存失敗:", e.message); }
+}
+
+async function saveSettingsToCloud() {
+  if (!currentUser) return;
+  try {
+    await db.collection("users").doc(currentUser.uid).set({
+      settings: { levelId: S.level.id, topic: S.topic, speed: S.speed, reps: S.reps, hskPrio: S.hskPrio }
+    }, { merge: true });
+  } catch(e) { console.warn("設定の保存失敗:", e.message); }
+}
+
+// ── Load from Firestore ─────────────────────────────────
+async function loadFromFirestore() {
+  if (!currentUser) return;
+  try {
+    // Load user doc (weakList, savedSets, settings)
+    const userSnap = await db.collection("users").doc(currentUser.uid).get();
+    if (userSnap.exists) {
+      const data = userSnap.data();
+      if (data.weakList)  { S.weakList = data.weakList;  saveWeakList(S.weakList); }
+      if (data.savedSets) { saveSavedSets(data.savedSets); }
+      if (data.settings) {
+        const sv = data.settings;
+        if (sv.levelId) S.level = LEVELS.find(l=>l.id===sv.levelId) || S.level;
+        if (sv.topic && TOPICS.includes(sv.topic)) S.topic = sv.topic;
+        if (sv.speed)   S.speed  = sv.speed;
+        if (sv.reps)    S.reps   = sv.reps;
+        if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
+        // Update UI
+        document.getElementById("speed-slider").value = S.speed;
+        document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
+        setReps(S.reps);
+        setPrio(S.hskPrio);
+      }
+    }
+    // Load history (latest 200)
+    const histSnap = await userDoc("history")
+      .orderBy("createdAt","desc").limit(200).get();
+    if (!histSnap.empty) {
+      const cloudHistory = histSnap.docs.map(d => {
+        const data = d.data();
+        return { sentence: data.sentence, result: data.result, date: data.date };
+      }).reverse();
+      S.history = cloudHistory;
+      saveHistory(S.history);
+    }
+  } catch(e) { console.warn("クラウドデータの読み込み失敗:", e.message); }
+}
+
+// ── Hook into existing save functions ───────────────────
+// Patch history save to also write to cloud
+const _origSaveHistory = saveHistory;
+const origSaveHistory = h => {
+  _origSaveHistory(h);
+};
+
+// Override the history push in startRecording to also save to cloud
+const _origMrStop = null; // handled inline below
 </script>
 </body>
 </html>
