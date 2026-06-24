@@ -325,6 +325,7 @@ const S = {
   history:  loadHistory(),
   weakList: loadWeakList(),
   used:     [],
+  conversationHistory: [],  // 会話の文脈（最大5ターン）
   showPinyin:false, showTrans:false, hideHanzi:false,
   customMode:false, customSentence:null,
 };
@@ -514,7 +515,7 @@ renderSavedSets();
 // ══ API ══════════════════════════════════════════════════
 function getKey(){return (document.getElementById("api-key")?.value||"").trim();}
 
-// Model priority: 2.0-flash-lite first (higher free quota), fallback to 2.0-flash
+// Model priority: 2.0-flash-lite first (higher free quota), 2.0-flash as fallback
 const GEMINI_MODELS = [
   "gemini-2.0-flash-lite",
   "gemini-2.0-flash",
@@ -581,17 +582,28 @@ async function gemini(messages, system) {
 async function generateSentence(){
   const lvMap={hsk3:"HSK3級（15字以内）",hsk4:"HSK4級（20字以内）",hsk5:"HSK5級（25字以内）",hsk6:"HSK6級（30字以内）"};
   const hskHint=S.hskPrio?`\n返答文にHSK重要単語を1〜2個含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
-  const avoid=S.used.length?"\n使用済みなので避けること："+S.used.slice(-5).join("、"):"";
+
+  // 直前の会話を文脈としてまとめる（最大5ターン）
+  const histLines = S.conversationHistory.slice(-5).map((h,i)=>
+    `ターン${i+1}　相手：${h.partner}　返答：${h.zh}`
+  ).join("\n");
+  const contextHint = histLines
+    ? `\n\n【これまでの会話の流れ（この続きになるよう生成すること）】\n${histLines}`
+    : "";
+
   const raw=await gemini([{role:"user",content:
     `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
-トピック：${S.topic}${hskHint}${avoid}
+トピック：${S.topic}${hskHint}${contextHint}
 
 ルール：
+・これまでの会話の文脈を自然に踏まえた「次のターン」を生成すること
+・文脈がない場合は自然な会話の冒頭から始めること
 ・「相手のセリフ」は状況や質問を提示する1文（学習者が聞く文）
 ・「返答」は学習者がシャドーイングする1文（レベルに合った自然な返答）
 ・返答はレベルに応じた語彙・構文を使うこと
 ・職業・場面に応じたリアルな表現を使うこと
+・前のターンと全く同じ内容・表現は避けること
 
 出力形式（厳守）：
 相手：<相手のセリフ（漢字のみ）>
@@ -652,29 +664,7 @@ async function speak(text,rate,onEnd){
   speakWithWebSpeech(text,rate,onEnd);
 }
 
-// 相手セリフ → 返答の順で連続再生
-async function speakDialog(partnerText, answerText, rate, onEnd) {
-  S.isSpeaking = true; render();
-  try {
-    await new Promise((res, rej) => speak(partnerText, rate, res));
-    await new Promise(r => setTimeout(r, 600));
-    await new Promise((res, rej) => speakAnswer(answerText, rate, res));
-  } catch(e) { console.warn("dialog speak error:", e); }
-  S.isSpeaking = false; onEnd?.(); render();
-}
-
-// 返答文だけ再生（modelUrlを保存）
-async function speakAnswer(text, rate, onEnd) {
-  const key = getKey();
-  if (key && key.length > 8) {
-    try { await speakWithGemini(text, rate, onEnd); return; }
-    catch(e) { console.warn("Gemini TTS失敗:", e.message); }
-  }
-  speakWithWebSpeech(text, rate, onEnd);
-}
-
 async function speakWithGemini(text,rate,onEnd){
-  // Store model audio for playback comparison
   const body={
     contents:[{parts:[{text}],role:"user"}],
     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
@@ -691,7 +681,7 @@ async function speakWithGemini(text,rate,onEnd){
   const bytes=new Uint8Array(binary.length);
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
   const blob=new Blob([bytes],{type:"audio/wav"});
-  // modelUrlは返答文の音声のみ保存（採点画面で再生するため）
+  // 返答文（S.sentence.zh）の音声のみmodelUrlとして保存（採点画面で再生）
   if(text===S.sentence?.zh){
     if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
     S.modelUrl=URL.createObjectURL(blob);
@@ -707,6 +697,17 @@ async function speakWithGemini(text,rate,onEnd){
       source.start();
     }).catch(e=>{ctx.close();reject(e);});
   });
+}
+
+// 相手セリフ → 間隔 → 返答の順で連続再生
+async function speakDialog(partnerText, answerText, rate, onEnd) {
+  S.isSpeaking=true; render();
+  try {
+    await new Promise((res,rej)=>speak(partnerText, rate, res));
+    await new Promise(r=>setTimeout(r, 700));
+    await new Promise((res,rej)=>speak(answerText, rate, res));
+  } catch(e) { console.warn("speakDialog error:", e); }
+  S.isSpeaking=false; onEnd?.(); render();
 }
 
 function speakWithWebSpeech(text,rate,onEnd){
@@ -788,8 +789,9 @@ function showErr(msg){const el=document.getElementById("err-display");if(el){el.
 
 function stepIndex(){const m={listen:0,check:1,read:2,shadow:3,record:3,recording:3,reviewing:4,result:5};return m[S.phase]??0;}
 
-async function loadSentence(){
+async function loadSentence(resetConversation=false){
   stopAll();
+  if(resetConversation) S.conversationHistory = [];
   S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.recordedBlob=null;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
@@ -809,13 +811,13 @@ async function loadSentence(){
     if(S.sentence.partner){
       speakDialog(S.sentence.partner, S.sentence.zh, S.speed, ()=>{});
     } else {
-      speak(S.sentence.zh,S.speed,()=>{});
+      speak(S.sentence.zh, S.speed, ()=>{});
     }
   }
 }
 
 function startPractice(){
-  if(!S.customMode)S.used=[];
+  if(!S.customMode){ S.used=[]; S.conversationHistory=[]; }
   saveSettings();
   document.getElementById("top-badge").textContent=S.level.label;
   document.getElementById("top-badge").style.background=S.level.color;
@@ -834,21 +836,25 @@ function nextStep(){
   const order=["listen","check","read","shadow","record"];
   const i=order.indexOf(S.phase);
   if(i>=0&&i<order.length-1){setPhase(order[i+1]);if(order[i+1]==="record")S.hideHanzi=true;render();}
-  else if(S.phase==="result")loadSentence();
+  else if(S.phase==="result"){
+    // 会話履歴に積み上げ（最大10ターン保持）
+    if(S.sentence&&!S.customMode){
+      S.conversationHistory.push({partner:S.sentence.partner, zh:S.sentence.zh});
+      if(S.conversationHistory.length>10) S.conversationHistory.shift();
+    }
+    loadSentence();
+  }
 }
 
 // ══ Render ════════════════════════════════════════════════
 function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#f0c040":"#ddd"}">★</span>`).join("");}
 function matchColor(m){return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626";}
 function diffHtml(target, input) {
-  // DP-based diff: show matching chars as ok, mismatched/extra as err
   if (!input) return `<span class="err">（認識なし）</span>`;
   const t = Array.from(target), s = Array.from(input);
-  // Build LCS table
   const dp = Array.from({length:t.length+1}, ()=>new Array(s.length+1).fill(0));
   for (let i=1;i<=t.length;i++) for (let j=1;j<=s.length;j++)
     dp[i][j] = t[i-1]===s[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
-  // Traceback to mark matched chars in input
   const matched = new Set();
   let i=t.length, j=s.length;
   while(i>0&&j>0){
@@ -936,11 +942,12 @@ function render(){
   html+=`<div class="card">`;
 
   if(ph==="listen"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　相手のセリフに続いて返答の音を聞き、耳を慣らします。</div>`;
-    if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+    const hasPartner = !!s.partner;
+    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　${hasPartner?"相手のセリフに続いて返答を聞き、耳を慣らします。":"返答の音だけ聞いて耳を慣らします。"}</div>`;
+    if(hasPartner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
         ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      html+=`<button class="btn btn-gray" style="margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
         🔊 返答だけ聞く</button>`;
     } else {
       html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
@@ -949,11 +956,12 @@ function render(){
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
   }
   if(ph==="check"&&s){
+    const hasPartner = !!s.partner;
     html+=`<div class="step-instruction"><span class="step-num">②確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
-    if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+    if(hasPartner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
         ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      html+=`<button class="btn btn-gray" style="margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
         🔊 返答だけ聞く</button>`;
     } else {
       html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
@@ -962,11 +970,12 @@ function render(){
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
   }
   if(ph==="read"&&s){
+    const hasPartner = !!s.partner;
     html+=`<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
-    if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+    if(hasPartner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
         ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+      html+=`<button class="btn btn-gray" style="margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
         🔊 返答だけ聞く</button>`;
     } else {
       html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
@@ -975,12 +984,13 @@ function render(){
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
   }
   if(ph==="shadow"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　相手のセリフへの返答として自然に言えるよう、${S.reps}回繰り返します。</div>`;
+    const hasPartner = !!s.partner;
+    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　${hasPartner?"相手の問いかけに返答するつもりで":""}${S.reps}回繰り返します。</div>`;
     html+=renderRepDots();
-    if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+    if(hasPartner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.repCount=Math.min(S.reps,S.repCount+1);speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
         ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く（+1回）[Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+      html+=`<button class="btn btn-gray" style="margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
         🔊 返答だけ聞く（+1回）</button>`;
     } else {
       html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
@@ -1017,10 +1027,16 @@ function render(){
     </div>`;
     if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${r.pronun}</div></div>`;
     html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${r.feedback}</div></div>`;
+    const turnCount = S.conversationHistory.length;
+    const turnBadge = turnCount>0
+      ? `<div style="text-align:center;font-size:11px;color:#6366f1;margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`
+      : "";
+    html+=turnBadge;
     html+=`<div class="btn-row">
       <button class="btn btn-gray" onclick="retryRecord()">⟳ 録り直す</button>
-      <button class="btn" style="background:${S.level.color}" onclick="loadSentence()">次の文 → [N]</button>
+      <button class="btn" style="background:${S.level.color}" onclick="nextStep()">会話を続ける → [N]</button>
     </div>`;
+    html+=`<button class="btn" style="background:#6b7280;margin-top:6px;font-size:13px" onclick="loadSentence(true)">🔄 新しい話題から始める</button>`;
   }
   html+=`</div>`;
 
@@ -1052,11 +1068,7 @@ document.addEventListener("keydown",e=>{
       S.isSpeaking=true;
       if(ph==="shadow")S.repCount=Math.min(S.reps,S.repCount+1);
       render();
-      if(S.sentence.partner&&ph!=="shadow"){
-        speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{});
-      } else {
-        speak(S.sentence.zh,S.speed,()=>{});
-      }
+      speak(S.sentence.zh,S.speed,()=>{});
     }
   }
   if(e.code==="ArrowRight"){nextStep();}
@@ -1067,7 +1079,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="p"||e.key==="P"){S.showPinyin=!S.showPinyin;render();}
   if(e.key==="t"||e.key==="T"){S.showTrans=!S.showTrans;render();}
   if(e.key==="h"||e.key==="H"){S.hideHanzi=!S.hideHanzi;render();}
-  if((e.key==="n"||e.key==="N")&&ph==="result"){loadSentence();}
+  if((e.key==="n"||e.key==="N")&&ph==="result"){nextStep();}
 });
 
 // ══ Screen switch ══════════════════════════════════════════
@@ -1115,9 +1127,17 @@ function toggleAuth() {
     auth.signOut();
   } else {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => alert("ログインエラー: " + e.message));
+    // signInWithRedirect はドメイン認証不要で GitHub Pages でも動作する
+    auth.signInWithRedirect(provider).catch(e => alert("ログインエラー: " + e.message));
   }
 }
+
+// リダイレクト後に戻ってきたときの結果を処理
+auth.getRedirectResult().catch(e => {
+  if (e.code !== "auth/no-auth-event") {
+    console.warn("リダイレクトログインエラー:", e.message);
+  }
+});
 
 // ── Firestore paths ─────────────────────────────────────
 function userDoc(path) {
