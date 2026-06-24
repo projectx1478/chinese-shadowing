@@ -514,10 +514,10 @@ renderSavedSets();
 // ══ API ══════════════════════════════════════════════════
 function getKey(){return (document.getElementById("api-key")?.value||"").trim();}
 
-// Model priority: 2.5-flash first, fallback to 2.0-flash-lite (higher free quota)
+// Model priority: 2.0-flash-lite first (higher free quota), fallback to 2.0-flash
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",
   "gemini-2.0-flash-lite",
+  "gemini-2.0-flash",
 ];
 
 async function callGeminiModel(model, body) {
@@ -652,6 +652,27 @@ async function speak(text,rate,onEnd){
   speakWithWebSpeech(text,rate,onEnd);
 }
 
+// 相手セリフ → 返答の順で連続再生
+async function speakDialog(partnerText, answerText, rate, onEnd) {
+  S.isSpeaking = true; render();
+  try {
+    await new Promise((res, rej) => speak(partnerText, rate, res));
+    await new Promise(r => setTimeout(r, 600));
+    await new Promise((res, rej) => speakAnswer(answerText, rate, res));
+  } catch(e) { console.warn("dialog speak error:", e); }
+  S.isSpeaking = false; onEnd?.(); render();
+}
+
+// 返答文だけ再生（modelUrlを保存）
+async function speakAnswer(text, rate, onEnd) {
+  const key = getKey();
+  if (key && key.length > 8) {
+    try { await speakWithGemini(text, rate, onEnd); return; }
+    catch(e) { console.warn("Gemini TTS失敗:", e.message); }
+  }
+  speakWithWebSpeech(text, rate, onEnd);
+}
+
 async function speakWithGemini(text,rate,onEnd){
   // Store model audio for playback comparison
   const body={
@@ -659,7 +680,7 @@ async function speakWithGemini(text,rate,onEnd){
     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
   };
   const res=await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-tts:generateContent",
     {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
   );
   const data=await res.json();
@@ -670,16 +691,22 @@ async function speakWithGemini(text,rate,onEnd){
   const bytes=new Uint8Array(binary.length);
   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
   const blob=new Blob([bytes],{type:"audio/wav"});
-  if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
-  S.modelUrl=URL.createObjectURL(blob);
-  const ctx=new(window.AudioContext||window.webkitAudioContext)();
-  const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
-  const source=ctx.createBufferSource();
-  source.buffer=audioBuffer;
-  source.playbackRate.value=rate;
-  source.connect(ctx.destination);
-  source.onended=()=>{S.isSpeaking=false;onEnd?.();render();ctx.close();};
-  source.start();
+  // modelUrlは返答文の音声のみ保存（採点画面で再生するため）
+  if(text===S.sentence?.zh){
+    if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
+    S.modelUrl=URL.createObjectURL(blob);
+  }
+  return new Promise((resolve, reject)=>{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    ctx.decodeAudioData(bytes.buffer.slice(0)).then(audioBuffer=>{
+      const source=ctx.createBufferSource();
+      source.buffer=audioBuffer;
+      source.playbackRate.value=rate;
+      source.connect(ctx.destination);
+      source.onended=()=>{S.isSpeaking=false;onEnd?.();render();ctx.close();resolve();};
+      source.start();
+    }).catch(e=>{ctx.close();reject(e);});
+  });
 }
 
 function speakWithWebSpeech(text,rate,onEnd){
@@ -777,7 +804,14 @@ async function loadSentence(){
     setPhase("listen");
   }catch(e){setPhase("listen");setTimeout(()=>showErr(e.message),50);}
   render();
-  if(S.sentence){S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{});}
+  if(S.sentence){
+    S.isSpeaking=true;render();
+    if(S.sentence.partner){
+      speakDialog(S.sentence.partner, S.sentence.zh, S.speed, ()=>{});
+    } else {
+      speak(S.sentence.zh,S.speed,()=>{});
+    }
+  }
 }
 
 function startPractice(){
@@ -806,7 +840,23 @@ function nextStep(){
 // ══ Render ════════════════════════════════════════════════
 function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#f0c040":"#ddd"}">★</span>`).join("");}
 function matchColor(m){return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626";}
-function diffHtml(target,input){let h="";for(let i=0;i<input.length;i++){const ok=i<target.length&&input[i]===target[i];h+=`<span class="${ok?"ok":"err"}">${input[i]}</span>`;}return h;}
+function diffHtml(target, input) {
+  // DP-based diff: show matching chars as ok, mismatched/extra as err
+  if (!input) return `<span class="err">（認識なし）</span>`;
+  const t = Array.from(target), s = Array.from(input);
+  // Build LCS table
+  const dp = Array.from({length:t.length+1}, ()=>new Array(s.length+1).fill(0));
+  for (let i=1;i<=t.length;i++) for (let j=1;j<=s.length;j++)
+    dp[i][j] = t[i-1]===s[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  // Traceback to mark matched chars in input
+  const matched = new Set();
+  let i=t.length, j=s.length;
+  while(i>0&&j>0){
+    if(t[i-1]===s[j-1]){matched.add(j-1);i--;j--;}
+    else if(dp[i-1][j]>=dp[i][j-1])i--;else j--;
+  }
+  return s.map((c,idx)=>`<span class="${matched.has(idx)?"ok":"err"}">${c}</span>`).join("");
+}
 
 function renderRepDots(){
   const total=S.reps;
@@ -886,28 +936,56 @@ function render(){
   html+=`<div class="card">`;
 
   if(ph==="listen"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　相手のセリフを想像しながら、返答の音だけ聞いて耳を慣らします。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　相手のセリフに続いて返答の音を聞き、耳を慣らします。</div>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
   }
   if(ph==="check"&&s){
     html+=`<div class="step-instruction"><span class="step-num">②確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
   }
   if(ph==="read"&&s){
     html+=`<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
   }
   if(ph==="shadow"&&s){
     html+=`<div class="step-instruction"><span class="step-num">④追読</span>　相手のセリフへの返答として自然に言えるよう、${S.reps}回繰り返します。</div>`;
     html+=renderRepDots();
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く（+1回）[Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く（+1回）</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+    }
     html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');S.hideHanzi=true;render()">次へ：録音へ → [→]</button>`;
   }
   if(ph==="record"&&s){
@@ -974,7 +1052,11 @@ document.addEventListener("keydown",e=>{
       S.isSpeaking=true;
       if(ph==="shadow")S.repCount=Math.min(S.reps,S.repCount+1);
       render();
-      speak(S.sentence.zh,S.speed,()=>{});
+      if(S.sentence.partner&&ph!=="shadow"){
+        speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{});
+      } else {
+        speak(S.sentence.zh,S.speed,()=>{});
+      }
     }
   }
   if(e.code==="ArrowRight"){nextStep();}
