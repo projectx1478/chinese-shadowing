@@ -933,29 +933,57 @@ function render(){
   // ── Controls card
   html+=`<div class="card">`;
 
-  if(ph==="listen"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　相手のセリフを想像しながら、返答の音だけ聞いて耳を慣らします。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+if(ph==="listen"&&s){
+    html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　${s.partner?"相手のセリフに続いて返答を聞き、耳を慣らします。":"返答の音だけ聞いて耳を慣らします。"}</div>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
   }
   if(ph==="check"&&s){
     html+=`<div class="step-instruction"><span class="step-num">②確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
   }
   if(ph==="read"&&s){
     html+=`<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+    }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
   }
   if(ph==="shadow"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　相手のセリフへの返答として自然に言えるよう、${S.reps}回繰り返します。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">④追読</span>　${s.partner?"相手の問いかけに返答するつもりで":""}${S.reps}回繰り返します。</div>`;
     html+=renderRepDots();
-    html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
-      ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+    if(s.partner){
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.repCount=Math.min(S.reps,S.repCount+1);speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く（+1回）[Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+        🔊 返答だけ聞く（+1回）</button>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
+        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+    }
     html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');S.hideHanzi=true;render()">次へ：録音へ → [→]</button>`;
   }
   if(ph==="record"&&s){
@@ -1020,9 +1048,13 @@ document.addEventListener("keydown",e=>{
     e.preventDefault();
     if(!S.isSpeaking&&S.sentence&&["listen","check","read","shadow"].includes(ph)){
       S.isSpeaking=true;
-      if(ph==="shadow")S.repCount=Math.min(S.reps,S.repCount+1);
+      if(ph==="shadow") S.repCount=Math.min(S.reps,S.repCount+1);
       render();
-      speak(S.sentence.zh,S.speed,()=>{});
+      if(S.sentence.partner && ph!=="shadow"){
+        speakDialog(S.sentence.partner, S.sentence.zh, S.speed, ()=>{});
+      } else {
+        speak(S.sentence.zh, S.speed, ()=>{});
+      }
     }
   }
   if(e.code==="ArrowRight"){nextStep();}
