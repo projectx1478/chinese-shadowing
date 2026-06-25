@@ -522,26 +522,30 @@ const GEMINI_MODELS = [
 ];
 
 async function callGeminiModel(model, body) {
+  const key = getKey();
+  if (!key) throw new Error("APIキーが入力されていません");
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    {method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":getKey()}, body:JSON.stringify(body)}
+    {method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":key}, body:JSON.stringify(body)}
   );
   const raw = await res.text();
   if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
   const data = JSON.parse(raw);
-  // Quota exceeded → signal to try next model
-  if (res.status === 429 || (data?.error?.message||"").includes("quota") || (data?.error?.message||"").includes("Quota")) {
-    const err = new Error(data?.error?.message || "quota");
+  const errMsg = data?.error?.message || "";
+  // Quota / rate limit → try next model
+  if (res.status === 429 || res.status === 403 ||
+      /quota|rate.?limit|resource.?exhausted|billing/i.test(errMsg)) {
+    const err = new Error(errMsg || "quota");
     err.isQuota = true;
     throw err;
   }
-  // Temporary overload → signal to retry same model
-  if (res.status === 503 || (data?.error?.message||"").includes("high demand") || (data?.error?.message||"").includes("overloaded")) {
+  // Temporary overload → retry same model
+  if (res.status === 503 || /high.?demand|overload|unavailable/i.test(errMsg)) {
     const err = new Error("overloaded");
     err.isOverload = true;
     throw err;
   }
-  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(errMsg || `HTTP ${res.status}`);
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 }
 
@@ -1138,9 +1142,19 @@ function toggleAuth() {
     auth.signInWithRedirect(provider).catch(e => alert("ログインエラー: " + e.message));
   }
 }
-auth.getRedirectResult().catch(e => {
-  if (e.code !== "auth/no-auth-event") console.warn("リダイレクトログインエラー:", e.message);
+
+// ページロード時にリダイレクト結果を処理（これがないとログインが反映されない）
+auth.getRedirectResult().then(result => {
+  if (result && result.user) {
+    console.log("リダイレクトログイン成功:", result.user.displayName);
+    // onAuthStateChanged が自動で呼ばれるので追加処理不要
+  }
+}).catch(e => {
+  if (e.code && e.code !== "auth/no-auth-event") {
+    alert("ログインエラー: " + e.message);
+  }
 });
+
 
 // ── Firestore paths ─────────────────────────────────────
 function userDoc(path) {
