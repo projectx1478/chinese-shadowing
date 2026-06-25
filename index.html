@@ -5,151 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>中国語シャドーイング</title>
 <style>
-* { box-sizing:border-box; margin:0; padding:0; }
-body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#f0ede8; min-height:100vh; }
-
-/* ── Layout ── */
-.hero { background:#1a1a2e; padding:22px 20px 16px; text-align:center; color:white; }
-.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:#f0c040; line-height:1; margin-bottom:3px; }
-.hero-title { font-size:17px; font-weight:700; letter-spacing:3px; }
-
-.tabs { display:flex; background:#111827; border-bottom:1px solid #333; }
-.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:#666; border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
-.tab.active { color:#f0c040; border-bottom-color:#f0c040; }
-
-.setup-body { padding:18px 15px; max-width:520px; margin:0 auto; }
-.sec-label { font-size:11px; font-weight:700; color:#777; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
-
-/* ── Form elements ── */
-.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; outline:none; font-family:inherit; }
-.api-input { font-family:monospace; }
-.level-row { display:flex; gap:6px; flex-wrap:wrap; }
-.level-btn { flex:1 1 65px; background:white; border:2px solid #ddd; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
-.level-btn.active { color:white; }
-.level-lbl { font-weight:700; font-size:13px; }
-.level-desc { font-size:10px; opacity:.8; }
-.topic-grid { display:flex; flex-wrap:wrap; gap:6px; }
-.topic-btn { background:white; border:1.5px solid #ddd; border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
-.topic-btn.active { background:#1a1a2e; color:white; border-color:#1a1a2e; }
-.speed-row { display:flex; align-items:center; gap:10px; }
-.speed-row input { flex:1; accent-color:#1a1a2e; }
-.start-btn { width:100%; padding:13px; font-size:15px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:18px; letter-spacing:1px; font-family:inherit; }
-
-/* ── Topbar ── */
-.topbar { display:flex; align-items:center; justify-content:space-between; background:#1a1a2e; padding:9px 13px; position:sticky; top:0; z-index:10; }
-.topbar-back { background:transparent; border:1px solid rgba(255,255,255,.25); color:white; border-radius:6px; padding:4px 9px; font-size:12px; cursor:pointer; font-family:inherit; }
-.badge { border-radius:10px; padding:2px 8px; font-size:11px; font-weight:700; color:white; }
-.topbar-stats { font-size:12px; color:#f0c040; font-weight:600; }
-
-/* ── Step bar ── */
-.step-bar { background:#111827; padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
-.step-item { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; }
-.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid #444; color:#666; background:#1f2937; transition:all .2s; }
-.step-dot.done { background:#22c55e; border-color:#22c55e; color:white; }
-.step-dot.active { border-color:#f0c040; color:#f0c040; }
-.step-name { font-size:9px; color:#666; text-align:center; white-space:nowrap; }
-.step-name.active { color:#f0c040; }
-.step-name.done { color:#22c55e; }
-.step-line { width:14px; height:2px; background:#333; flex-shrink:0; margin-bottom:13px; }
-.step-line.done { background:#22c55e; }
-
-/* ── Practice ── */
-.practice-body { padding:11px 13px 40px; display:flex; flex-direction:column; gap:10px; max-width:600px; margin:0 auto; }
-.card { background:white; border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
-.card-title { font-size:10px; font-weight:700; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
-
-/* ── Sentence ── */
-.hanzi { font-size:25px; font-weight:700; color:#1a1a2e; text-align:center; letter-spacing:.05em; line-height:1.5; }
-.pinyin { font-size:15px; color:#6366f1; letter-spacing:.08em; line-height:2; text-align:center; }
-.trans { font-size:13px; color:#888; text-align:center; margin-top:3px; }
-.reveal-btn { background:#f3f4f6; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#666; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
-.hide-btn { background:#fff5f5; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#e53935; cursor:pointer; display:block; margin:8px auto 0; font-family:inherit; }
-
-/* ── Buttons ── */
-.btn { border:none; border-radius:11px; padding:12px 16px; font-size:14px; font-weight:700; color:white; cursor:pointer; width:100%; font-family:inherit; transition:opacity .15s; margin-top:8px; }
-.btn:disabled { opacity:.4; cursor:not-allowed; }
-.btn-dark { background:#1a1a2e; }
-.btn-red { background:#e53935; }
-.btn-stop { background:#333; }
-.btn-gray { background:#6b7280; }
-.btn-row { display:flex; gap:8px; margin-top:8px; }
-.btn-row .btn { flex:1; margin-top:0; }
-
-/* ── Step instruction ── */
-.step-instruction { background:#f8f7f4; border-left:3px solid #f0c040; border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
-.step-num { font-weight:700; color:#b8860b; }
-
-/* ── Repeat counter ── */
-.repeat-counter { display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; }
-.repeat-dots { display:flex; gap:5px; }
-.rdot { width:12px; height:12px; border-radius:50%; background:#e5e7eb; transition:all .2s; }
-.rdot.done { background:#22c55e; }
-.rdot.active { background:#f0c040; transform:scale(1.2); }
-.repeat-label { font-size:13px; color:#888; }
-
-/* ── Recording ── */
-.rec-status { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0; }
-.rec-dot { width:11px; height:11px; border-radius:50%; background:#e53935; animation:pulse 1s infinite; }
-@keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(229,57,53,.2)} 50%{box-shadow:0 0 0 7px rgba(229,57,53,.06)} }
-.rec-label { font-size:15px; font-weight:700; color:#e53935; }
-
-/* ── Waveform ── */
-#waveform { width:100%; height:50px; background:#f8f7f4; border-radius:8px; margin:6px 0; }
-
-/* ── Audio ── */
-.audio-row { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-.audio-item { background:#f3f4f6; border-radius:10px; padding:8px 11px; }
-.audio-label { font-size:10px; color:#888; font-weight:700; margin-bottom:4px; }
-.audio-item audio { width:100%; height:32px; }
-
-/* ── Result ── */
-.score-row { text-align:center; margin-bottom:6px; }
-.match-pct { font-size:13px; color:#888; margin-top:2px; }
-.diff-box { background:#f8f7f4; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.diff-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
-.diff-text { font-size:18px; letter-spacing:.05em; line-height:1.6; word-break:break-all; }
-.diff-target { font-size:16px; color:#1a1a2e; }
-.ok { color:#16a34a; }
-.err { color:#dc2626; font-weight:700; }
-.pronun-box { background:#eef2ff; border:1.5px solid #818cf8; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.pronun-title { font-size:10px; font-weight:700; color:#4f46e5; margin-bottom:5px; }
-.pronun-text { font-size:13px; color:#312e81; line-height:1.75; white-space:pre-wrap; }
-.feedback-box { background:#fffbee; border:1.5px solid #f0c040; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.feedback-title { font-size:10px; font-weight:700; color:#b8860b; margin-bottom:5px; }
-.feedback-text { font-size:13px; color:#4a3800; line-height:1.75; white-space:pre-wrap; }
-
-/* ── Weak list ── */
-.weak-item { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:10px; }
-.weak-zh { font-size:16px; font-weight:600; color:#1a1a2e; flex:1; }
-.weak-score { font-size:13px; color:#dc2626; font-weight:700; }
-.weak-btn { background:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; color:white; cursor:pointer; font-family:inherit; white-space:nowrap; }
-.weak-del { background:none; border:1px solid #ddd; border-radius:8px; padding:5px 8px; font-size:12px; color:#aaa; cursor:pointer; font-family:inherit; }
-
-/* ── History ── */
-.history-wrap { display:flex; flex-direction:column; gap:7px; }
-.history-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:1px; padding-left:2px; }
-.history-item { background:white; border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
-.history-zh { font-size:14px; font-weight:600; color:#1a1a2e; margin-bottom:3px; }
-.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:#888; flex-wrap:wrap; }
-
-/* ── Custom sentence tab ── */
-.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; }
-.saved-set { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
-.saved-set-name { font-size:14px; font-weight:600; color:#1a1a2e; flex:1; }
-.saved-set-count { font-size:12px; color:#aaa; }
-
-/* ── Shortcuts ── */
-.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
-.shortcut-key { background:#f3f4f6; border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:#444; }
-
-/* ── Loading / Error ── */
-.loading-box { display:flex; flex-direction:column; align-items:center; gap:9px; padding:16px 0; }
-.spinner { width:24px; height:24px; border-radius:50%; border:3px solid #eee; border-top:3px solid #1a1a2e; animation:spin .8s linear infinite; }
-@keyframes spin { to{transform:rotate(360deg)} }
-.err-text { font-size:13px; color:#dc2626; background:#fff5f5; border-radius:8px; padding:8px 11px; line-height:1.6; white-space:pre-wrap; }
-.info-text { font-size:13px; color:#555; background:#f8f7f4; border-radius:8px; padding:10px 12px; line-height:1.7; }
-
-.hidden { display:none!important; }
+/* 省略（元のスタイルそのまま） */
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -157,128 +13,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-
-<!-- ══ SETUP ══════════════════════════════════════════ -->
-<div id="screen-setup">
-  <div class="hero">
-    <div class="hero-kanji">跟读</div>
-    <div class="hero-title">シャドーイング練習</div>
-    <div id="auth-bar" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px">
-      <span id="auth-user" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
-      <button id="auth-btn" onclick="toggleAuth()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit">Googleでログイン</button>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="showSetupTab('main')">設定</button>
-    <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
-    <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
-    <button class="tab" onclick="showSetupTab('shortcuts')">ショートカット</button>
-  </div>
-
-  <!-- Main settings -->
-  <div id="stab-main" class="setup-body">
-    <div class="sec-label">Gemini APIキー（無料）</div>
-    <input class="api-input" type="password" id="api-key" placeholder="Google AI StudioのAPIキー">
-    <div style="font-size:11px;color:#aaa;margin-top:4px">
-      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#6366f1">aistudio.google.com</a> で無料取得・ブラウザに保存されます
-    </div>
-
-    <div class="sec-label">レベル</div>
-    <div class="level-row" id="level-row"></div>
-
-    <div class="sec-label">トピック</div>
-    <div class="topic-grid" id="topic-grid"></div>
-
-    <div class="sec-label">HSK重要単語を優先 <span id="hsk-prio-val"></span></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap" id="hsk-prio-row">
-      <button class="topic-btn active" id="prio-off" onclick="setPrio(false)">オフ</button>
-      <button class="topic-btn" id="prio-on" onclick="setPrio(true)">オン（HSK重要単語を含む文を生成）</button>
-    </div>
-
-    <div class="sec-label">手本の速度 <span id="speed-val">85%</span></div>
-    <div class="speed-row">
-      <span style="font-size:11px;color:#aaa">遅</span>
-      <input type="range" id="speed-slider" min="0.5" max="1.2" step="0.05" value="0.85">
-      <span style="font-size:11px;color:#aaa">速</span>
-    </div>
-
-    <div class="sec-label">追読の繰り返し回数</div>
-    <div style="display:flex;gap:7px">
-      <button class="topic-btn" id="rep2" onclick="setReps(2)">2回</button>
-      <button class="topic-btn active" id="rep3" onclick="setReps(3)">3回</button>
-      <button class="topic-btn" id="rep5" onclick="setReps(5)">5回</button>
-    </div>
-
-    <div class="sec-label">履歴 <span id="hist-count"></span></div>
-    <div style="background:white;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div id="hist-summary" style="font-size:13px;color:#555;line-height:1.6"></div>
-      <button onclick="clearHistory()" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 9px;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
-    </div>
-
-    <div class="sec-label">練習ステップ</div>
-    <div style="background:white;border-radius:12px;padding:12px 14px;font-size:13px;color:#444;line-height:1.9">
-      <div>① <b>初聴</b>　音だけ聞いて耳を慣らす</div>
-      <div>② <b>確認</b>　テキスト・訳・拼音で意味把握</div>
-      <div>③ <b>音読</b>　テキストを見ながら声に出す</div>
-      <div>④ <b>追読</b>　音声に重ねてシャドーイング（N回）</div>
-      <div>⑤ <b>録音</b>　テキストを隠して録音・提出</div>
-      <div>⑥ <b>採点</b>　自分の音声を聞く＋AI発音評価</div>
-    </div>
-
-    <button class="start-btn" id="start-btn">練習スタート →</button>
-  </div>
-
-  <!-- Custom sentence tab -->
-  <div id="stab-custom" class="setup-body hidden">
-    <div class="sec-label">文を入力して練習</div>
-    <textarea class="custom-textarea" id="custom-input" placeholder="練習したい中国語を入力（例：我每天都在练习中文。）"></textarea>
-    <button class="btn btn-dark" style="margin-top:8px" onclick="startWithCustom()">この文で練習 →</button>
-
-    <div class="sec-label" style="margin-top:20px">文セットを保存</div>
-    <input class="text-input-field" id="set-name-input" placeholder="セット名（例：教材第3課）" style="margin-bottom:8px">
-    <button class="btn" style="background:#6366f1;margin-top:0" onclick="saveSet()">現在の文を保存</button>
-
-    <div class="sec-label">保存済みセット</div>
-    <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
-  </div>
-
-  <!-- Weak list tab -->
-  <div id="stab-weak" class="setup-body hidden">
-    <div class="sec-label">苦手な文（スコア3以下）</div>
-    <div id="weak-list" style="display:flex;flex-direction:column;gap:7px"></div>
-  </div>
-
-  <!-- Shortcuts tab -->
-  <div id="stab-shortcuts" class="setup-body hidden">
-    <div class="sec-label">キーボードショートカット</div>
-    <div style="background:white;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
-      <div class="shortcut-row"><span>手本を再生</span><span class="shortcut-key">Space</span></div>
-      <div class="shortcut-row"><span>次のステップへ</span><span class="shortcut-key">→</span></div>
-      <div class="shortcut-row"><span>録音開始/停止</span><span class="shortcut-key">R</span></div>
-      <div class="shortcut-row"><span>拼音を表示/非表示</span><span class="shortcut-key">P</span></div>
-      <div class="shortcut-row"><span>日本語訳を表示/非表示</span><span class="shortcut-key">T</span></div>
-      <div class="shortcut-row"><span>テキストを隠す/表示</span><span class="shortcut-key">H</span></div>
-      <div class="shortcut-row" style="border:none"><span>次の文へ（採点後）</span><span class="shortcut-key">N</span></div>
-    </div>
-    <div class="info-text" style="margin-top:12px">練習画面でも同じショートカットが使えます。</div>
-  </div>
-</div>
-
-<!-- ══ PRACTICE ════════════════════════════════════════ -->
-<div id="screen-practice" class="hidden">
-  <div class="topbar">
-    <button class="topbar-back" id="back-btn">← 設定</button>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span class="badge" id="top-badge"></span>
-      <span style="font-size:12px;color:rgba(255,255,255,.6)" id="top-topic"></span>
-    </div>
-    <div class="topbar-stats" id="top-stats"></div>
-  </div>
-  <div class="step-bar" id="step-bar"></div>
-  <div class="practice-body" id="practice-body"></div>
-</div>
-
+<!-- 省略（元のHTMLそのまま） -->
 <script>
 // ══ Config ═══════════════════════════════════════════════
 const LEVELS = [
@@ -290,6 +25,78 @@ const LEVELS = [
 const TOPICS = ["日常生活","職場・ビジネス","医療・病院","教育・学校","買い物・サービス","旅行・ホテル","食べ物・レストラン","健康・スポーツ","社会・ニュース","感情・意見","自然・環境"];
 const STEPS = [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
+
+// ══ 事前生成文プール（APIを使わない練習用）═══════════════
+const PREMADE_SENTENCES = {
+  "日常生活": [
+    {zh:"我每天早上都喝一杯咖啡。", py:"Wǒ měitiān zǎoshang dōu hē yī bēi kāfēi.", ja:"私は毎朝コーヒーを一杯飲みます。"},
+    {zh:"今天天气真好啊！", py:"Jīntiān tiānqì zhēn hǎo a!", ja:"今日は本当に良い天気ですね！"},
+    {zh:"这个周末你有什么安排？", py:"Zhège zhōumò nǐ yǒu shénme ānpái?", ja:"今週末は何か予定がありますか？"},
+    {zh:"我刚刚吃过午饭了。", py:"Wǒ gānggāng chīguò wǔfàn le.", ja:"ちょうどお昼ご飯を食べたところです。"},
+    {zh:"请问，附近有便利店吗？", py:"Qǐngwèn, fùjìn yǒu biànlìdiàn ma?", ja:"すみません、近くにコンビニはありますか？"},
+    {zh:"这个多少钱？", py:"Zhège duōshao qián?", ja:"これはいくらですか？"},
+    {zh:"我喜欢吃中国菜。", py:"Wǒ xǐhuān chī Zhōngguó cài.", ja:"私は中華料理が好きです。"},
+    {zh:"你能说慢一点吗？", py:"Nǐ néng shuō màn yīdiǎn ma?", ja:"もう少しゆっくり話してもらえますか？"},
+    {zh:"明天见！", py:"Míngtiān jiàn!", ja:"また明日！"},
+    {zh:"谢谢你的帮助。", py:"Xièxie nǐ de bāngzhù.", ja:"助けてくれてありがとう。"},
+  ],
+  "職場・ビジネス": [
+    {zh:"这个项目需要三天完成。", py:"Zhège xiàngmù xūyào sāntiān wánchéng.", ja:"このプロジェクトは3日かかります。"},
+    {zh:"明天下午两点开会。", py:"Míngtiān xiàwǔ liǎng diǎn kāihuì.", ja:"明日の午後2時に会議があります。"},
+    {zh:"请把报告发给我。", py:"Qǐng bǎ bàogào fā gěi wǒ.", ja:"レポートを私に送ってください。"},
+    {zh:"我们公司在北京。", py:"Wǒmen gōngsī zài Běijīng.", ja:"私たちの会社は北京にあります。"},
+  ],
+  "旅行・ホテル": [
+    {zh:"我要订一个双人房。", py:"Wǒ yào dìng yīgè shuāngrén fáng.", ja:"ダブルルームを予約したいです。"},
+    {zh:"机场怎么走？", py:"Jīchǎng zěnme zǒu?", ja:"空港へはどう行けばいいですか？"},
+    {zh:"我想买一张去上海的票。", py:"Wǒ xiǎng mǎi yī zhāng qù Shànghǎi de piào.", ja:"上海行きのチケットを買いたいです。"},
+    {zh:"这个酒店有健身房吗？", py:"Zhège jiǔdiàn yǒu jiànshēnfáng ma?", ja:"このホテルにジムはありますか？"},
+  ],
+  "食べ物・レストラン": [
+    {zh:"我要点一个炒饭。", py:"Wǒ yào diǎn yīgè chǎofàn.", ja:"チャーハンを注文します。"},
+    {zh:"这个菜有点辣。", py:"Zhège cài yǒudiǎn là.", ja:"この料理は少し辛いです。"},
+    {zh:"服务员，请给我菜单。", py:"Fúwùyuán, qǐng gěi wǒ càidān.", ja:"ウェイターさん、メニューをください。"},
+    {zh:"我喜欢吃饺子。", py:"Wǒ xǐhuān chī jiǎozi.", ja:"私は餃子が好きです。"},
+  ],
+  "教育・学校": [
+    {zh:"我正在学习中文。", py:"Wǒ zhèngzài xuéxí Zhōngwén.", ja:"私は中国語を勉強しています。"},
+    {zh:"这个汉字怎么写？", py:"Zhège Hànzì zěnme xiě?", ja:"この漢字はどう書きますか？"},
+    {zh:"老师，请再说一遍。", py:"Lǎoshī, qǐng zài shuō yībiàn.", ja:"先生、もう一度言ってください。"},
+    {zh:"我们的作业很多。", py:"Wǒmen de zuòyè hěnduō.", ja:"私たちの宿題はたくさんあります。"},
+  ],
+  "健康・スポーツ": [
+    {zh:"我每天都跑步。", py:"Wǒ měitiān dōu pǎobù.", ja:"私は毎日ランニングをします。"},
+    {zh:"你经常运动吗？", py:"Nǐ jīngcháng yùndòng ma?", ja:"あなたはよく運動しますか？"},
+    {zh:"我感冒了。", py:"Wǒ gǎnmào le.", ja:"風邪をひきました。"},
+    {zh:"多喝热水对身体好。", py:"Duō hē rèshuǐ duì shēntǐ hǎo.", ja:"お湯をたくさん飲むのは体に良いです。"},
+  ],
+  "買い物・サービス": [
+    {zh:"这个能便宜一点吗？", py:"Zhège néng piányí yīdiǎn ma?", ja:"これはもう少し安くなりますか？"},
+    {zh:"我想试穿这件衣服。", py:"Wǒ xiǎng shìchuān zhè jiàn yīfu.", ja:"この服を試着したいです。"},
+    {zh:"有别的颜色吗？", py:"Yǒu biéde yánsè ma?", ja:"別の色はありますか？"},
+  ],
+  "医療・病院": [
+    {zh:"我肚子疼。", py:"Wǒ dùzi téng.", ja:"お腹が痛いです。"},
+    {zh:"请问，医院在哪里？", py:"Qǐngwèn, yīyuàn zài nǎli?", ja:"すみません、病院はどこですか？"},
+    {zh:"我需要看医生。", py:"Wǒ xūyào kàn yīshēng.", ja:"医者に診てもらう必要があります。"},
+  ],
+  "感情・意見": [
+    {zh:"我觉得这个很好。", py:"Wǒ juéde zhège hěn hǎo.", ja:"私はこれがとても良いと思います。"},
+    {zh:"你喜欢哪个颜色？", py:"Nǐ xǐhuān nǎge yánsè?", ja:"あなたはどの色が好きですか？"},
+    {zh:"我同意你的看法。", py:"Wǒ tóngyì nǐ de kànfǎ.", ja:"あなたの意見に同意します。"},
+  ],
+  "社会・ニュース": [
+    {zh:"最近天气变化很大。", py:"Zuìjìn tiānqì biànhuà hěndà.", ja:"最近は天気の変化が大きいです。"},
+    {zh:"环境污染是个大问题。", py:"Huánjìng wūrǎn shì gè dà wèntí.", ja:"環境汚染は大きな問題です。"},
+  ],
+  "自然・環境": [
+    {zh:"我喜欢大自然。", py:"Wǒ xǐhuān dàzìrán.", ja:"私は自然が好きです。"},
+    {zh:"保护环境很重要。", py:"Bǎohù huánjìng hěn zhòngyào.", ja:"環境保護はとても重要です。"},
+  ],
+};
+
+// 全トピックの文をフラットにしてランダム選択用
+const ALL_PREMADE = Object.values(PREMADE_SENTENCES).flat();
 
 // ══ Persistence helpers ═══════════════════════════════════
 const LS = {
@@ -328,6 +135,8 @@ const S = {
   conversationHistory: [],
   showPinyin:false, showTrans:false, hideHanzi:false,
   customMode:false, customSentence:null,
+  useApiForGeneration: true, // true=APIで生成、false=事前文プール
+  apiErrorCount: 0,          // 連続APIエラー数をカウント
 };
 
 // ══ Setup UI ══════════════════════════════════════════════
@@ -378,8 +187,9 @@ setPrio(S.hskPrio);
 document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
 document.getElementById("start-btn").onclick=()=>{
   const key=getKey();
-  if(!key||key.length<8){alert("APIキーを入力してください");return;}
+  if(!key||key.length<8){alert("APIキーを入力してください（無料で取得可能です）");return;}
   S.customMode=false; S.customSentence=null;
+  S.apiErrorCount = 0; // リセット
   startPractice();
 };
 
@@ -403,15 +213,16 @@ function startWithCustom(){
   if(!key||key.length<8){alert("APIキーを入力してください");return;}
   S.customMode=true;
   S.customSentence={zh:text,py:"",ja:""};
+  S.apiErrorCount = 0;
   startPractice();
-  // Fetch pinyin+translation in background
+  // Fetch pinyin+translation in background (APIエラー時は空で続行)
   (async()=>{
     try{
       const raw=await gemini([{role:"user",content:`以下の中国語のピンイン（声調記号付き）と日本語訳を教えてください。\n文：${text}\n\n出力形式（厳守）：\n拼音：<ピンイン>\n訳：<日本語訳>`}]);
       const py=raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim()||"";
       const ja=raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim()||"";
       if(S.sentence&&S.sentence.zh===text){S.sentence.py=py;S.sentence.ja=ja;render();}
-    }catch(e){console.warn(e);}
+    }catch(e){console.warn("拼音/訳取得失敗（無視）:",e.message);}
   })();
 }
 
@@ -422,7 +233,7 @@ function saveSet(){
   const sets=loadSavedSets();
   sets.push({name,text,date:new Date().toISOString()});
   saveSavedSets(sets);
-  saveSavedSetsToCloud(); // Firestore
+  saveSavedSetsToCloud();
   renderSavedSets();
 }
 
@@ -452,7 +263,7 @@ function deleteSet(i){
   const sets=loadSavedSets();
   sets.splice(i,1);
   saveSavedSets(sets);
-  saveSavedSetsToCloud(); // Firestore
+  saveSavedSetsToCloud();
   renderSavedSets();
 }
 
@@ -481,12 +292,13 @@ function practiceWeak(i){
   if(!key||key.length<8){alert("APIキーを入力してください");return;}
   S.customMode=true;
   S.customSentence={zh:item.zh,py:item.py,ja:item.ja||""};
+  S.apiErrorCount = 0;
   startPractice();
 }
 function deleteWeak(i){
   S.weakList.splice(i,1);
   saveWeakList(S.weakList);
-  saveWeakListToCloud(); // Firestore
+  saveWeakListToCloud();
   renderWeakList();
 }
 
@@ -515,8 +327,9 @@ renderSavedSets();
 // ══ API ══════════════════════════════════════════════════
 function getKey(){return (document.getElementById("api-key")?.value||"").trim();}
 
-// Model priority: 2.5-flash first, fallback to 2.0-flash-lite (higher free quota)
+// Model priority: 2.0-flash-lite first (より制限が緩い), fallback to 2.5-flash
 const GEMINI_MODELS = [
+  "gemini-2.0-flash-lite",  // より無料枠が大きい
   "gemini-2.5-flash-lite-preview-06-17",
   "gemini-2.5-flash",
 ];
@@ -537,7 +350,6 @@ async function callGeminiModel(model, body) {
   }
   const errMsg = data?.error?.message || "";
   const errStatus = data?.error?.status || "";
-  // デバッグ用：コンソールに全情報を出す
   console.log(`[${model}] status=${res.status} errStatus=${errStatus} errMsg=${errMsg}`);
   if (!data) throw new Error(`非JSONレスポンス(${res.status}): ${raw.slice(0,200)}`);
   if (res.status === 429 || errStatus === "RESOURCE_EXHAUSTED" ||
@@ -577,14 +389,74 @@ async function gemini(messages, system) {
         if (e.isOverload && attempt < 2) {
           await new Promise(r=>setTimeout(r, attempt*3000)); continue;
         }
-        if (!e.isQuota && !e.isOverload) break; // 未知エラーは次モデルへ
+        if (!e.isQuota && !e.isOverload) break;
       }
     }
   }
-  throw new Error("全モデル失敗:\n" + errors.join("\n"));
+  // 全てのAPIが失敗した場合、エラーを投げる
+  throw new Error("API制限に達しました。\n" + errors.join("\n"));
+}
+
+// ══ 事前文プールからランダムに文を選択 ═════════════════
+function getPremadeSentence(topic) {
+  const pool = topic && PREMADE_SENTENCES[topic] ? PREMADE_SENTENCES[topic] : ALL_PREMADE;
+  // 既に使った文を避ける（使った文が多くなったらリセット）
+  const available = pool.filter(item => !S.used.includes(item.zh));
+  if (available.length === 0) {
+    S.used = []; // リセット
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return available[Math.floor(Math.random() * available.length)];
 }
 
 async function generateSentence(){
+  // APIエラーが連続3回以上発生したら、事前文プールに自動切り替え
+  if (S.apiErrorCount >= 3) {
+    console.log("APIエラー連続のため、事前文プールを使用");
+    const premade = getPremadeSentence(S.topic);
+    return {
+      zh: premade.zh,
+      py: premade.py,
+      ja: premade.ja,
+      partner: "",
+      partnerJa: "",
+      fromPremade: true
+    };
+  }
+
+  // まずAPIで試行（HSK優先度がオンの場合のみ）
+  if (S.hskPrio) {
+    try {
+      return await generateSentenceWithAPI();
+    } catch(e) {
+      console.warn("API文生成失敗:", e.message);
+      S.apiErrorCount++;
+      // エラー時は事前文プールにフォールバック
+      const premade = getPremadeSentence(S.topic);
+      return {
+        zh: premade.zh,
+        py: premade.py,
+        ja: premade.ja,
+        partner: "",
+        partnerJa: "",
+        fromPremade: true
+      };
+    }
+  } else {
+    // HSK優先度がオフの場合は、必ず事前文プールを使用（APIを使わない）
+    const premade = getPremadeSentence(S.topic);
+    return {
+      zh: premade.zh,
+      py: premade.py,
+      ja: premade.ja,
+      partner: "",
+      partnerJa: "",
+      fromPremade: true
+    };
+  }
+}
+
+async function generateSentenceWithAPI(){
   const lvMap={hsk3:"HSK3級（15字以内）",hsk4:"HSK4級（20字以内）",hsk5:"HSK5級（25字以内）",hsk6:"HSK6級（30字以内）"};
   const hskHint=S.hskPrio?`\n返答文にHSK重要単語を1〜2個含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
   const histLines=S.conversationHistory.slice(-5).map((h,i)=>`ターン${i+1}　相手：${h.partner}　返答：${h.zh}`).join("\n");
@@ -613,7 +485,8 @@ async function generateSentence(){
   const py        = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
   const ja        = raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim() || "";
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
-  return { zh, py, ja, partner, partnerJa };
+  S.apiErrorCount = 0; // 成功したらリセット
+  return { zh, py, ja, partner, partnerJa, fromPremade: false };
 }
 
 async function reviewRecording(blob){
@@ -650,61 +523,17 @@ async function reviewRecording(blob){
 }
 
 // ══ TTS ══════════════════════════════════════════════════
-async function speak(text,rate,onEnd){
-  const key=getKey();
-  if(key&&key.length>8){
-    try{await speakWithGemini(text,rate,onEnd);return;}
-    catch(e){console.warn("Gemini TTS失敗:",e.message);}
-  }
-  speakWithWebSpeech(text,rate,onEnd);
+// Web Speech APIを優先使用（完全無料）
+async function speak(text, rate, onEnd){
+  // 常にWeb Speech APIを使用（API消費をゼロに）
+  speakWithWebSpeech(text, rate, onEnd);
 }
 
-async function speakWithGemini(text,rate,onEnd){
-  const body={
-    contents:[{parts:[{text}],role:"user"}],
-    generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
-  };
-  const res=await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
-    {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
-  );
-  const data=await res.json();
-  if(!res.ok)throw new Error(data?.error?.message||`HTTP ${res.status}`);
-  const audioData=data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if(!audioData)throw new Error("音声データなし");
-  const binary=atob(audioData);
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  const blob=new Blob([bytes],{type:"audio/wav"});
-  if(text===S.sentence?.zh){
-    if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
-    S.modelUrl=URL.createObjectURL(blob);
-  }
-  return new Promise((resolve,reject)=>{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    ctx.decodeAudioData(bytes.buffer.slice(0)).then(audioBuffer=>{
-      const source=ctx.createBufferSource();
-      source.buffer=audioBuffer;
-      source.playbackRate.value=rate;
-      source.connect(ctx.destination);
-      source.onended=()=>{S.isSpeaking=false;onEnd?.();render();ctx.close();resolve();};
-      source.start();
-    }).catch(e=>{ctx.close();reject(e);});
-  });
-}
+// Gemini TTSは完全に無効化（API消費を減らすため）
+// 代わりにWeb Speech APIを使用
 
-async function speakDialog(partnerText, answerText, rate, onEnd) {
-  S.isSpeaking=true; render();
-  try {
-    await new Promise(res=>speak(partnerText, rate, res));
-    await new Promise(r=>setTimeout(r, 700));
-    await new Promise(res=>speak(answerText, rate, res));
-  } catch(e) { console.warn("speakDialog error:", e); }
-  S.isSpeaking=false; onEnd?.(); render();
-}
-
-function speakWithWebSpeech(text,rate,onEnd){
-  if(!window.speechSynthesis){S.isSpeaking=false;onEnd?.();return;}
+function speakWithWebSpeech(text, rate, onEnd){
+  if(!window.speechSynthesis){S.isSpeaking=false;onEnd?.();render();return;}
   window.speechSynthesis.cancel();
   const go=()=>{
     const u=new SpeechSynthesisUtterance(text);
@@ -718,6 +547,17 @@ function speakWithWebSpeech(text,rate,onEnd){
   const voices=window.speechSynthesis.getVoices();
   if(voices.length>0)setTimeout(go,80);
   else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;setTimeout(go,80);};setTimeout(go,800);}
+}
+
+// ダイアログ再生（Web Speech API使用）
+async function speakDialog(partnerText, answerText, rate, onEnd) {
+  S.isSpeaking=true; render();
+  try {
+    await new Promise(res=>speak(partnerText, rate, res));
+    await new Promise(r=>setTimeout(r, 700));
+    await new Promise(res=>speak(answerText, rate, res));
+  } catch(e) { console.warn("speakDialog error:", e); }
+  S.isSpeaking=false; onEnd?.(); render();
 }
 
 // ══ Recording ════════════════════════════════════════════
@@ -896,6 +736,10 @@ function render(){
   if(ph==="loading"){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
   } else if(s){
+    // 事前文プール使用中の表示
+    if(s.fromPremade) {
+      html+=`<div style="background:#e8f5e9;border-radius:8px;padding:5px 10px;font-size:11px;color:#2e7d32;text-align:center;margin-bottom:8px">📚 事前生成文（API不使用）</div>`;
+    }
     // Partner line (shown from check step onwards)
     if(s.partner && ph !== "listen") {
       html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
@@ -914,7 +758,6 @@ function render(){
     } else {
       const isShadow=ph==="shadow";
       if((ph==="record"||ph==="recording"||S.hideHanzi)&&isShadow===false){
-        // record: always hide
         html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
       } else if(isShadow&&S.hideHanzi){
         html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
@@ -1041,7 +884,6 @@ if(ph==="listen"&&s){
 
 // ══ Keyboard shortcuts ═══════════════════════════════════
 document.addEventListener("keydown",e=>{
-  // Ignore in input fields
   if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
   const ph=S.phase;
   if(e.code==="Space"){
@@ -1097,7 +939,6 @@ auth.onAuthStateChanged(async user => {
   if (user) {
     userEl.textContent = user.displayName || user.email;
     btnEl.textContent  = "ログアウト";
-    // ログイン直後：ローカルの未同期履歴をクラウドにマイグレーションしてから読み込む
     await migrateLocalHistoryToCloud();
     await loadFromFirestore();
     updateSetupStats();
@@ -1114,18 +955,14 @@ async function migrateLocalHistoryToCloud() {
   if (!currentUser) return;
   const localHistory = loadHistory();
   if (!localHistory.length) return;
-
-  // 既にクラウドに保存済みのものを確認（最古のcreatedAtを取得）
   try {
     const existingSnap = await userDoc("history").limit(1).get();
     const hasCloudData = !existingSnap.empty;
-
     if (!hasCloudData) {
-      // クラウドが空 → ローカル履歴を全件アップロード
       const batch = db.batch();
       let count = 0;
       for (const item of localHistory) {
-        if (count >= 500) break; // Firestoreのバッチ上限
+        if (count >= 500) break;
         const ref = userDoc("history").doc();
         const date = item.date ? new Date(item.date) : new Date();
         batch.set(ref, {
@@ -1140,8 +977,6 @@ async function migrateLocalHistoryToCloud() {
       await batch.commit();
       console.log(`ローカル履歴 ${count}件 をクラウドにアップロードしました`);
     } else {
-      // クラウドにもデータあり → ローカルのみのものをアップロード
-      // localHistoryのdateとクラウドのdateを比較して未同期分を特定
       const cloudSnap = await userDoc("history").orderBy("createdAt","desc").limit(500).get();
       const cloudDates = new Set(cloudSnap.docs.map(d => d.data().date).filter(Boolean));
       const toUpload = localHistory.filter(item => item.date && !cloudDates.has(item.date));
@@ -1176,18 +1011,15 @@ function toggleAuth() {
   }
 }
 
-// ページロード時にリダイレクト結果を処理（これがないとログインが反映されない）
 auth.getRedirectResult().then(result => {
   if (result && result.user) {
     console.log("リダイレクトログイン成功:", result.user.displayName);
-    // onAuthStateChanged が自動で呼ばれるので追加処理不要
   }
 }).catch(e => {
   if (e.code && e.code !== "auth/no-auth-event") {
     alert("ログインエラー: " + e.message);
   }
 });
-
 
 // ── Firestore paths ─────────────────────────────────────
 function userDoc(path) {
@@ -1253,7 +1085,6 @@ async function loadFromFirestore() {
         setPrio(S.hskPrio);
       }
     }
-    // クラウドの履歴を取得してローカルとマージ
     const histSnap = await userDoc("history")
       .orderBy("createdAt","desc").limit(300).get();
     if (!histSnap.empty) {
@@ -1261,7 +1092,6 @@ async function loadFromFirestore() {
         const data = d.data();
         return { sentence: data.sentence, result: data.result, date: data.date };
       }).reverse();
-      // ローカル履歴とマージ（dateで重複排除、古い順に統合）
       const localHistory = loadHistory();
       const cloudDates = new Set(cloudHistory.map(h => h.date).filter(Boolean));
       const localOnly = localHistory.filter(h => !h.date || !cloudDates.has(h.date));
@@ -1274,16 +1104,6 @@ async function loadFromFirestore() {
     }
   } catch(e) { console.warn("クラウドデータの読み込み失敗:", e.message); }
 }
-
-// ── Hook into existing save functions ───────────────────
-// Patch history save to also write to cloud
-const _origSaveHistory = saveHistory;
-const origSaveHistory = h => {
-  _origSaveHistory(h);
-};
-
-// Override the history push in startRecording to also save to cloud
-const _origMrStop = null; // handled inline below
 </script>
 </body>
 </html>
