@@ -524,29 +524,35 @@ const GEMINI_MODELS = [
 async function callGeminiModel(model, body) {
   const key = getKey();
   if (!key) throw new Error("APIキーが入力されていません");
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    {method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":key}, body:JSON.stringify(body)}
-  );
-  const raw = await res.text();
-  if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
-  const data = JSON.parse(raw);
+  let res, raw, data;
+  try {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":key}, body:JSON.stringify(body)}
+    );
+    raw = await res.text();
+    data = raw.trim().startsWith("{") ? JSON.parse(raw) : null;
+  } catch(e) {
+    throw new Error(`通信エラー: ${e.message}`);
+  }
   const errMsg = data?.error?.message || "";
-  // Quota / rate limit → try next model
-  if (res.status === 429 || res.status === 403 ||
-      /quota|rate.?limit|resource.?exhausted|billing/i.test(errMsg)) {
+  const errStatus = data?.error?.status || "";
+  // デバッグ用：コンソールに全情報を出す
+  console.log(`[${model}] status=${res.status} errStatus=${errStatus} errMsg=${errMsg}`);
+  if (!data) throw new Error(`非JSONレスポンス(${res.status}): ${raw.slice(0,200)}`);
+  if (res.status === 429 || errStatus === "RESOURCE_EXHAUSTED" ||
+      /quota|rate.?limit|resource.?exhausted/i.test(errMsg)) {
     const err = new Error(errMsg || "quota");
-    err.isQuota = true;
-    throw err;
+    err.isQuota = true; throw err;
   }
-  // Temporary overload → retry same model
-  if (res.status === 503 || /high.?demand|overload|unavailable/i.test(errMsg)) {
+  if (res.status === 503 || /overload|unavailable|high.?demand/i.test(errMsg)) {
     const err = new Error("overloaded");
-    err.isOverload = true;
-    throw err;
+    err.isOverload = true; throw err;
   }
-  if (!res.ok) throw new Error(errMsg || `HTTP ${res.status}`);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  if (!res.ok) throw new Error(`[${model}] HTTP ${res.status}: ${errMsg || errStatus || raw.slice(0,200)}`);
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!text) throw new Error(`[${model}] レスポンスが空: ${JSON.stringify(data).slice(0,200)}`);
+  return text;
 }
 
 async function gemini(messages, system) {
@@ -560,27 +566,22 @@ async function gemini(messages, system) {
     })),
     generationConfig: {maxOutputTokens:1024, temperature:0.7}
   };
-
+  const errors = [];
   for (const model of GEMINI_MODELS) {
-    // Retry up to 2 times per model for overload
     for (let attempt=1; attempt<=2; attempt++) {
       try {
         return await callGeminiModel(model, body);
       } catch(e) {
-        if (e.isQuota) {
-          console.warn(`${model} クォータ超過 → 次のモデルに切り替え`);
-          break; // try next model
-        }
+        errors.push(`${model}(試行${attempt}): ${e.message}`);
+        if (e.isQuota) break;
         if (e.isOverload && attempt < 2) {
-          console.warn(`${model} 混雑中 → ${attempt*3}秒後にリトライ`);
-          await new Promise(r=>setTimeout(r, attempt*3000));
-          continue;
+          await new Promise(r=>setTimeout(r, attempt*3000)); continue;
         }
-        throw e; // other errors: rethrow
+        if (!e.isQuota && !e.isOverload) break; // 未知エラーは次モデルへ
       }
     }
   }
-  throw new Error("利用可能なGeminiモデルがありません。しばらくしてからお試しください。");
+  throw new Error("全モデル失敗:\n" + errors.join("\n"));
 }
 
 async function generateSentence(){
