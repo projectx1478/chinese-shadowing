@@ -665,7 +665,7 @@ async function speakWithGemini(text,rate,onEnd){
     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
   };
   const res=await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-tts:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
     {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
   );
   const data=await res.json();
