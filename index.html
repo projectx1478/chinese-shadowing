@@ -336,6 +336,7 @@ const S = {
 const savedKey = LS.get("sh_apikey") || "";
 document.getElementById("api-key").value = savedKey;
 document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.value.trim());
+document.getElementById("api-key").onblur  = () => saveApiKeyToCloud();
 
 // Levels
 LEVELS.forEach(lv=>{
@@ -607,7 +608,7 @@ async function generateSentence(){
   const partnerJa = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
   const zh        = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
   const py        = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const ja        = raw.match(/訳[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const ja        = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
   return { zh, py, ja, partner, partnerJa };
 }
@@ -1058,6 +1059,7 @@ auth.onAuthStateChanged(async user => {
     btnEl.textContent  = "ログアウト";
     await migrateLocalHistoryToCloud();
     await loadFromFirestore();
+    await loadApiKeyFromCloud();
     updateSetupStats();
     renderWeakList();
     renderSavedSets();
@@ -1182,6 +1184,45 @@ async function loadFromFirestore() {
       saveHistory(S.history);
     }
   } catch(e) { console.warn("クラウドデータの読み込み失敗:", e.message); }
+}
+
+// ── Google ログイン / ログアウト ─────────────────────────
+function toggleAuth() {
+  if (currentUser) {
+    auth.signOut();
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => {
+      // popupがブロックされた場合はredirectにフォールバック
+      if (e.code === "auth/popup-blocked" || e.code === "auth/popup-closed-by-user") {
+        auth.signInWithRedirect(provider);
+      } else {
+        console.warn("ログイン失敗:", e.message);
+      }
+    });
+  }
+}
+
+// ── APIキーのクラウド保存・読み込み ─────────────────────
+async function saveApiKeyToCloud() {
+  if (!currentUser) return;
+  const key = getKey();
+  if (!key) return;
+  try {
+    await db.collection("users").doc(currentUser.uid).set({ apiKey: key }, { merge: true });
+  } catch(e) { console.warn("APIキー保存失敗:", e.message); }
+}
+
+async function loadApiKeyFromCloud() {
+  if (!currentUser) return;
+  try {
+    const snap = await db.collection("users").doc(currentUser.uid).get();
+    const key = snap.data()?.apiKey;
+    if (key) {
+      const el = document.getElementById("api-key");
+      if (el && !el.value) { el.value = key; }
+    }
+  } catch(e) { console.warn("APIキー読み込み失敗:", e.message); }
 }
 
 </script>
