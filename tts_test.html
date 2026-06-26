@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTS ボイス確認</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+  button { padding: 12px 20px; margin: 8px 4px; font-size: 16px; border-radius: 8px; border: none; cursor: pointer; }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-test { background: #10b981; color: white; }
+  pre { background: #f3f4f6; padding: 12px; border-radius: 8px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+  .ok { color: #10b981; font-weight: bold; }
+  .ng { color: #ef4444; font-weight: bold; }
+</style>
+</head>
+<body>
+<h2>🎤 TTS ボイス確認ツール</h2>
+
+<button class="btn-primary" onclick="listVoices()">① ボイス一覧を取得</button>
+<button class="btn-test" onclick="testZh()">② 中国語テスト再生</button>
+
+<pre id="out">ボタンを押してください...</pre>
+
+<script>
+function listVoices() {
+  const out = document.getElementById('out');
+  const load = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoices = voices.filter(v => v.lang.replace('_','-').startsWith('zh'));
+    let text = `全ボイス数: ${voices.length}\n`;
+    text += `中国語ボイス数: ${zhVoices.length}\n\n`;
+
+    if (zhVoices.length > 0) {
+      text += `✅ 中国語ボイスあり:\n`;
+      zhVoices.forEach((v, i) => {
+        text += `  [${i}] name: "${v.name}"\n`;
+        text += `       lang: ${v.lang}\n`;
+        text += `       local: ${v.localService}\n\n`;
+      });
+    } else {
+      text += `❌ 中国語ボイスが見つかりません\n`;
+      text += `\n--- 全ボイス一覧 ---\n`;
+      voices.forEach(v => { text += `${v.lang}  ${v.name}\n`; });
+    }
+    out.textContent = text;
+  };
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) load();
+  else {
+    out.textContent = 'ボイスを読み込み中...';
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; load(); };
+    setTimeout(load, 1500);
+  }
+}
+
+function testZh() {
+  const out = document.getElementById('out');
+  const voices = window.speechSynthesis.getVoices();
+  const zh = voices.find(v => v.lang.replace('_','-').startsWith('zh'));
+  const u = new SpeechSynthesisUtterance('你好，我在学习中文。');
+  u.lang = 'zh-CN';
+  u.rate = 0.9;
+  if (zh) {
+    u.voice = zh;
+    out.textContent = `再生中... ボイス: "${zh.name}" (${zh.lang})`;
+  } else {
+    out.textContent = `再生中... （中国語ボイスなし、デフォルトで試行）`;
+  }
+  u.onend = () => { out.textContent += '\n✅ 再生完了'; };
+  u.onerror = (e) => { out.textContent += `\n❌ エラー: ${e.error}`; };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+// ページ読み込み時に自動取得試行
+window.addEventListener('load', () => {
+  setTimeout(listVoices, 500);
+});
+</script>
+</body>
+</html>
