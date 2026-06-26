@@ -704,6 +704,7 @@ async function startRecording(){
       clearInterval(S.recTimer);
       if(!S.chunks.length){setPhase("record");showErr("録音データがありません");return;}
       const blob=new Blob(S.chunks,{type:mr.mimeType||"audio/webm"});
+      if(blob.size<1000){setPhase("record");showErr("録音が短すぎます。もう一度試してください");return;}
       S.recordedBlob=blob;
       if(S.recordedUrl)URL.revokeObjectURL(S.recordedUrl);
       S.recordedUrl=URL.createObjectURL(blob);
@@ -796,10 +797,17 @@ function retryRecord(){
   setPhase("record");render();
 }
 
+function goHome(){
+  stopAll();
+  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;
+  if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
+  show("setup");updateSetupStats();renderWeakList();renderSavedSets();
+}
+
 function nextStep(){
   const order=["listen","check","read","shadow","record"];
   const i=order.indexOf(S.phase);
-  if(i>=0&&i<order.length-1){setPhase(order[i+1]);if(order[i+1]==="record")S.hideHanzi=true;render();}
+  if(i>=0&&i<order.length-1){setPhase(order[i+1]);render();}
   else if(S.phase==="result"){
     if(S.sentence&&!S.customMode){
       S.conversationHistory.push({partner:S.sentence.partner||"",zh:S.sentence.zh});
@@ -877,18 +885,16 @@ function render(){
       }
     } else {
       const isShadow=ph==="shadow";
-      if((ph==="record"||ph==="recording"||S.hideHanzi)&&isShadow===false){
-        // record: always hide
-        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
-      } else if(isShadow&&S.hideHanzi){
+      const isRecord=ph==="record"||ph==="recording";
+      if(S.hideHanzi){
         html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
       } else {
         html+=`<div class="hanzi">${s.zh}</div>`;
-        if(S.showPinyin&&s.py)html+=`<div class="pinyin">${s.py}</div>`;
+        if(S.showPinyin&&s.py)html+=`<div class="pinyin">${s.py}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
         else if(s.py)html+=`<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示 [P]</button>`;
-        if(S.showTrans&&s.ja)html+=`<div class="trans">${s.ja}</div>`;
+        if(S.showTrans&&s.ja)html+=`<div class="trans">${s.ja}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
         else if(s.ja)html+=`<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示 [T]</button>`;
-        if(isShadow)html+=`<button class="hide-btn" onclick="S.hideHanzi=true;render()">🙈 テキストを隠す [H]</button>`;
+        if(isShadow||isRecord)html+=`<button class="hide-btn" onclick="S.hideHanzi=true;render()">🙈 テキストを隠す [H]</button>`;
       }
     }
   }
@@ -948,7 +954,7 @@ function render(){
       html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
         ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
     }
-    html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');S.hideHanzi=true;render()">次へ：録音へ → [→]</button>`;
+    html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');render()">次へ：録音へ → [→]</button>`;
   }
   if(ph==="record"&&s){
     html+=`<div class="step-instruction"><span class="step-num">⑤録音</span>　相手のセリフへの返答として、自然に声に出して録音してください。</div>`;
@@ -986,6 +992,17 @@ function render(){
     </div>`;
     html+=`<button class="btn btn-gray" style="margin-top:6px;font-size:13px;opacity:.7" onclick="loadSentence(true)">🔄 新しい話題から始める</button>`;
   }
+
+  // ── 共通ナビ（result以外のフェーズ）
+  if(ph!=="result"&&ph!=="reviewing"&&ph!=="loading"&&s){
+    const prevMap={check:"listen",read:"check",shadow:"read",record:"shadow",recording:"record"};
+    const prev=prevMap[ph];
+    html+=`<div style="display:flex;gap:8px;margin-top:12px">`;
+    if(prev)html+=`<button class="btn btn-gray" style="flex:1;font-size:13px" onclick="setPhase('${prev}');render()">← 前へ戻る</button>`;
+    html+=`<button class="btn btn-gray" style="flex:1;font-size:13px;opacity:.7" onclick="goHome()">🏠 ホームへ</button>`;
+    html+=`</div>`;
+  }
+
   html+=`</div>`;
 
   // History
