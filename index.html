@@ -163,7 +163,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <div class="hero">
     <div class="hero-kanji">跟读</div>
     <div class="hero-title">シャドーイング練習</div>
-    <div id="app-version" style="font-size:10px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px">v2025-06-27</div>
+    <div id="app-version" style="font-size:10px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px">v2025-06-27 00:00</div>
     <div id="auth-bar" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px">
       <span id="auth-user" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
       <button id="auth-btn" onclick="toggleAuth()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit">Googleでログイン</button>
@@ -867,8 +867,14 @@ function render(){
       html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${s.zh}</div>`;
-      if(s.py)html+=`<div class="pinyin">${s.py}</div>`;
-      if(s.ja)html+=`<div class="trans">${s.ja}</div>`;
+      if(s.py){
+        if(S.showPinyin)html+=`<div class="pinyin">${s.py}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
+        else html+=`<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示 [P]</button>`;
+      }
+      if(s.ja){
+        if(S.showTrans)html+=`<div class="trans">${s.ja}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
+        else html+=`<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示 [T]</button>`;
+      }
     } else {
       const isShadow=ph==="shadow";
       if((ph==="record"||ph==="recording"||S.hideHanzi)&&isShadow===false){
