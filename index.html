@@ -645,48 +645,20 @@ async function reviewRecording(blob){
 }
 
 // ══ TTS ══════════════════════════════════════════════════
-async function speak(text,rate,onEnd){
-  const key=getKey();
-  if(key&&key.length>8){
-    try{await speakWithGemini(text,rate,onEnd);return;}
-    catch(e){console.warn("Gemini TTS失敗:",e.message);}
-  }
-  speakWithWebSpeech(text,rate,onEnd);
+
+// 中国語ボイス選択（優先順位: zh-CN local > zh-CN > zh-TW > zh系任意）
+function pickZhVoice(){
+  const voices=window.speechSynthesis.getVoices();
+  const zh=voices.filter(v=>v.lang.replace('_','-').startsWith('zh'));
+  return zh.find(v=>v.lang.replace('_','-').startsWith('zh-CN')&&v.localService)
+      || zh.find(v=>v.lang.replace('_','-').startsWith('zh-CN'))
+      || zh.find(v=>v.lang.replace('_','-').startsWith('zh-TW'))
+      || zh[0]
+      || null;
 }
 
-async function speakWithGemini(text,rate,onEnd){
-  const body={
-    contents:[{parts:[{text}],role:"user"}],
-    generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Aoede"}}}}
-  };
-  const res=await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent",
-    {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":getKey()},body:JSON.stringify(body)}
-  );
-  const data=await res.json();
-  if(!res.ok)throw new Error(data?.error?.message||`HTTP ${res.status}`);
-  const audioData=data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if(!audioData)throw new Error("音声データなし");
-  const binary=atob(audioData);
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-  const blob=new Blob([bytes],{type:"audio/wav"});
-  // 返答文のみmodelUrlとして保存（採点画面で再生）
-  if(text===S.sentence?.zh){
-    if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);}
-    S.modelUrl=URL.createObjectURL(blob);
-  }
-  return new Promise((resolve,reject)=>{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    ctx.decodeAudioData(bytes.buffer.slice(0)).then(audioBuffer=>{
-      const source=ctx.createBufferSource();
-      source.buffer=audioBuffer;
-      source.playbackRate.value=rate;
-      source.connect(ctx.destination);
-      source.onended=()=>{S.isSpeaking=false;onEnd?.();render();ctx.close();resolve();};
-      source.start();
-    }).catch(e=>{ctx.close();reject(e);});
-  });
+async function speak(text,rate,onEnd){
+  speakWithWebSpeech(text,rate,onEnd);
 }
 
 async function speakDialog(partnerText, answerText, rate, onEnd){
@@ -705,10 +677,11 @@ function speakWithWebSpeech(text,rate,onEnd){
   const go=()=>{
     const u=new SpeechSynthesisUtterance(text);
     u.lang="zh-CN";u.rate=rate;u.pitch=1.0;
-    const zh=window.speechSynthesis.getVoices().find(v=>v.lang.startsWith("zh"));
-    if(zh)u.voice=zh;
+    const voice=pickZhVoice();
+    if(voice)u.voice=voice;
     const t=setTimeout(()=>{S.isSpeaking=false;onEnd?.();render();},Math.max(4000,text.length*400));
-    u.onend=u.onerror=()=>{clearTimeout(t);S.isSpeaking=false;onEnd?.();render();};
+    u.onend=()=>{clearTimeout(t);S.isSpeaking=false;onEnd?.();render();};
+    u.onerror=(e)=>{clearTimeout(t);console.warn("WebSpeech error:",e.error);S.isSpeaking=false;onEnd?.();render();};
     window.speechSynthesis.speak(u);
   };
   const voices=window.speechSynthesis.getVoices();
@@ -784,7 +757,7 @@ async function loadSentence(resetConversation=false){
   S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.recordedBlob=null;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
-  if(S.modelUrl){URL.revokeObjectURL(S.modelUrl);S.modelUrl=null;}
+
   setPhase("loading");render();
   try{
     if(S.customMode&&S.customSentence){
@@ -988,7 +961,7 @@ function render(){
     html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:#888">${r.score}/5</span></div>
       <div class="match-pct">一致率 <span style="font-weight:700;color:${matchColor(r.match)}">${r.match}%</span></div></div>`;
     html+=`<div class="audio-row">`;
-    if(S.modelUrl)html+=`<div class="audio-item"><div class="audio-label">🎙 手本</div><audio controls src="${S.modelUrl}"></audio></div>`;
+    html+=`<div class="audio-item"><div class="audio-label">🎙 手本</div><button class="btn" style="padding:6px 14px;font-size:13px" onclick="S.isSpeaking=true;render();speak('${(s?.zh||'').replace(/'/g,"\\'")}',S.speed,()=>{S.isSpeaking=false;render();})">▶ 再生</button></div>`;
     if(S.recordedUrl)html+=`<div class="audio-item"><div class="audio-label">🎤 自分の録音</div><audio controls src="${S.recordedUrl}"></audio></div>`;
     html+=`</div>`;
     html+=`<div class="diff-box">
