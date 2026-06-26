@@ -519,9 +519,8 @@ function getKey(){return (document.getElementById("api-key")?.value||"").trim();
 
 // Model priority: 2.5-flash first, fallback to 2.0-flash-lite (higher free quota)
 const GEMINI_MODELS = [
-  "gemini-2.5-flash-lite",      // 安定版・無料枠あり
-  "gemini-3.1-flash-lite-preview", // フォールバック
-  "gemini-2.5-flash",           // 最終フォールバック
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
 ];
 
 async function callGeminiModel(model, body) {
