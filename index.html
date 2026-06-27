@@ -163,7 +163,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <div class="hero">
     <div class="hero-kanji">跟读</div>
     <div class="hero-title">シャドーイング練習</div>
-    <div id="app-version" style="font-size:10px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px">v2025-06-27 00:00</div>
+    <div id="app-version" style="font-size:10px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px">読込中…</div>
     <div id="auth-bar" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px">
       <span id="auth-user" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
       <button id="auth-btn" onclick="toggleAuth()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit">Googleでログイン</button>
@@ -336,6 +336,24 @@ const S = {
 const savedKey = LS.get("sh_apikey") || "";
 document.getElementById("api-key").value = savedKey;
 document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.value.trim());
+
+// ── バージョン表示（GitHub APIから最終コミット日時を取得）─────
+(async()=>{
+  const el=document.getElementById("app-version");
+  if(!el)return;
+  try{
+    const [owner,...repoParts]=location.pathname.replace(/^\//,"").split("/");
+    const repo=repoParts[0];
+    if(!owner||!repo){el.textContent="";return;}
+    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?path=index.html&per_page=1`);
+    if(!res.ok){el.textContent="";return;}
+    const data=await res.json();
+    const date=new Date(data[0]?.commit?.committer?.date||data[0]?.commit?.author?.date);
+    if(isNaN(date)){el.textContent="";return;}
+    const s=d=>String(d).padStart(2,"0");
+    el.textContent=`v${date.getFullYear()}-${s(date.getMonth()+1)}-${s(date.getDate())} ${s(date.getHours())}:${s(date.getMinutes())}`;
+  }catch(e){el.textContent="";}
+})();
 document.getElementById("api-key").onblur  = () => saveApiKeyToCloud();
 
 // Levels
@@ -519,8 +537,9 @@ function getKey(){return (document.getElementById("api-key")?.value||"").trim();
 
 // Model priority: 2.5-flash first, fallback to 2.0-flash-lite (higher free quota)
 const GEMINI_MODELS = [
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-flash",
+  "gemini-3.1-flash-lite",   // 最優先（高速・低コスト・高品質）
+  "gemini-2.5-flash-lite",   // フォールバック①
+  "gemini-2.5-flash",        // フォールバック②
 ];
 
 async function callGeminiModel(model, body) {
