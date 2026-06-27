@@ -174,6 +174,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <button class="tab active" onclick="showSetupTab('main')">設定</button>
     <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
     <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
+    <button class="tab" onclick="showSetupTab('history')">履歴・分析</button>
     <button class="tab" onclick="showSetupTab('shortcuts')">ショートカット</button>
   </div>
 
@@ -195,6 +196,12 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <div style="display:flex;gap:8px;flex-wrap:wrap" id="hsk-prio-row">
       <button class="topic-btn active" id="prio-off" onclick="setPrio(false)">オフ</button>
       <button class="topic-btn" id="prio-on" onclick="setPrio(true)">オン（HSK重要単語を含む文を生成）</button>
+    </div>
+
+    <div class="sec-label">練習スタイル</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="topic-btn active" id="style-answer" onclick="setStyle('answer')">返答文（相手の質問に答える）</button>
+      <button class="topic-btn" id="style-question" onclick="setStyle('question')">疑問文（こちらから質問する）</button>
     </div>
 
     <div class="sec-label">手本の速度 <span id="speed-val">85%</span></div>
@@ -250,6 +257,17 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <div id="weak-list" style="display:flex;flex-direction:column;gap:7px"></div>
   </div>
 
+  <!-- History & Analysis tab -->
+  <div id="stab-history" class="setup-body hidden">
+    <div class="sec-label">分析レーダーチャート</div>
+    <div style="background:white;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
+      <canvas id="radar-chart" width="280" height="280"></canvas>
+      <div id="radar-legend" style="font-size:11px;color:#888;margin-top:6px;text-align:center"></div>
+    </div>
+    <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#aaa;font-weight:normal"></span></div>
+    <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
   <!-- Shortcuts tab -->
   <div id="stab-shortcuts" class="setup-body hidden">
     <div class="sec-label">キーボードショートカット</div>
@@ -301,7 +319,7 @@ const LS = {
 function loadHistory()    { return LS.get("sh_history") || []; }
 function saveHistory(h)   { LS.set("sh_history", h.slice(-300)); }
 function loadSettings()   { return LS.get("sh_settings") || {}; }
-function saveSettings()   { LS.set("sh_settings",{levelId:S.level.id,topic:S.topic,speed:S.speed,reps:S.reps,hskPrio:S.hskPrio}); saveSettingsToCloud(); }
+function saveSettings()   { LS.set("sh_settings",{levelId:S.level.id,topic:S.topic,speed:S.speed,reps:S.reps,hskPrio:S.hskPrio,practiceStyle:S.practiceStyle}); saveSettingsToCloud(); }
 function loadWeakList()   { return LS.get("sh_weak") || []; }
 function saveWeakList(w)  { LS.set("sh_weak", w); }
 function loadSavedSets()  { return LS.get("sh_sets") || []; }
@@ -315,6 +333,7 @@ const S = {
   speed:    saved.speed||0.85,
   reps:     saved.reps||3,
   hskPrio:  saved.hskPrio||false,
+  practiceStyle: saved.practiceStyle||"answer",
   sentence: null,
   phase:    "loading",
   repCount: 0,
@@ -337,19 +356,13 @@ const savedKey = LS.get("sh_apikey") || "";
 document.getElementById("api-key").value = savedKey;
 document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.value.trim());
 
-// ── バージョン表示（GitHub APIから最終コミット日時を取得）─────
-(async()=>{
+// ── バージョン表示（ファイルの最終更新日時から取得）─────
+(()=>{
   const el=document.getElementById("app-version");
   if(!el)return;
   try{
-    const [owner,...repoParts]=location.pathname.replace(/^\//,"").split("/");
-    const repo=repoParts[0];
-    if(!owner||!repo){el.textContent="";return;}
-    const res=await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?path=index.html&per_page=1`);
-    if(!res.ok){el.textContent="";return;}
-    const data=await res.json();
-    const date=new Date(data[0]?.commit?.committer?.date||data[0]?.commit?.author?.date);
-    if(isNaN(date)){el.textContent="";return;}
+    const date=new Date(document.lastModified);
+    if(isNaN(date)||date.getFullYear()<2020){el.textContent="";return;}
     const s=d=>String(d).padStart(2,"0");
     el.textContent=`v${date.getFullYear()}-${s(date.getMonth()+1)}-${s(date.getDate())} ${s(date.getHours())}:${s(date.getMinutes())}`;
   }catch(e){el.textContent="";}
@@ -393,6 +406,8 @@ setReps(S.reps);
 // HSK priority
 function setPrio(v){S.hskPrio=v;document.getElementById("prio-off").classList.toggle("active",!v);document.getElementById("prio-on").classList.toggle("active",v);}
 setPrio(S.hskPrio);
+function setStyle(v){S.practiceStyle=v;document.getElementById("style-answer").classList.toggle("active",v==="answer");document.getElementById("style-question").classList.toggle("active",v==="question");saveSettings();}
+setStyle(S.practiceStyle);
 
 // Back / start
 document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
@@ -405,14 +420,15 @@ document.getElementById("start-btn").onclick=()=>{
 
 // ── Setup tabs
 function showSetupTab(name){
-  ["main","custom","weak","shortcuts"].forEach(t=>{
+  ["main","custom","weak","history","shortcuts"].forEach(t=>{
     document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
   });
   document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","custom","weak","shortcuts"][i]===name);
+    b.classList.toggle("active",["main","custom","weak","history","shortcuts"][i]===name);
   });
   if(name==="weak") renderWeakList();
   if(name==="custom") renderSavedSets();
+  if(name==="history") renderHistoryTab();
 }
 
 // ── Custom sentence
@@ -492,6 +508,125 @@ function renderWeakList(){
       <button class="weak-btn" onclick="practiceWeak(${i})">練習</button>
       <button class="weak-del" onclick="deleteWeak(${i})">✕</button>
     </div>`).join("");
+}
+
+function renderHistoryTab(){
+  const list=document.getElementById("history-detail-list");
+  const countLabel=document.getElementById("history-count-label");
+  if(!list)return;
+  const h=[...S.history].reverse();
+  if(countLabel)countLabel.textContent=`（${h.length}件）`;
+  if(!h.length){list.innerHTML='<div class="info-text">まだ履歴がありません。</div>';drawRadarChart([]);return;}
+  list.innerHTML=h.map((item,i)=>{
+    const r=item.result||{};
+    const s=item.sentence||{};
+    const d=item.date?new Date(item.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+    const stars="★".repeat(r.score||0)+"☆".repeat(5-(r.score||0));
+    return `<div style="background:white;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:#222;word-break:break-all">${s.zh||""}</div>
+          ${s.py?`<div style="font-size:12px;color:#818cf8;margin-top:2px">${s.py}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${s.ja}</div>`:""}
+          ${s.partner?`<div style="font-size:11px;color:#aaa;margin-top:4px">相手：${s.partner}</div>`:""}
+        </div>
+        <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <span style="color:#f59e0b;font-size:13px">${stars}</span>
+        <span style="color:${(r.match||0)>=80?"#10b981":(r.match||0)>=60?"#f59e0b":"#ef4444"};font-weight:600;font-size:13px">${r.match||0}%</span>
+        <span style="font-size:11px;color:#aaa">${d}</span>
+      </div>
+      ${r.recognized?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f8f7f4;border-radius:7px">認識：${r.recognized}</div>`:""}
+      ${r.pronun?`<div style="font-size:12px;color:#666;margin-top:5px">📝 ${r.pronun}</div>`:""}
+      ${r.feedback?`<div style="font-size:12px;color:#444;margin-top:4px;line-height:1.6">💬 ${r.feedback}</div>`:""}
+    </div>`;
+  }).join("");
+  drawRadarChart(S.history);
+}
+
+function deleteHistoryItem(idx){
+  S.history.splice(idx,1);
+  saveHistory(S.history);
+  renderHistoryTab();
+  updateSetupStats();
+}
+
+function drawRadarChart(history){
+  const canvas=document.getElementById("radar-chart");
+  const legend=document.getElementById("radar-legend");
+  if(!canvas)return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,r=100;
+  ctx.clearRect(0,0,W,H);
+  if(!history.length){
+    ctx.fillStyle="#ccc";ctx.font="13px sans-serif";ctx.textAlign="center";
+    ctx.fillText("履歴がありません",cx,cy);return;
+  }
+  // スコア集計（トピック別平均）
+  const topics={};
+  history.forEach(h=>{
+    const t=h.sentence?.topic||h.topic||"その他";
+    if(!topics[t])topics[t]={sum:0,cnt:0,matchSum:0};
+    topics[t].sum+=(h.result?.score||0);
+    topics[t].cnt++;
+    topics[t].matchSum+=(h.result?.match||0);
+  });
+  const axes=Object.keys(topics).slice(0,7);
+  if(axes.length<3){
+    // 軸が少ない場合はスコア・一致率・練習数のレーダー
+    const n=history.length;
+    const avgScore=history.reduce((a,h)=>a+(h.result?.score||0),0)/n;
+    const avgMatch=history.reduce((a,h)=>a+(h.result?.match||0),0)/n;
+    const recent5=history.slice(-5);
+    const recentScore=recent5.reduce((a,h)=>a+(h.result?.score||0),0)/recent5.length;
+    drawRadar(ctx,cx,cy,r,
+      ["スコア","一致率","最近5件"],
+      [avgScore/5, avgMatch/100, recentScore/5]
+    );
+    if(legend)legend.textContent=`全${n}件 平均スコア${avgScore.toFixed(1)}★ 平均一致率${avgMatch.toFixed(0)}%`;
+  } else {
+    const vals=axes.map(t=>topics[t].sum/topics[t].cnt/5);
+    drawRadar(ctx,cx,cy,r,axes,vals);
+    if(legend)legend.textContent="トピック別平均スコア";
+  }
+}
+
+function drawRadar(ctx,cx,cy,r,labels,vals){
+  const n=labels.length;
+  const angle=i=>(-Math.PI/2)+(2*Math.PI/n)*i;
+  // グリッド
+  [0.2,0.4,0.6,0.8,1.0].forEach(ratio=>{
+    ctx.beginPath();
+    labels.forEach((_,i)=>{
+      const a=angle(i),x=cx+r*ratio*Math.cos(a),y=cy+r*ratio*Math.sin(a);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle="rgba(0,0,0,0.08)";ctx.lineWidth=1;ctx.stroke();
+  });
+  // 軸
+  labels.forEach((_,i)=>{
+    const a=angle(i);
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    ctx.strokeStyle="rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
+  });
+  // データ
+  ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const a=angle(i),x=cx+r*v*Math.cos(a),y=cy+r*v*Math.sin(a);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle="rgba(99,102,241,0.18)";ctx.fill();
+  ctx.strokeStyle="#6366f1";ctx.lineWidth=2;ctx.stroke();
+  // ラベル
+  ctx.fillStyle="#444";ctx.font="11px sans-serif";ctx.textAlign="center";
+  labels.forEach((label,i)=>{
+    const a=angle(i),lx=cx+(r+22)*Math.cos(a),ly=cy+(r+22)*Math.sin(a);
+    ctx.fillText(label.slice(0,5),lx,ly+4);
+  });
 }
 
 function practiceWeak(i){
@@ -603,6 +738,10 @@ async function gemini(messages, system) {
 async function generateSentence(){
   const lvMap={hsk3:"HSK3級（15字以内）",hsk4:"HSK4級（20字以内）",hsk5:"HSK5級（25字以内）",hsk6:"HSK6級（30字以内）"};
   const hskHint=S.hskPrio?`\n返答文にHSK重要単語を1〜2個含めること：${HSK5_WORDS.sort(()=>Math.random()-.5).slice(0,5).join("、")}`:"";
+  const isQuestion = S.practiceStyle === "question";
+  const styleRule = isQuestion
+    ? `・「相手のセリフ」は会話の状況を短く述べる1文\n・「返答」は学習者がシャドーイングする疑問文（相手への質問）1文`
+    : `・「相手のセリフ」は状況や質問を提示する1文\n・「返答」は学習者がシャドーイングする1文（レベルに合った自然な返答）`;
   const histLines=S.conversationHistory.slice(-5).map((h,i)=>`ターン${i+1}　相手：${h.partner}　返答：${h.zh}`).join("\n");
   const contextHint=histLines?`\n\n【これまでの会話（この続きを生成）】\n${histLines}`:"";
   const raw=await gemini([{role:"user",content:
@@ -613,8 +752,7 @@ async function generateSentence(){
 ルール：
 ・会話の文脈を踏まえた自然な次のターンを生成すること
 ・文脈がない場合は会話の冒頭から始めること
-・「相手のセリフ」は状況や質問を提示する1文
-・「返答」は学習者がシャドーイングする1文（レベルに合った自然な返答）
+${styleRule}
 ・前のターンと全く同じ内容・表現は避けること
 
 出力形式（厳守）：
@@ -730,7 +868,7 @@ async function startRecording(){
       setPhase("reviewing");render();
       try{
         S.result=await reviewRecording(blob);
-        const histItem = {sentence:{...S.sentence},result:{...S.result},date:new Date().toISOString()};
+        const histItem = {sentence:{...S.sentence,topic:S.topic},result:{...S.result},date:new Date().toISOString()};
         S.history.push(histItem);
         saveHistory(S.history);
         saveHistoryToCloud(histItem);
