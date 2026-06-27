@@ -632,35 +632,90 @@ async function runAiAnalysis(){
   const btn=document.getElementById("ai-analysis-btn");
   const result=document.getElementById("ai-analysis-result");
   if(!getKey()){result.textContent="APIキーを入力してください";return;}
-  const pronunList=S.history.filter(h=>h.result?.pronun).map((h,i)=>`【${i+1}】文：${h.sentence?.zh||""}\n発音評価：${h.result.pronun}`);
-  if(pronunList.length<3){result.textContent="分析には3件以上の録音履歴が必要です。もう少し練習してから実行してください。";return;}
-  btn.disabled=true;btn.textContent="分析中…";result.textContent="";
+  const pronunList=S.history.filter(h=>h.result?.pronun).map(h=>`文：${h.sentence?.zh||""}　評価：${h.result.pronun}`);
+  if(pronunList.length<3){result.textContent="分析には3件以上の録音履歴が必要です。";return;}
+  btn.disabled=true;btn.textContent="分析中…";
+  result.innerHTML=`<div style="color:#aaa;font-size:13px">AIが分析中です…</div>`;
   try{
     const raw=await gemini([{role:"user",content:
 `以下は中国語シャドーイング練習の発音評価データです（${pronunList.length}件）。
 
-${pronunList.slice(-20).join("\n\n")}
+${pronunList.slice(-20).join("\n")}
 
-上記を分析して以下を日本語で回答してください：
+以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
 
-## 声調の傾向
-各声調（第1〜4声・軽声）について、ミスが多いものとその特徴を具体的に。
-
-## 拼音・発音の傾向
-混同しやすい音（例：zh/ch/sh、n/ng、前鼻音/後鼻音など）のパターンを具体的に。
-
-## 得意なパターン
-比較的うまくできている点。
-
-## 優先すべき改善策（3つ）
-最も効果的な練習方法を具体的に3点。`
+{
+  "tones": {
+    "t1": <第1声のミス件数 0〜${pronunList.length}>,
+    "t2": <第2声のミス件数>,
+    "t3": <第3声のミス件数>,
+    "t4": <第4声のミス件数>,
+    "t0": <軽声のミス件数>
+  },
+  "confusions": [<混同しやすい音のペア文字列、最大5個、例："zh/ch"、"n/ng">],
+  "strength": "<得意なパターンを15字以内>",
+  "tips": [
+    "<改善策1を30字以内>",
+    "<改善策2を30字以内>",
+    "<改善策3を30字以内>"
+  ]
+}`
     }]);
-    // マークダウン的な見出しをHTMLに変換
-    result.innerHTML=raw
-      .replace(/##\s*(.+)/g,"<div style='font-weight:700;color:#4f46e5;margin-top:12px;margin-bottom:4px'>$1</div>")
-      .replace(/\n/g,"<br>");
+    const json=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    const total=pronunList.length;
+    const t=json.tones||{};
+    const toneData=[
+      {label:"第1声 (ā)",val:t.t1||0,color:"#6366f1"},
+      {label:"第2声 (á)",val:t.t2||0,color:"#f59e0b"},
+      {label:"第3声 (ǎ)",val:t.t3||0,color:"#ef4444"},
+      {label:"第4声 (à)",val:t.t4||0,color:"#10b981"},
+      {label:"軽声",     val:t.t0||0,color:"#8b5cf6"},
+    ];
+    const maxVal=Math.max(...toneData.map(d=>d.val),1);
+
+    // 声調棒グラフ
+    const barRows=toneData.map(d=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:60px;font-size:11px;color:#666;text-align:right;flex-shrink:0">${d.label}</div>
+        <div style="flex:1;background:#f3f4f6;border-radius:4px;height:18px;overflow:hidden">
+          <div style="width:${Math.round(d.val/maxVal*100)}%;background:${d.color};height:100%;border-radius:4px;transition:width .4s;display:flex;align-items:center;padding-left:6px">
+            ${d.val>0?`<span style="font-size:10px;color:white;font-weight:700">${d.val}</span>`:""}
+          </div>
+        </div>
+        <div style="width:28px;font-size:11px;color:#aaa;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
+      </div>`).join("");
+
+    // 混同バッジ
+    const confBadges=(json.confusions||[]).map(c=>
+      `<span style="background:#eef2ff;color:#4f46e5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
+    ).join(" ");
+
+    // 改善策カード
+    const tipCards=(json.tips||[]).map((tip,i)=>
+      `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6">
+        <div style="width:22px;height:22px;border-radius:50%;background:#6366f1;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+        <div style="font-size:13px;color:#333;line-height:1.6">${tip}</div>
+      </div>`
+    ).join("");
+
+    result.innerHTML=`
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
+        ${barRows}
+      </div>
+      ${confBadges?`<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${confBadges}</div>
+      </div>`:""}
+      ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#15803d">
+        ✅ 得意：${json.strength}
+      </div>`:""}
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:4px;letter-spacing:.5px">優先すべき改善策</div>
+        ${tipCards}
+      </div>`;
   }catch(e){
-    result.textContent="分析に失敗しました："+e.message;
+    result.innerHTML=`<div style="color:#ef4444;font-size:13px">分析に失敗しました：${e.message}</div>`;
   }finally{
     btn.disabled=false;btn.textContent="🔍 AI分析を再実行";
   }
