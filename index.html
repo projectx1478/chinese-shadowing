@@ -259,11 +259,34 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
   <!-- History & Analysis tab -->
   <div id="stab-history" class="setup-body hidden">
-    <div class="sec-label">分析レーダーチャート</div>
+
+    <!-- スコア推移グラフ -->
+    <div class="sec-label">スコア・一致率の推移</div>
+    <div style="background:white;border-radius:12px;padding:14px">
+      <canvas id="trend-chart" width="320" height="160"></canvas>
+      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#888">
+        <span><span style="color:#6366f1">●</span> スコア（/5）</span>
+        <span><span style="color:#10b981">●</span> 一致率（%/20）</span>
+      </div>
+    </div>
+
+    <!-- AI傾向分析 -->
+    <div class="sec-label" style="margin-top:16px">AI発音傾向分析</div>
+    <div style="background:white;border-radius:12px;padding:14px">
+      <div id="ai-analysis-result" style="font-size:13px;color:#666;line-height:1.8;min-height:40px">
+        ボタンを押すと、これまでの発音ミスを分析して改善策を提案します。
+      </div>
+      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
+    </div>
+
+    <!-- レーダーチャート -->
+    <div class="sec-label" style="margin-top:16px">トピック別スコア</div>
     <div style="background:white;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
       <canvas id="radar-chart" width="280" height="280"></canvas>
       <div id="radar-legend" style="font-size:11px;color:#888;margin-top:6px;text-align:center"></div>
     </div>
+
+    <!-- 全履歴 -->
     <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#aaa;font-weight:normal"></span></div>
     <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
@@ -516,7 +539,10 @@ function renderHistoryTab(){
   if(!list)return;
   const h=[...S.history].reverse();
   if(countLabel)countLabel.textContent=`（${h.length}件）`;
-  if(!h.length){list.innerHTML='<div class="info-text">まだ履歴がありません。</div>';drawRadarChart([]);return;}
+  if(!h.length){
+    list.innerHTML='<div class="info-text">まだ履歴がありません。</div>';
+    drawRadarChart([]);drawTrendChart([]);return;
+  }
   list.innerHTML=h.map((item,i)=>{
     const r=item.result||{};
     const s=item.sentence||{};
@@ -542,7 +568,102 @@ function renderHistoryTab(){
       ${r.feedback?`<div style="font-size:12px;color:#444;margin-top:4px;line-height:1.6">💬 ${r.feedback}</div>`:""}
     </div>`;
   }).join("");
+  drawTrendChart(S.history);
   drawRadarChart(S.history);
+}
+
+// ── スコア推移グラフ ──────────────────────────────────────
+function drawTrendChart(history){
+  const canvas=document.getElementById("trend-chart");
+  if(!canvas)return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width,H=canvas.height;
+  const padL=28,padR=12,padT=12,padB=28;
+  ctx.clearRect(0,0,W,H);
+  if(!history.length){
+    ctx.fillStyle="#ccc";ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillText("履歴がありません",W/2,H/2);return;
+  }
+  // 最新30件を表示
+  const data=history.slice(-30);
+  const n=data.length;
+  const gW=W-padL-padR,gH=H-padT-padB;
+  // グリッド
+  ctx.strokeStyle="rgba(0,0,0,0.06)";ctx.lineWidth=1;
+  [0,25,50,75,100].forEach(v=>{
+    const y=padT+gH*(1-v/100);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v,padL-3,y+3);
+  });
+  // X軸ラベル（最初・中間・最後）
+  ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="center";
+  [0,Math.floor(n/2),n-1].forEach(i=>{
+    if(i<0||i>=n)return;
+    const x=padL+gW*(i/(n-1||1));
+    const d=data[i].date?new Date(data[i].date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"}):"";
+    ctx.fillText(d,x,H-padB+10);
+  });
+  // スコア折れ線（/5 → %換算）
+  const drawLine=(key,color,toPercent)=>{
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin="round";
+    data.forEach((h,i)=>{
+      const v=toPercent(h.result?.[key]||0);
+      const x=padL+gW*(i/(n-1||1));
+      const y=padT+gH*(1-v/100);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // ドット
+    data.forEach((h,i)=>{
+      const v=toPercent(h.result?.[key]||0);
+      const x=padL+gW*(i/(n-1||1));
+      const y=padT+gH*(1-v/100);
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
+      ctx.fillStyle=color;ctx.fill();
+    });
+  };
+  drawLine("match","#10b981",v=>v);           // 一致率（そのまま%）
+  drawLine("score","#6366f1",v=>v/5*100);     // スコア（/5→%）
+}
+
+// ── AI発音傾向分析 ───────────────────────────────────────
+async function runAiAnalysis(){
+  const btn=document.getElementById("ai-analysis-btn");
+  const result=document.getElementById("ai-analysis-result");
+  if(!getKey()){result.textContent="APIキーを入力してください";return;}
+  const pronunList=S.history.filter(h=>h.result?.pronun).map((h,i)=>`【${i+1}】文：${h.sentence?.zh||""}\n発音評価：${h.result.pronun}`);
+  if(pronunList.length<3){result.textContent="分析には3件以上の録音履歴が必要です。もう少し練習してから実行してください。";return;}
+  btn.disabled=true;btn.textContent="分析中…";result.textContent="";
+  try{
+    const raw=await gemini([{role:"user",content:
+`以下は中国語シャドーイング練習の発音評価データです（${pronunList.length}件）。
+
+${pronunList.slice(-20).join("\n\n")}
+
+上記を分析して以下を日本語で回答してください：
+
+## 声調の傾向
+各声調（第1〜4声・軽声）について、ミスが多いものとその特徴を具体的に。
+
+## 拼音・発音の傾向
+混同しやすい音（例：zh/ch/sh、n/ng、前鼻音/後鼻音など）のパターンを具体的に。
+
+## 得意なパターン
+比較的うまくできている点。
+
+## 優先すべき改善策（3つ）
+最も効果的な練習方法を具体的に3点。`
+    }]);
+    // マークダウン的な見出しをHTMLに変換
+    result.innerHTML=raw
+      .replace(/##\s*(.+)/g,"<div style='font-weight:700;color:#4f46e5;margin-top:12px;margin-bottom:4px'>$1</div>")
+      .replace(/\n/g,"<br>");
+  }catch(e){
+    result.textContent="分析に失敗しました："+e.message;
+  }finally{
+    btn.disabled=false;btn.textContent="🔍 AI分析を再実行";
+  }
 }
 
 function deleteHistoryItem(idx){
