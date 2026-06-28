@@ -158,7 +158,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 </head>
 <body>
 
-<!-- ══ SETUP ══════════════════════════════════════════ -->
+<!-- ══ LOGIN ══════════════════════════════════════════ -->
 <div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#f0ede8">
   <div style="text-align:center;margin-bottom:40px">
     <div style="font-size:64px;font-weight:900;color:#6366f1;letter-spacing:-2px">跟读</div>
@@ -175,6 +175,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   </div>
 </div>
 
+<!-- ══ SETUP ══════════════════════════════════════════ -->
 <div id="screen-setup" class="hidden">
   <div class="hero">
     <div class="hero-kanji">跟读</div>
@@ -199,7 +200,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <div class="sec-label">Gemini APIキー（無料）</div>
     <input class="api-input" type="password" id="api-key" placeholder="Google AI StudioのAPIキー">
     <div style="font-size:11px;color:#aaa;margin-top:4px">
-      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#6366f1">aistudio.google.com</a> で無料取得・ブラウザに保存されます
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#6366f1">aistudio.google.com</a> で無料取得・アカウントに保存されます
     </div>
 
     <div class="sec-label">レベル</div>
@@ -275,8 +276,6 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
   <!-- History & Analysis tab -->
   <div id="stab-history" class="setup-body hidden">
-
-    <!-- スコア推移グラフ -->
     <div class="sec-label">スコア・一致率の推移</div>
     <div style="background:white;border-radius:12px;padding:14px">
       <canvas id="trend-chart" width="320" height="160"></canvas>
@@ -286,7 +285,6 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
       </div>
     </div>
 
-    <!-- AI傾向分析 -->
     <div class="sec-label" style="margin-top:16px">AI発音傾向分析</div>
     <div style="background:white;border-radius:12px;padding:14px">
       <div id="ai-analysis-result" style="font-size:13px;color:#666;line-height:1.8;min-height:40px">
@@ -295,14 +293,12 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
       <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
     </div>
 
-    <!-- レーダーチャート -->
     <div class="sec-label" style="margin-top:16px">トピック別スコア</div>
     <div style="background:white;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
       <canvas id="radar-chart" width="280" height="280"></canvas>
       <div id="radar-legend" style="font-size:11px;color:#888;margin-top:6px;text-align:center"></div>
     </div>
 
-    <!-- 全履歴 -->
     <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#aaa;font-weight:normal"></span></div>
     <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
@@ -349,30 +345,27 @@ const TOPICS = ["日常生活","職場・ビジネス","医療・病院","教育
 const STEPS = [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
-// ══ Persistence helpers ═══════════════════════════════════
+// ══ Persistence helpers（localStorageはUI設定のみ）══════
 const LS = {
   get: k => { try{return JSON.parse(localStorage.getItem(k))}catch{return null} },
   set: (k,v) => { try{localStorage.setItem(k,JSON.stringify(v))}catch{} },
 };
 
-function loadHistory()    { return LS.get("sh_history") || []; }
-function saveHistory(h)   { LS.set("sh_history", h.slice(-300)); }
-function loadSettings()   { return LS.get("sh_settings") || {}; }
-function saveSettings()   { LS.set("sh_settings",{levelId:S.level.id,topic:S.topic,speed:S.speed,reps:S.reps,hskPrio:S.hskPrio,practiceStyle:S.practiceStyle}); saveSettingsToCloud(); }
-function loadWeakList()   { return LS.get("sh_weak") || []; }
-function saveWeakList(w)  { LS.set("sh_weak", w); }
-function loadSavedSets()  { return LS.get("sh_sets") || []; }
-function saveSavedSets(s) { LS.set("sh_sets", s); }
-
 // ══ State ════════════════════════════════════════════════
-const saved = loadSettings();
 const S = {
-  level:    LEVELS.find(l=>l.id===saved.levelId)||LEVELS[2],
-  topic:    TOPICS.includes(saved.topic)?saved.topic:TOPICS[0],
-  speed:    saved.speed||0.85,
-  reps:     saved.reps||3,
-  hskPrio:  saved.hskPrio||false,
-  practiceStyle: saved.practiceStyle||"answer",
+  // 設定（localStorageから初期値を読む）
+  level:    LEVELS.find(l=>l.id===(LS.get("sh_settings")?.levelId))||LEVELS[2],
+  topic:    TOPICS.includes(LS.get("sh_settings")?.topic) ? LS.get("sh_settings").topic : TOPICS[0],
+  speed:    LS.get("sh_settings")?.speed  || 0.85,
+  reps:     LS.get("sh_settings")?.reps   || 3,
+  hskPrio:  LS.get("sh_settings")?.hskPrio || false,
+  practiceStyle: LS.get("sh_settings")?.practiceStyle || "answer",
+  // ユーザーデータ（Firestoreから読む・初期値は空）
+  history:  [],
+  weakList: [],
+  savedSets: [],
+  conversationHistory: [],
+  // 練習中の一時状態
   sentence: null,
   phase:    "loading",
   repCount: 0,
@@ -381,21 +374,14 @@ const S = {
   mediaRecorder:null, chunks:[],
   recordedBlob: null, recordedUrl:null, modelUrl:null,
   result:   null,
-  history:  loadHistory(),
-  weakList: loadWeakList(),
   used:     [],
-  conversationHistory: [],
   showPinyin:false, showTrans:false, hideHanzi:false,
   customMode:false, customSentence:null,
 };
 
 // ══ Setup UI ══════════════════════════════════════════════
-// API key
-const savedKey = LS.get("sh_apikey") || "";
-document.getElementById("api-key").value = savedKey;
-document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.value.trim());
 
-// ── バージョン表示（ファイルの最終更新日時から取得）─────
+// ── バージョン表示
 (()=>{
   const el=document.getElementById("app-version");
   if(!el)return;
@@ -406,7 +392,8 @@ document.getElementById("api-key").oninput = e => LS.set("sh_apikey", e.target.v
     el.textContent=`v${date.getFullYear()}-${s(date.getMonth()+1)}-${s(date.getDate())} ${s(date.getHours())}:${s(date.getMinutes())}`;
   }catch(e){el.textContent="";}
 })();
-document.getElementById("api-key").onblur  = () => saveApiKeyToCloud();
+
+document.getElementById("api-key").onblur = () => saveApiKeyToCloud();
 
 // Levels
 LEVELS.forEach(lv=>{
@@ -442,13 +429,12 @@ document.getElementById("speed-slider").oninput=e=>{S.speed=parseFloat(e.target.
 function setReps(n){S.reps=n;["rep2","rep3","rep5"].forEach(id=>document.getElementById(id)?.classList.remove("active"));document.getElementById("rep"+n)?.classList.add("active");}
 setReps(S.reps);
 
-// HSK priority
 function setPrio(v){S.hskPrio=v;document.getElementById("prio-off").classList.toggle("active",!v);document.getElementById("prio-on").classList.toggle("active",v);}
 setPrio(S.hskPrio);
+
 function setStyle(v){S.practiceStyle=v;document.getElementById("style-answer").classList.toggle("active",v==="answer");document.getElementById("style-question").classList.toggle("active",v==="question");saveSettings();}
 setStyle(S.practiceStyle);
 
-// Back / start
 document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
 document.getElementById("start-btn").onclick=()=>{
   const key=getKey();
@@ -457,7 +443,6 @@ document.getElementById("start-btn").onclick=()=>{
   startPractice();
 };
 
-// ── Setup tabs
 function showSetupTab(name){
   ["main","custom","weak","history","shortcuts"].forEach(t=>{
     document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
@@ -470,7 +455,6 @@ function showSetupTab(name){
   if(name==="history") renderHistoryTab();
 }
 
-// ── Custom sentence
 function startWithCustom(){
   const text=document.getElementById("custom-input").value.trim();
   if(!text){alert("文を入力してください");return;}
@@ -479,7 +463,6 @@ function startWithCustom(){
   S.customMode=true;
   S.customSentence={zh:text,py:"",ja:""};
   startPractice();
-  // Fetch pinyin+translation in background
   (async()=>{
     try{
       const raw=await gemini([{role:"user",content:`以下の中国語のピンイン（声調記号付き）と日本語訳を教えてください。\n文：${text}\n\n出力形式（厳守）：\n拼音：<ピンイン>\n訳：<日本語訳>`}]);
@@ -494,19 +477,16 @@ function saveSet(){
   const text=document.getElementById("custom-input").value.trim();
   const name=document.getElementById("set-name-input").value.trim()||"セット"+Date.now();
   if(!text){alert("文を入力してください");return;}
-  const sets=loadSavedSets();
-  sets.push({name,text,date:new Date().toISOString()});
-  saveSavedSets(sets);
-  saveSavedSetsToCloud(); // Firestore
+  S.savedSets.push({name,text,date:new Date().toISOString()});
+  saveSavedSetsToCloud();
   renderSavedSets();
 }
 
 function renderSavedSets(){
-  const sets=loadSavedSets();
   const el=document.getElementById("saved-sets-list");
   if(!el)return;
-  if(!sets.length){el.innerHTML='<div class="info-text">保存済みセットはありません</div>';return;}
-  el.innerHTML=sets.map((s,i)=>`
+  if(!S.savedSets.length){el.innerHTML='<div class="info-text">保存済みセットはありません</div>';return;}
+  el.innerHTML=S.savedSets.map((s,i)=>`
     <div class="saved-set">
       <div style="flex:1">
         <div class="saved-set-name">${s.name}</div>
@@ -518,20 +498,17 @@ function renderSavedSets(){
 }
 
 function loadSet(i){
-  const sets=loadSavedSets();
-  if(!sets[i])return;
-  document.getElementById("custom-input").value=sets[i].text;
+  if(!S.savedSets[i])return;
+  document.getElementById("custom-input").value=S.savedSets[i].text;
   showSetupTab("custom");
 }
+
 function deleteSet(i){
-  const sets=loadSavedSets();
-  sets.splice(i,1);
-  saveSavedSets(sets);
-  saveSavedSetsToCloud(); // Firestore
+  S.savedSets.splice(i,1);
+  saveSavedSetsToCloud();
   renderSavedSets();
 }
 
-// ── Weak list
 function renderWeakList(){
   const el=document.getElementById("weak-list");
   if(!el)return;
@@ -588,7 +565,6 @@ function renderHistoryTab(){
   drawRadarChart(S.history);
 }
 
-// ── スコア推移グラフ ──────────────────────────────────────
 function drawTrendChart(history){
   const canvas=document.getElementById("trend-chart");
   if(!canvas)return;
@@ -600,11 +576,9 @@ function drawTrendChart(history){
     ctx.fillStyle="#ccc";ctx.font="12px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",W/2,H/2);return;
   }
-  // 最新30件を表示
   const data=history.slice(-30);
   const n=data.length;
   const gW=W-padL-padR,gH=H-padT-padB;
-  // グリッド
   ctx.strokeStyle="rgba(0,0,0,0.06)";ctx.lineWidth=1;
   [0,25,50,75,100].forEach(v=>{
     const y=padT+gH*(1-v/100);
@@ -612,7 +586,6 @@ function drawTrendChart(history){
     ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="right";
     ctx.fillText(v,padL-3,y+3);
   });
-  // X軸ラベル（最初・中間・最後）
   ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="center";
   [0,Math.floor(n/2),n-1].forEach(i=>{
     if(i<0||i>=n)return;
@@ -620,7 +593,6 @@ function drawTrendChart(history){
     const d=data[i].date?new Date(data[i].date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"}):"";
     ctx.fillText(d,x,H-padB+10);
   });
-  // スコア折れ線（/5 → %換算）
   const drawLine=(key,color,toPercent)=>{
     ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin="round";
     data.forEach((h,i)=>{
@@ -630,7 +602,6 @@ function drawTrendChart(history){
       i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     });
     ctx.stroke();
-    // ドット
     data.forEach((h,i)=>{
       const v=toPercent(h.result?.[key]||0);
       const x=padL+gW*(i/(n-1||1));
@@ -639,11 +610,10 @@ function drawTrendChart(history){
       ctx.fillStyle=color;ctx.fill();
     });
   };
-  drawLine("match","#10b981",v=>v);           // 一致率（そのまま%）
-  drawLine("score","#6366f1",v=>v/5*100);     // スコア（/5→%）
+  drawLine("match","#10b981",v=>v);
+  drawLine("score","#6366f1",v=>v/5*100);
 }
 
-// ── AI発音傾向分析 ───────────────────────────────────────
 async function runAiAnalysis(){
   const btn=document.getElementById("ai-analysis-btn");
   const result=document.getElementById("ai-analysis-result");
@@ -688,8 +658,6 @@ ${pronunList.slice(-20).join("\n")}
       {label:"軽声",     val:t.t0||0,color:"#8b5cf6"},
     ];
     const maxVal=Math.max(...toneData.map(d=>d.val),1);
-
-    // 声調棒グラフ
     const barRows=toneData.map(d=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <div style="width:60px;font-size:11px;color:#666;text-align:right;flex-shrink:0">${d.label}</div>
@@ -700,20 +668,15 @@ ${pronunList.slice(-20).join("\n")}
         </div>
         <div style="width:28px;font-size:11px;color:#aaa;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
       </div>`).join("");
-
-    // 混同バッジ
     const confBadges=(json.confusions||[]).map(c=>
       `<span style="background:#eef2ff;color:#4f46e5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
     ).join(" ");
-
-    // 改善策カード
     const tipCards=(json.tips||[]).map((tip,i)=>
       `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6">
         <div style="width:22px;height:22px;border-radius:50%;background:#6366f1;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
         <div style="font-size:13px;color:#333;line-height:1.6">${tip}</div>
       </div>`
     ).join("");
-
     result.innerHTML=`
       <div style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
@@ -738,10 +701,15 @@ ${pronunList.slice(-20).join("\n")}
 }
 
 function deleteHistoryItem(idx){
-  S.history.splice(idx,1);
-  saveHistory(S.history);
+  const removed = S.history.splice(idx, 1)[0];
   renderHistoryTab();
   updateSetupStats();
+  // Firestoreから該当ドキュメントを削除
+  if(currentUser && removed?.date){
+    userDoc("history").where("date","==",removed.date).get().then(snap=>{
+      snap.forEach(doc=>doc.ref.delete());
+    }).catch(e=>console.warn("履歴削除失敗:",e.message));
+  }
 }
 
 function drawRadarChart(history){
@@ -755,27 +723,21 @@ function drawRadarChart(history){
     ctx.fillStyle="#ccc";ctx.font="13px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",cx,cy);return;
   }
-  // スコア集計（トピック別平均）
   const topics={};
   history.forEach(h=>{
     const t=h.sentence?.topic||h.topic||"その他";
-    if(!topics[t])topics[t]={sum:0,cnt:0,matchSum:0};
+    if(!topics[t])topics[t]={sum:0,cnt:0};
     topics[t].sum+=(h.result?.score||0);
     topics[t].cnt++;
-    topics[t].matchSum+=(h.result?.match||0);
   });
   const axes=Object.keys(topics).slice(0,7);
   if(axes.length<3){
-    // 軸が少ない場合はスコア・一致率・練習数のレーダー
     const n=history.length;
     const avgScore=history.reduce((a,h)=>a+(h.result?.score||0),0)/n;
     const avgMatch=history.reduce((a,h)=>a+(h.result?.match||0),0)/n;
     const recent5=history.slice(-5);
     const recentScore=recent5.reduce((a,h)=>a+(h.result?.score||0),0)/recent5.length;
-    drawRadar(ctx,cx,cy,r,
-      ["スコア","一致率","最近5件"],
-      [avgScore/5, avgMatch/100, recentScore/5]
-    );
+    drawRadar(ctx,cx,cy,r,["スコア","一致率","最近5件"],[avgScore/5,avgMatch/100,recentScore/5]);
     if(legend)legend.textContent=`全${n}件 平均スコア${avgScore.toFixed(1)}★ 平均一致率${avgMatch.toFixed(0)}%`;
   } else {
     const vals=axes.map(t=>topics[t].sum/topics[t].cnt/5);
@@ -787,7 +749,6 @@ function drawRadarChart(history){
 function drawRadar(ctx,cx,cy,r,labels,vals){
   const n=labels.length;
   const angle=i=>(-Math.PI/2)+(2*Math.PI/n)*i;
-  // グリッド
   [0.2,0.4,0.6,0.8,1.0].forEach(ratio=>{
     ctx.beginPath();
     labels.forEach((_,i)=>{
@@ -797,14 +758,12 @@ function drawRadar(ctx,cx,cy,r,labels,vals){
     ctx.closePath();
     ctx.strokeStyle="rgba(0,0,0,0.08)";ctx.lineWidth=1;ctx.stroke();
   });
-  // 軸
   labels.forEach((_,i)=>{
     const a=angle(i);
     ctx.beginPath();ctx.moveTo(cx,cy);
     ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
     ctx.strokeStyle="rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
   });
-  // データ
   ctx.beginPath();
   vals.forEach((v,i)=>{
     const a=angle(i),x=cx+r*v*Math.cos(a),y=cy+r*v*Math.sin(a);
@@ -813,7 +772,6 @@ function drawRadar(ctx,cx,cy,r,labels,vals){
   ctx.closePath();
   ctx.fillStyle="rgba(99,102,241,0.18)";ctx.fill();
   ctx.strokeStyle="#6366f1";ctx.lineWidth=2;ctx.stroke();
-  // ラベル
   ctx.fillStyle="#444";ctx.font="11px sans-serif";ctx.textAlign="center";
   labels.forEach((label,i)=>{
     const a=angle(i),lx=cx+(r+22)*Math.cos(a),ly=cy+(r+22)*Math.sin(a);
@@ -830,14 +788,13 @@ function practiceWeak(i){
   S.customSentence={zh:item.zh,py:item.py,ja:item.ja||""};
   startPractice();
 }
+
 function deleteWeak(i){
   S.weakList.splice(i,1);
-  saveWeakList(S.weakList);
-  saveWeakListToCloud(); // Firestore
+  saveWeakListToCloud();
   renderWeakList();
 }
 
-// ── History stats
 function updateSetupStats(){
   const h=S.history;
   const countEl=document.getElementById("hist-count");
@@ -851,10 +808,25 @@ function updateSetupStats(){
   countEl.textContent=`（${h.length}文）`;
   summEl.innerHTML=`平均 <b>${avg}★</b>　一致率 <b>${avgM}%</b><br><span style="font-size:11px;color:#aaa">最終：${d}　${last.sentence.zh}</span>`;
 }
-function clearHistory(){
+
+async function clearHistory(){
   if(!confirm("履歴をすべて消去しますか？"))return;
-  S.history=[];saveHistory([]);updateSetupStats();
+  S.history=[];
+  updateSetupStats();
+  renderHistoryTab();
+  if(currentUser){
+    try{
+      // バッチ削除（500件ずつ）
+      const snap=await userDoc("history").limit(500).get();
+      if(!snap.empty){
+        const batch=db.batch();
+        snap.docs.forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+      }
+    }catch(e){console.warn("履歴全削除失敗:",e.message);}
+  }
 }
+
 updateSetupStats();
 renderWeakList();
 renderSavedSets();
@@ -862,11 +834,10 @@ renderSavedSets();
 // ══ API ══════════════════════════════════════════════════
 function getKey(){return (document.getElementById("api-key")?.value||"").trim();}
 
-// Model priority: 2.5-flash first, fallback to 2.0-flash-lite (higher free quota)
 const GEMINI_MODELS = [
-  "gemini-3.1-flash-lite",   // 最優先（高速・低コスト・高品質）
-  "gemini-2.5-flash-lite",   // フォールバック①
-  "gemini-2.5-flash",        // フォールバック②
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
 ];
 
 async function callGeminiModel(model, body) {
@@ -877,13 +848,11 @@ async function callGeminiModel(model, body) {
   const raw = await res.text();
   if (!raw.trim().startsWith("{")) throw new Error(`サーバーエラー(${res.status})`);
   const data = JSON.parse(raw);
-  // Quota exceeded → signal to try next model
   if (res.status === 429 || (data?.error?.message||"").includes("quota") || (data?.error?.message||"").includes("Quota")) {
     const err = new Error(data?.error?.message || "quota");
     err.isQuota = true;
     throw err;
   }
-  // Temporary overload → signal to retry same model
   if (res.status === 503 || (data?.error?.message||"").includes("high demand") || (data?.error?.message||"").includes("overloaded")) {
     const err = new Error("overloaded");
     err.isOverload = true;
@@ -904,23 +873,18 @@ async function gemini(messages, system) {
     })),
     generationConfig: {maxOutputTokens:1024, temperature:0.7}
   };
-
   for (const model of GEMINI_MODELS) {
-    // Retry up to 2 times per model for overload
     for (let attempt=1; attempt<=2; attempt++) {
       try {
         return await callGeminiModel(model, body);
       } catch(e) {
-        if (e.isQuota) {
-          console.warn(`${model} クォータ超過 → 次のモデルに切り替え`);
-          break; // try next model
-        }
+        if (e.isQuota) { console.warn(`${model} クォータ超過 → 次のモデルへ`); break; }
         if (e.isOverload && attempt < 2) {
           console.warn(`${model} 混雑中 → ${attempt*3}秒後にリトライ`);
           await new Promise(r=>setTimeout(r, attempt*3000));
           continue;
         }
-        throw e; // other errors: rethrow
+        throw e;
       }
     }
   }
@@ -996,8 +960,6 @@ async function reviewRecording(blob){
 }
 
 // ══ TTS ══════════════════════════════════════════════════
-
-// 中国語ボイス選択（優先順位: zh-CN local > zh-CN > zh-TW > zh系任意）
 function pickZhVoice(){
   const voices=window.speechSynthesis.getVoices();
   const zh=voices.filter(v=>v.lang.replace('_','-').startsWith('zh'));
@@ -1062,15 +1024,13 @@ async function startRecording(){
         S.result=await reviewRecording(blob);
         const histItem = {sentence:{...S.sentence,topic:S.topic},result:{...S.result},date:new Date().toISOString()};
         S.history.push(histItem);
-        saveHistory(S.history);
-        saveHistoryToCloud(histItem);
+        saveHistoryToCloud(histItem);  // Firestoreのみ
         S.used.push(S.sentence.zh);
-        // Add to weak list if score <= 3
         if(S.result.score<=3){
           const already=S.weakList.some(w=>w.zh===S.sentence.zh);
           if(!already){
             S.weakList.push({zh:S.sentence.zh,py:S.sentence.py,ja:S.sentence.ja,score:S.result.score});
-            saveWeakList(S.weakList);
+            saveWeakListToCloud();  // Firestoreのみ
           }
         }
         setPhase("result");
@@ -1100,7 +1060,6 @@ function stopAll(){window.speechSynthesis?.cancel();stopRecording();S.isSpeaking
 // ══ Flow ═════════════════════════════════════════════════
 function setPhase(p){S.phase=p;}
 function showErr(msg){const el=document.getElementById("err-display");if(el){el.textContent=msg;el.classList.remove("hidden");}}
-
 function stepIndex(){const m={listen:0,check:1,read:2,shadow:3,record:3,recording:3,reviewing:4,result:5};return m[S.phase]??0;}
 
 async function loadSentence(resetConversation=false){
@@ -1109,7 +1068,6 @@ async function loadSentence(resetConversation=false){
   S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.recordedBlob=null;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
-
   setPhase("loading");render();
   try{
     if(S.customMode&&S.customSentence){
@@ -1206,12 +1164,10 @@ function render(){
   const ph=S.phase,s=S.sentence;
   let html="";
 
-  // ── Sentence card
   html+=`<div class="card"><div class="card-title">${STEPS[Math.min(stepIndex(),5)]?.name||""}</div>`;
   if(ph==="loading"){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
   } else if(s){
-    // Partner line (shown from check step onwards)
     if(s.partner && ph !== "listen") {
       html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
         <div style="font-size:10px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
@@ -1249,45 +1205,35 @@ function render(){
   }
   html+=`<div id="err-display" class="err-text hidden" style="margin-top:8px"></div></div>`;
 
-  // ── Controls card
   html+=`<div class="card">`;
 
   if(ph==="listen"&&s){
     html+=`<div class="step-instruction"><span class="step-num">①初聴</span>　${s.partner?"相手のセリフに続いて返答を聞き、耳を慣らします。":"返答の音だけ聞いて耳を慣らします。"}</div>`;
     if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        🔊 返答だけ聞く</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
     } else {
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 手本を聞く [Space]"}</button>`;
     }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('check');render()">次へ：テキスト確認 → [→]</button>`;
   }
   if(ph==="check"&&s){
     html+=`<div class="step-instruction"><span class="step-num">②確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
     if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        🔊 返答だけ聞く</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
     } else {
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 もう一度聞く [Space]"}</button>`;
     }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
   }
   if(ph==="read"&&s){
     html+=`<div class="step-instruction"><span class="step-num">③音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
     if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        🔊 返答だけ聞く</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く [Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
     } else {
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 再生（何度でも）[Space]"}</button>`;
     }
     html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('shadow');S.repCount=0;render()">次へ：シャドーイング → [→]</button>`;
   }
@@ -1295,13 +1241,10 @@ function render(){
     html+=`<div class="step-instruction"><span class="step-num">④追読</span>　${s.partner?"相手の問いかけに返答するつもりで":""}${S.reps}回繰り返します。</div>`;
     html+=renderRepDots();
     if(s.partner){
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.repCount=Math.min(S.reps,S.repCount+1);speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く（+1回）[Space]"}</button>`;
-      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
-        🔊 返答だけ聞く（+1回）</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.repCount=Math.min(S.reps,S.repCount+1);speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 会話を通して聞く（+1回）[Space]"}</button>`;
+      html+=`<button class="btn" style="background:#6366f1;margin-top:6px" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
     } else {
-      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">
-        ${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
+      html+=`<button class="btn btn-dark" ${S.isSpeaking?"disabled":""} onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">${S.isSpeaking?"🔊 再生中…":"🔊 再生（+1回）[Space]"}</button>`;
     }
     html+=`<button class="btn btn-red" style="margin-top:8px" onclick="setPhase('record');render()">次へ：録音へ → [→]</button>`;
   }
@@ -1342,7 +1285,6 @@ function render(){
     html+=`<button class="btn btn-gray" style="margin-top:6px;font-size:13px;opacity:.7" onclick="loadSentence(true)">🔄 新しい話題から始める</button>`;
   }
 
-  // ── 共通ナビ（result以外のフェーズ）
   if(ph!=="result"&&ph!=="reviewing"&&ph!=="loading"&&s){
     const prevMap={check:"listen",read:"check",shadow:"read",record:"shadow",recording:"record"};
     const prev=prevMap[ph];
@@ -1354,7 +1296,6 @@ function render(){
 
   html+=`</div>`;
 
-  // History
   if(S.history.length>0){
     html+=`<div class="history-wrap"><div class="history-label">HISTORY</div>`;
     [...S.history].reverse().slice(0,10).forEach(h=>{
@@ -1373,7 +1314,6 @@ function render(){
 
 // ══ Keyboard shortcuts ═══════════════════════════════════
 document.addEventListener("keydown",e=>{
-  // Ignore in input fields
   if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
   const ph=S.phase;
   if(e.code==="Space"){
@@ -1422,84 +1362,107 @@ const db   = firebase.firestore();
 
 let currentUser = null;
 
-// ── Auth state ──────────────────────────────────────────
+// ── Stateをユーザーデータ部分だけ完全クリア
+function clearState() {
+  S.history = [];
+  S.weakList = [];
+  S.savedSets = [];
+  S.conversationHistory = [];
+  document.getElementById("api-key").value = "";
+  // 残存するlocalStorageのユーザーデータを削除
+  ["sh_history","sh_weak","sh_sets","sh_apikey"].forEach(k => {
+    try { localStorage.removeItem(k); } catch(e) {}
+  });
+}
+
+// ── Firestoreからユーザーデータを読み込んでStateに反映
+async function loadUserData() {
+  if (!currentUser) return;
+  try {
+    const userSnap = await db.collection("users").doc(currentUser.uid).get();
+    if (userSnap.exists) {
+      const data = userSnap.data();
+      if (Array.isArray(data.weakList))  S.weakList  = data.weakList;
+      if (Array.isArray(data.savedSets)) S.savedSets = data.savedSets;
+      if (data.apiKey) {
+        const el = document.getElementById("api-key");
+        if (el) el.value = data.apiKey;
+      }
+      if (data.settings) {
+        const sv = data.settings;
+        if (sv.levelId) S.level = LEVELS.find(l=>l.id===sv.levelId) || S.level;
+        if (sv.topic && TOPICS.includes(sv.topic)) S.topic = sv.topic;
+        if (sv.speed)   S.speed  = sv.speed;
+        if (sv.reps)    S.reps   = sv.reps;
+        if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
+        if (sv.practiceStyle) S.practiceStyle = sv.practiceStyle;
+        document.getElementById("speed-slider").value = S.speed;
+        document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
+        setReps(S.reps);
+        setPrio(S.hskPrio);
+        setStyle(S.practiceStyle);
+        // レベル・トピックボタンのUI同期
+        document.querySelectorAll(".level-btn").forEach(b=>{
+          const lv=LEVELS.find(l=>b.querySelector(".level-lbl")?.textContent===l.label);
+          if(!lv)return;
+          const active=lv.id===S.level.id;
+          b.classList.toggle("active",active);
+          b.style.background=active?lv.color:"";
+          b.style.borderColor=active?lv.color:"";
+          b.style.color=active?"white":"";
+        });
+        document.getElementById("start-btn").style.background = S.level.color;
+        document.querySelectorAll(".topic-btn").forEach(b=>{
+          if(TOPICS.includes(b.textContent))
+            b.classList.toggle("active",b.textContent===S.topic);
+        });
+      }
+    }
+    // 履歴を読み込む（新しい順→古い順に並べ直す）
+    const histSnap = await userDoc("history").orderBy("createdAt","desc").limit(300).get();
+    if (!histSnap.empty) {
+      S.history = histSnap.docs.map(d => {
+        const dd = d.data();
+        return { sentence:dd.sentence, result:dd.result, date:dd.date };
+      }).reverse();
+    }
+  } catch(e) { console.warn("ユーザーデータ読み込み失敗:", e.message); }
+}
+
+// ── 全UIを再描画
+function renderAll() {
+  updateSetupStats();
+  renderWeakList();
+  renderSavedSets();
+  // historyタブは開いた時だけ描画（重いため）
+}
+
+// ── onAuthStateChanged：必ずclearState→loadUserData→renderAllの順
 auth.onAuthStateChanged(async user => {
-  const prevUid = currentUser?.uid;
-  currentUser = user;
   const userEl = document.getElementById("auth-user");
   const btnEl  = document.getElementById("auth-btn");
+
+  clearState();       // アカウント切り替え・ログアウト問わず必ずクリア
+  currentUser = user;
+
   if (user) {
     userEl.textContent = user.displayName || user.email;
     btnEl.textContent  = "ログアウト";
-    // アカウントが切り替わった場合はメモリ上のデータをリセット
-    if (prevUid && prevUid !== user.uid) {
-      S.history = [];
-      S.weakList = [];
-      S.savedSets = [];
-      saveHistory([]);
-    }
-    await migrateLocalHistoryToCloud();
-    await loadFromFirestore();
-    await loadApiKeyFromCloud();
-    updateSetupStats();
-    renderWeakList();
-    renderSavedSets();
+    await loadUserData();
+    renderAll();
     show("setup");
   } else {
     userEl.textContent = "";
     btnEl.textContent  = "Googleでログイン";
-    // 未ログイン時はメモリもローカルもリセットしてログイン画面へ
-    S.history = [];
-    S.weakList = [];
     show("login");
   }
 });
 
-// ── ローカル履歴をFirestoreにマイグレーション ───────────
-async function migrateLocalHistoryToCloud() {
-  if (!currentUser) return;
-  const localHistory = loadHistory();
-  if (!localHistory.length) return;
-  try {
-    const existingSnap = await userDoc("history").limit(1).get();
-    const hasCloudData = !existingSnap.empty;
-    if (!hasCloudData) {
-      const batch = db.batch();
-      let count = 0;
-      for (const item of localHistory) {
-        if (count >= 499) break;
-        const ref = userDoc("history").doc();
-        const date = item.date ? new Date(item.date) : new Date();
-        batch.set(ref, { sentence:item.sentence, result:item.result, date:item.date||date.toISOString(), createdAt:firebase.firestore.Timestamp.fromDate(date), migratedFromLocal:true });
-        count++;
-      }
-      await batch.commit();
-      console.log(`ローカル履歴 ${count}件 をクラウドにアップロードしました`);
-    } else {
-      const cloudSnap = await userDoc("history").orderBy("createdAt","desc").limit(500).get();
-      const cloudDates = new Set(cloudSnap.docs.map(d => d.data().date).filter(Boolean));
-      const toUpload = localHistory.filter(item => item.date && !cloudDates.has(item.date));
-      if (toUpload.length > 0) {
-        const batch = db.batch();
-        for (const item of toUpload.slice(0, 499)) {
-          const ref = userDoc("history").doc();
-          const date = new Date(item.date);
-          batch.set(ref, { sentence:item.sentence, result:item.result, date:item.date, createdAt:firebase.firestore.Timestamp.fromDate(date), migratedFromLocal:true });
-        }
-        await batch.commit();
-        console.log(`未同期の履歴 ${toUpload.length}件 をアップロードしました`);
-      }
-    }
-  } catch(e) { console.warn("履歴のマイグレーション失敗:", e.message); }
-}
-
-// ── Firestore paths ─────────────────────────────────────
 function userDoc(path) {
   if (!currentUser) return null;
   return db.collection("users").doc(currentUser.uid).collection(path);
 }
 
-// ── Save to Firestore ───────────────────────────────────
 async function saveHistoryToCloud(historyItem) {
   if (!currentUser) return;
   try {
@@ -1517,7 +1480,7 @@ async function saveWeakListToCloud() {
 async function saveSavedSetsToCloud() {
   if (!currentUser) return;
   try {
-    await db.collection("users").doc(currentUser.uid).set({ savedSets: loadSavedSets() }, { merge: true });
+    await db.collection("users").doc(currentUser.uid).set({ savedSets: S.savedSets }, { merge: true });
   } catch(e) { console.warn("セット保存失敗:", e.message); }
 }
 
@@ -1525,61 +1488,19 @@ async function saveSettingsToCloud() {
   if (!currentUser) return;
   try {
     await db.collection("users").doc(currentUser.uid).set({
-      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio }
+      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle }
     }, { merge: true });
   } catch(e) { console.warn("設定の保存失敗:", e.message); }
 }
 
-// ── Load from Firestore ─────────────────────────────────
-async function loadFromFirestore() {
-  if (!currentUser) return;
-  try {
-    const userSnap = await db.collection("users").doc(currentUser.uid).get();
-    if (userSnap.exists) {
-      const data = userSnap.data();
-      if (data.weakList)  { S.weakList = data.weakList; saveWeakList(S.weakList); }
-      if (data.savedSets) { saveSavedSets(data.savedSets); }
-      if (data.settings) {
-        const sv = data.settings;
-        if (sv.levelId) S.level = LEVELS.find(l=>l.id===sv.levelId) || S.level;
-        if (sv.topic && TOPICS.includes(sv.topic)) S.topic = sv.topic;
-        if (sv.speed)   S.speed  = sv.speed;
-        if (sv.reps)    S.reps   = sv.reps;
-        if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
-        document.getElementById("speed-slider").value = S.speed;
-        document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
-        setReps(S.reps);
-        setPrio(S.hskPrio);
-      }
-    }
-    // クラウド履歴 + ローカル履歴をマージ
-    const histSnap = await userDoc("history").orderBy("createdAt","desc").limit(300).get();
-    if (!histSnap.empty) {
-      const cloudHistory = histSnap.docs.map(d => {
-        const dd = d.data();
-        return { sentence:dd.sentence, result:dd.result, date:dd.date };
-      }).reverse();
-      const localHistory = loadHistory();
-      const cloudDates = new Set(cloudHistory.map(h=>h.date).filter(Boolean));
-      const localOnly = localHistory.filter(h => !h.date || !cloudDates.has(h.date));
-      const merged = [...localOnly, ...cloudHistory]
-        .filter(h => h.sentence && h.result)
-        .sort((a,b) => new Date(a.date||0) - new Date(b.date||0))
-        .slice(-300);
-      S.history = merged;
-      saveHistory(S.history);
-    }
-  } catch(e) { console.warn("クラウドデータの読み込み失敗:", e.message); }
-}
+function saveSettings() { saveSettingsToCloud(); }
 
-// ── Google ログイン / ログアウト ─────────────────────────
 function toggleAuth() {
   if (currentUser) {
     auth.signOut();
   } else {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(e => {
-      // popupがブロックされた場合はredirectにフォールバック
       if (e.code === "auth/popup-blocked" || e.code === "auth/popup-closed-by-user") {
         auth.signInWithRedirect(provider);
       } else {
@@ -1591,7 +1512,6 @@ function toggleAuth() {
   }
 }
 
-// ── APIキーのクラウド保存・読み込み ─────────────────────
 async function saveApiKeyToCloud() {
   if (!currentUser) return;
   const key = getKey();
@@ -1600,19 +1520,6 @@ async function saveApiKeyToCloud() {
     await db.collection("users").doc(currentUser.uid).set({ apiKey: key }, { merge: true });
   } catch(e) { console.warn("APIキー保存失敗:", e.message); }
 }
-
-async function loadApiKeyFromCloud() {
-  if (!currentUser) return;
-  try {
-    const snap = await db.collection("users").doc(currentUser.uid).get();
-    const key = snap.data()?.apiKey;
-    if (key) {
-      const el = document.getElementById("api-key");
-      if (el && !el.value) { el.value = key; }
-    }
-  } catch(e) { console.warn("APIキー読み込み失敗:", e.message); }
-}
-
 </script>
 </body>
 </html>
