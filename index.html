@@ -1389,7 +1389,17 @@ function render(){
         <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
       </div>`;
     } else {
-      html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.dictSpeed,()=>{S.isSpeaking=false;render();})">🔊 音声を再生 [Space]</button>`;
+      html+=`<button class="btn btn-dark" id="dict-speak-btn" onclick="
+        S.dictInput=document.getElementById('dict-input')?.value||S.dictInput;
+        S.isSpeaking=true;
+        document.getElementById('dict-speak-btn').disabled=true;
+        document.getElementById('dict-speak-btn').textContent='🔊 再生中…';
+        speak(S.sentence.zh,S.dictSpeed,()=>{
+          S.isSpeaking=false;
+          const b=document.getElementById('dict-speak-btn');
+          if(b){b.disabled=false;b.textContent='🔊 音声を再生 [Space]';}
+        })
+      ">🔊 音声を再生 [Space]</button>`;
     }
     // 入力欄（採点前）
     if(!dr){
@@ -1575,6 +1585,11 @@ function render(){
   }
 
   body.innerHTML=html;
+  // dictation フェーズ：再描画後に入力途中の内容を復元
+  if((S.phase==="dictation"||S.phase==="dictreviewing")&&S.dictInput){
+    const ta=document.getElementById("dict-input");
+    if(ta){ta.value=S.dictInput;ta.setSelectionRange(ta.value.length,ta.value.length);}
+  }
   if(ph==="result")body.scrollTop=body.scrollHeight;
 }
 
