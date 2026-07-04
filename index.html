@@ -241,6 +241,19 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
       <button onclick="clearHistory()" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 9px;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
     </div>
 
+    <div class="sec-label">練習モード</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="topic-btn active" id="mode-full" onclick="setMode('full')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
+        📚 フルモード <span style="font-size:11px;color:#aaa">初聴→書取→確認→音読→追読→録音→採点</span>
+      </button>
+      <button class="topic-btn" id="mode-dictation" onclick="setMode('dictation')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
+        ✏️ 書取のみ <span style="font-size:11px;color:#aaa">初聴→書取→採点</span>
+      </button>
+      <button class="topic-btn" id="mode-shadow" onclick="setMode('shadow')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
+        🎙 シャドーイングのみ <span style="font-size:11px;color:#aaa">初聴→確認→音読→追読→録音→採点</span>
+      </button>
+    </div>
+
     <div class="sec-label">練習ステップ</div>
     <div style="background:white;border-radius:12px;padding:12px 14px;font-size:13px;color:#444;line-height:1.9">
       <div>① <b>初聴</b>　音だけ聞いて耳を慣らす</div>
@@ -368,6 +381,8 @@ const S = {
   reps:     LS.get("sh_settings")?.reps   || 3,
   hskPrio:  LS.get("sh_settings")?.hskPrio || false,
   practiceStyle: LS.get("sh_settings")?.practiceStyle || "answer",
+  practiceMode:  LS.get("sh_settings")?.practiceMode  || "full",
+  showPartnerPinyin: false,
   // ユーザーデータ（Firestoreから読む・初期値は空）
   history:  [],
   weakList: [],
@@ -445,6 +460,13 @@ setPrio(S.hskPrio);
 
 function setStyle(v){S.practiceStyle=v;document.getElementById("style-answer").classList.toggle("active",v==="answer");document.getElementById("style-question").classList.toggle("active",v==="question");saveSettings();}
 setStyle(S.practiceStyle);
+
+function setMode(v){
+  S.practiceMode=v;
+  ["full","dictation","shadow"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
+  saveSettings();
+}
+setMode(S.practiceMode);
 
 document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
 document.getElementById("start-btn").onclick=()=>{
@@ -932,17 +954,19 @@ ${styleRule}
 
 出力形式（厳守）：
 相手：<相手のセリフ（漢字のみ）>
+相手拼音：<相手のセリフの声調記号付きピンイン>
 相手訳：<相手のセリフの日本語訳>
 返答：<返答文（漢字のみ）>
 拼音：<返答文の声調記号付きピンイン>
 訳：<返答文の日本語訳>`}]);
-  const partner   = raw.match(/相手[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const partnerJa = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const zh        = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
-  const py        = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const ja        = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const partner    = raw.match(/相手[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const partnerPy  = raw.match(/相手拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const partnerJa  = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const zh         = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
+  const py         = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const ja         = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
-  return { zh, py, ja, partner, partnerJa };
+  return { zh, py, ja, partner, partnerPy, partnerJa };
 }
 
 async function reviewRecording(blob, prevRec){
@@ -1203,7 +1227,15 @@ function stopAll(){window.speechSynthesis?.cancel();stopRecording();S.isSpeaking
 // ══ Flow ═════════════════════════════════════════════════
 function setPhase(p){S.phase=p;}
 function showErr(msg){const el=document.getElementById("err-display");if(el){el.textContent=msg;el.classList.remove("hidden");}}
-function stepIndex(){const m={listen:0,dictation:1,dictreviewing:1,check:2,read:3,shadow:4,record:5,recording:5,reviewing:6,result:6};return m[S.phase]??0;}
+function stepIndex(){
+  if(S.practiceMode==="dictation"){
+    const m={listen:0,dictation:1,dictreviewing:1,result:2};return m[S.phase]??0;
+  }
+  if(S.practiceMode==="shadow"){
+    const m={listen:0,check:1,read:2,shadow:3,record:4,recording:4,reviewing:5,result:5};return m[S.phase]??0;
+  }
+  const m={listen:0,dictation:1,dictreviewing:1,check:2,read:3,shadow:4,record:5,recording:5,reviewing:6,result:6};return m[S.phase]??0;
+}
 
 async function loadSentence(resetConversation=false){
   stopAll();
@@ -1258,10 +1290,15 @@ function goHome(){
 }
 
 function nextStep(){
-  const order=["listen","dictation","check","read","shadow","record"];
+  const orderMap={
+    full:      ["listen","dictation","check","read","shadow","record"],
+    dictation: ["listen","dictation"],
+    shadow:    ["listen","check","read","shadow","record"],
+  };
+  const order=orderMap[S.practiceMode]||orderMap.full;
   const i=order.indexOf(S.phase);
   if(i>=0&&i<order.length-1){setPhase(order[i+1]);render();}
-  else if(S.phase==="result"){
+  else {
     if(S.sentence&&!S.customMode){
       S.conversationHistory.push({partner:S.sentence.partner||"",zh:S.sentence.zh});
       if(S.conversationHistory.length>10) S.conversationHistory.shift();
@@ -1294,9 +1331,15 @@ function updateStats(){
 }
 
 function renderStepBar(){
+  const stepsMap={
+    full:      [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
+    dictation: [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],
+    shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
+  };
+  const steps=stepsMap[S.practiceMode]||stepsMap.full;
   const bar=document.getElementById("step-bar");if(!bar)return;
   const cur=stepIndex();let h="";
-  STEPS.forEach((st,i)=>{
+  steps.forEach((st,i)=>{
     const done=i<cur,active=i===cur;
     if(i>0)h+=`<div class="step-line${done?" done":""}"></div>`;
     h+=`<div class="step-item"><div class="step-dot${done?" done":active?" active":""}">${done?"✓":(i+1)}</div><div class="step-name${done?" done":active?" active":""}">${st.name}</div></div>`;
@@ -1310,7 +1353,9 @@ function render(){
   const ph=S.phase,s=S.sentence;
   let html="";
 
-  html+=`<div class="card"><div class="card-title">${STEPS[Math.min(stepIndex(),6)]?.name||""}</div>`;
+  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
+  const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
+  html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
   } else if(s){
@@ -1318,7 +1363,11 @@ function render(){
       html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
         <div style="font-size:10px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
         <div style="font-size:17px;color:#1e1b4b;font-weight:600">${s.partner}</div>
+        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#6366f1;margin-top:2px">${s.partnerPy}</div>`:""}
         ${s.partnerJa?`<div style="font-size:12px;color:#818cf8;margin-top:3px">${s.partnerJa}</div>`:""}
+        <button style="margin-top:4px;background:none;border:1px solid #c7d2fe;border-radius:12px;padding:2px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
+          ${S.showPartnerPinyin?"拼音を隠す":"相手の拼音を表示"}
+        </button>
       </div>
       <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
     }
@@ -1370,7 +1419,7 @@ function render(){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
     }
-    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="S.dictInput='';S.dictResult=null;setPhase('dictation');render()">次へ：書き取り → [→]</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="${S.practiceMode==='shadow'?"setPhase('check');render()":"S.dictInput='';S.dictResult=null;setPhase('dictation');render()"}">次へ：${S.practiceMode==='shadow'?"テキスト確認":"書き取り"} → [→]</button>`;
   }
   if((ph==="dictation"||ph==="dictreviewing")&&s){
     const dr=S.dictResult;
@@ -1468,7 +1517,10 @@ function render(){
       }
       html+=`<div class="btn-row" style="margin-top:10px">
         <button class="btn btn-gray" style="flex:1" onclick="S.dictInput='';S.dictResult=null;render()">🔄 もう一度</button>
-        <button class="btn" style="flex:1;background:${S.level.color}" onclick="setPhase('check');render()">次へ：内容確認 → [→]</button>
+        ${S.practiceMode==="dictation"
+          ?`<button class="btn" style="flex:1;background:${S.level.color}" onclick="nextStep()">次の文へ → [N]</button>`
+          :`<button class="btn" style="flex:1;background:${S.level.color}" onclick="setPhase('check');render()">次へ：内容確認 → [→]</button>`
+        }
       </div>`;
     }
   }
@@ -1679,6 +1731,7 @@ async function loadUserData() {
         if (sv.reps)    S.reps   = sv.reps;
         if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
         if (sv.practiceStyle) S.practiceStyle = sv.practiceStyle;
+        if (sv.practiceMode)  { S.practiceMode = sv.practiceMode; setMode(sv.practiceMode); }
         document.getElementById("speed-slider").value = S.speed;
         document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
         setReps(S.reps);
@@ -1771,7 +1824,7 @@ async function saveSettingsToCloud() {
   if (!currentUser) return;
   try {
     await db.collection("users").doc(currentUser.uid).set({
-      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle }
+      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode }
     }, { merge: true });
   } catch(e) { console.warn("設定の保存失敗:", e.message); }
 }
