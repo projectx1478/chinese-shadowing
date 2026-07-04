@@ -292,9 +292,10 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <div class="sec-label">スコア・一致率の推移</div>
     <div style="background:white;border-radius:12px;padding:14px">
       <canvas id="trend-chart" width="320" height="160"></canvas>
-      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#888">
-        <span><span style="color:#6366f1">●</span> スコア（/5）</span>
-        <span><span style="color:#10b981">●</span> 一致率（%/20）</span>
+      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#888;flex-wrap:wrap">
+        <span><span style="color:#6366f1">●</span> 🎙スコア（/5）</span>
+        <span><span style="color:#10b981">●</span> 🎙一致率（%）</span>
+        <span><span style="color:#f59e0b">●</span> ✏️書取一致率（%）</span>
       </div>
     </div>
 
@@ -588,8 +589,11 @@ function renderHistoryTab(){
         <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
       </div>
       <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
-        <span style="color:#f59e0b;font-size:13px">${stars}</span>
-        <span style="color:${(r.match||0)>=80?"#10b981":(r.match||0)>=60?"#f59e0b":"#ef4444"};font-weight:600;font-size:13px">${r.match||0}%</span>
+        ${isDictation
+          ?`<span style="background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:700">✏️ ${r.match||0}%</span>`
+          :`<span style="color:#f59e0b;font-size:13px">${stars}</span>
+            <span style="color:${(r.match||0)>=80?"#10b981":(r.match||0)>=60?"#f59e0b":"#ef4444"};font-weight:600;font-size:13px">${r.match||0}%</span>`
+        }
         <span style="font-size:11px;color:#aaa">${d}</span>
       </div>
       ${isDictation&&dr?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f0f9ff;border-radius:7px">
@@ -617,7 +621,9 @@ function drawTrendChart(history){
     ctx.fillStyle="#ccc";ctx.font="12px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",W/2,H/2);return;
   }
-  const data=history.slice(-30);
+  const shData=history.filter(h=>h.type!=="dictation").slice(-30);
+  const dcData=history.filter(h=>h.type==="dictation").slice(-30);
+  const data=[...shData,...dcData].length?history.slice(-30):[];
   const n=data.length;
   const gW=W-padL-padR,gH=H-padT-padB;
   ctx.strokeStyle="rgba(0,0,0,0.06)";ctx.lineWidth=1;
@@ -634,25 +640,27 @@ function drawTrendChart(history){
     const d=data[i].date?new Date(data[i].date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"}):"";
     ctx.fillText(d,x,H-padB+10);
   });
-  const drawLine=(key,color,toPercent)=>{
+  const drawLineData=(dataset,key,color,toPercent)=>{
+    const m=dataset.length;if(!m)return;
     ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin="round";
-    data.forEach((h,i)=>{
+    dataset.forEach((h,i)=>{
       const v=toPercent(h.result?.[key]||0);
-      const x=padL+gW*(i/(n-1||1));
+      const x=padL+gW*(i/(m-1||1));
       const y=padT+gH*(1-v/100);
       i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     });
     ctx.stroke();
-    data.forEach((h,i)=>{
+    dataset.forEach((h,i)=>{
       const v=toPercent(h.result?.[key]||0);
-      const x=padL+gW*(i/(n-1||1));
+      const x=padL+gW*(i/(m-1||1));
       const y=padT+gH*(1-v/100);
       ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
       ctx.fillStyle=color;ctx.fill();
     });
   };
-  drawLine("match","#10b981",v=>v);
-  drawLine("score","#6366f1",v=>v/5*100);
+  drawLineData(shData,"match","#10b981",v=>v);
+  drawLineData(shData,"score","#6366f1",v=>v/5*100);
+  drawLineData(dcData,"match","#f59e0b",v=>v);
 }
 
 async function runAiAnalysis(){
@@ -842,12 +850,23 @@ function updateSetupStats(){
   const summEl=document.getElementById("hist-summary");
   if(!countEl||!summEl)return;
   if(!h.length){countEl.textContent="";summEl.textContent="まだ練習記録がありません";return;}
-  const avg=(h.reduce((s,x)=>s+x.result.score,0)/h.length).toFixed(1);
-  const avgM=Math.round(h.reduce((s,x)=>s+x.result.match,0)/h.length);
+  const sh=h.filter(x=>x.type!=="dictation");
+  const dc=h.filter(x=>x.type==="dictation");
   const last=h[h.length-1];
   const d=last.date?new Date(last.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"}):"";
   countEl.textContent=`（${h.length}文）`;
-  summEl.innerHTML=`平均 <b>${avg}★</b>　一致率 <b>${avgM}%</b><br><span style="font-size:11px;color:#aaa">最終：${d}　${last.sentence.zh}</span>`;
+  let lines="";
+  if(sh.length){
+    const avg=(sh.reduce((s,x)=>s+x.result.score,0)/sh.length).toFixed(1);
+    const avgM=Math.round(sh.reduce((s,x)=>s+x.result.match,0)/sh.length);
+    lines+=`🎙 シャドーイング ${sh.length}文　平均 <b>${avg}★</b>　一致率 <b>${avgM}%</b><br>`;
+  }
+  if(dc.length){
+    const avgM=Math.round(dc.reduce((s,x)=>s+x.result.match,0)/dc.length);
+    lines+=`✏️ 書取 ${dc.length}文　平均一致率 <b>${avgM}%</b><br>`;
+  }
+  lines+=`<span style="font-size:11px;color:#aaa">最終：${d}　${last.sentence?.zh||""}</span>`;
+  summEl.innerHTML=lines;
 }
 
 async function clearHistory(){
@@ -1325,9 +1344,12 @@ function renderRepDots(){
 
 function updateStats(){
   const el=document.getElementById("top-stats");if(!el)return;
-  const n=S.history.length;if(!n){el.textContent="";return;}
-  const avg=(S.history.reduce((s,h)=>s+h.result.score,0)/n).toFixed(1);
-  el.textContent=`${n}文 avg ${avg}★`;
+  const sh=S.history.filter(h=>h.type!=="dictation");
+  const dc=S.history.filter(h=>h.type==="dictation");
+  const parts=[];
+  if(sh.length){const avg=(sh.reduce((s,h)=>s+h.result.score,0)/sh.length).toFixed(1);parts.push(`🎙${sh.length}文 ${avg}★`);}
+  if(dc.length){const avgM=Math.round(dc.reduce((s,h)=>s+h.result.match,0)/dc.length);parts.push(`✏️${dc.length}文 ${avgM}%`);}
+  el.textContent=parts.join("  ")||"";
 }
 
 function renderStepBar(){
