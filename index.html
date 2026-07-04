@@ -1368,7 +1368,7 @@ function render(){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
     }
-    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('dictation');render()">次へ：書き取り → [→]</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="S.dictInput='';S.dictResult=null;setPhase('dictation');render()">次へ：書き取り → [→]</button>`;
   }
   if((ph==="dictation"||ph==="dictreviewing")&&s){
     const dr=S.dictResult;
@@ -1394,7 +1394,7 @@ function render(){
       html+=`<textarea id="dict-input"
         style="width:100%;margin-top:10px;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:22px;outline:none;font-family:inherit;resize:none;min-height:64px;letter-spacing:.05em"
         placeholder="ここに中国語を入力…"
-        oninput="S.dictInput=this.value">${S.dictInput}</textarea>`;
+        oninput="S.dictInput=this.value"></textarea>`;
       html+=`<div class="btn-row" style="margin-top:8px">`;
       if(ph==="dictreviewing"){
         html+=`<button class="btn btn-gray" style="flex:1" disabled>採点中…<span class="spinner" style="display:inline-block;width:12px;height:12px;margin-left:6px;vertical-align:middle"></span></button>`;
