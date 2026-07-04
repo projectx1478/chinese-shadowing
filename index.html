@@ -1324,6 +1324,8 @@ function render(){
     }
     if(ph==="listen"){
       html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
+    } else if(ph==="dictation"||ph==="dictreviewing"){
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:#ccc;margin-top:4px">正解は採点後に表示されます</div></div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${s.zh}</div>`;
       if(s.py){
@@ -1424,6 +1426,10 @@ function render(){
           <span><span style="color:#16a34a">■</span> 正解</span>
           <span><span style="color:#dc2626;text-decoration:line-through">■</span> 余分</span>
           <span style="background:#fef9c3;color:#92400e;padding:0 4px;border-radius:2px">＿</span><span> 抜け</span>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee">
+          <div class="diff-label">正解</div>
+          <div class="diff-text diff-target" style="font-size:22px">${s.zh}</div>
         </div>
       </div>`;
       html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:white;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
