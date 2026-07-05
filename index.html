@@ -581,10 +581,10 @@ function renderHistoryTab(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           ${isDictation?`<span style="background:#e0f2fe;color:#0369a1;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">書取</span>`:""}
-          <span style="font-size:15px;font-weight:600;color:#222;word-break:break-all">${s.zh||""}</span>
-          ${s.py?`<div style="font-size:12px;color:#818cf8;margin-top:2px">${s.py}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${s.ja}</div>`:""}
-          ${s.partner?`<div style="font-size:11px;color:#aaa;margin-top:4px">相手：${s.partner}</div>`:""}
+          <span style="font-size:15px;font-weight:600;color:#222;word-break:break-all">${esc(s.zh||"")}</span>
+          ${s.py?`<div style="font-size:12px;color:#818cf8;margin-top:2px">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${esc(s.ja)}</div>`:""}
+          ${s.partner?`<div style="font-size:11px;color:#aaa;margin-top:4px">相手：${esc(s.partner)}</div>`:""}
         </div>
         <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
       </div>
@@ -597,13 +597,13 @@ function renderHistoryTab(){
         <span style="font-size:11px;color:#aaa">${d}</span>
       </div>
       ${isDictation&&dr?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f0f9ff;border-radius:7px">
-        入力：${dr.input||""}
-        ${dr.miss?.length?`　🟨抜け：${dr.miss.join("")}`:""}
-        ${dr.extra?.length?`　🟥余分：${dr.extra.join("")}`:""}
+        入力：${esc(dr.input||"")}
+        ${dr.miss?.length?`　🟨抜け：${esc(dr.miss.join(""))}`:""}
+        ${dr.extra?.length?`　🟥余分：${esc(dr.extra.join(""))}`:""}
       </div>`:""}
-      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f8f7f4;border-radius:7px">認識：${r.recognized}</div>`:""}
-      ${r.pronun?`<div style="font-size:12px;color:#666;margin-top:5px">📝 ${r.pronun}</div>`:""}
-      ${r.feedback?`<div style="font-size:12px;color:#444;margin-top:4px;line-height:1.6">💬 ${r.feedback}</div>`:""}
+      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f8f7f4;border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
+      ${r.pronun?`<div style="font-size:12px;color:#666;margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
+      ${r.feedback?`<div style="font-size:12px;color:#444;margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
     </div>`;
   }).join("");
   drawTrendChart(S.history);
@@ -1379,6 +1379,9 @@ function renderStepBar(){
   bar.innerHTML=h;
 }
 
+// XSSエスケープ（Gemini返答・生成文をinnerHTMLに埋め込む前に必ず通す）
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
 function render(){
   updateStats();renderStepBar();
   const body=document.getElementById("practice-body");if(!body)return;
@@ -1394,9 +1397,9 @@ function render(){
     if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing") {
       html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
         <div style="font-size:10px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
-        <div style="font-size:17px;color:#1e1b4b;font-weight:600">${s.partner}</div>
-        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#6366f1;margin-top:2px">${s.partnerPy}</div>`:""}
-        ${s.partnerJa?`<div style="font-size:12px;color:#818cf8;margin-top:3px">${s.partnerJa}</div>`:""}
+        <div style="font-size:17px;color:#1e1b4b;font-weight:600">${esc(s.partner)}</div>
+        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#6366f1;margin-top:2px">${esc(s.partnerPy)}</div>`:""}
+        ${s.partnerJa?`<div style="font-size:12px;color:#818cf8;margin-top:3px">${esc(s.partnerJa)}</div>`:""}
         <button style="margin-top:4px;background:none;border:1px solid #c7d2fe;border-radius:12px;padding:2px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
           ${S.showPartnerPinyin?"拼音を隠す":"相手の拼音を表示"}
         </button>
@@ -1408,13 +1411,13 @@ function render(){
     } else if(ph==="dictation"||ph==="dictreviewing"){
       html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:#ccc;margin-top:4px">正解は採点後に表示されます</div></div>`;
     } else if(ph==="result"){
-      html+=`<div class="hanzi">${s.zh}</div>`;
+      html+=`<div class="hanzi">${esc(s.zh)}</div>`;
       if(s.py){
-        if(S.showPinyin)html+=`<div class="pinyin">${s.py}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
+        if(S.showPinyin)html+=`<div class="pinyin">${esc(s.py)}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
         else html+=`<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示 [P]</button>`;
       }
       if(s.ja){
-        if(S.showTrans)html+=`<div class="trans">${s.ja}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
+        if(S.showTrans)html+=`<div class="trans">${esc(s.ja)}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
         else html+=`<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示 [T]</button>`;
       }
     } else {
@@ -1423,10 +1426,10 @@ function render(){
       if(S.hideHanzi){
         html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
       } else {
-        html+=`<div class="hanzi">${s.zh}</div>`;
-        if(S.showPinyin&&s.py)html+=`<div class="pinyin">${s.py}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
+        html+=`<div class="hanzi">${esc(s.zh)}</div>`;
+        if(S.showPinyin&&s.py)html+=`<div class="pinyin">${esc(s.py)}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
         else if(s.py)html+=`<button class="reveal-btn" onclick="S.showPinyin=true;render()">拼音を表示 [P]</button>`;
-        if(S.showTrans&&s.ja)html+=`<div class="trans">${s.ja}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
+        if(S.showTrans&&s.ja)html+=`<div class="trans">${esc(s.ja)}</div><button class="hide-btn" onclick="S.showTrans=false;render()">訳を隠す</button>`;
         else if(s.ja)html+=`<button class="reveal-btn" onclick="S.showTrans=true;render()">日本語訳を表示 [T]</button>`;
         if(isShadow||isRecord)html+=`<button class="hide-btn" onclick="S.hideHanzi=true;render()">🙈 テキストを隠す [H]</button>`;
       }
@@ -1521,14 +1524,14 @@ function render(){
         <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee">
           ${s.partner?`
           <div class="diff-label">相手のセリフ</div>
-          <div style="font-size:16px;color:#1e1b4b;font-weight:600;margin-bottom:2px">${s.partner}</div>
-          ${s.partnerPy?`<div style="font-size:12px;color:#818cf8;margin-bottom:2px">${s.partnerPy}</div>`:""}
-          ${s.partnerJa?`<div style="font-size:12px;color:#aaa;margin-bottom:8px">${s.partnerJa}</div>`:""}
+          <div style="font-size:16px;color:#1e1b4b;font-weight:600;margin-bottom:2px">${esc(s.partner)}</div>
+          ${s.partnerPy?`<div style="font-size:12px;color:#818cf8;margin-bottom:2px">${esc(s.partnerPy)}</div>`:""}
+          ${s.partnerJa?`<div style="font-size:12px;color:#aaa;margin-bottom:8px">${esc(s.partnerJa)}</div>`:""}
           <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
           `:"<div class='diff-label'>正解</div>"}
-          <div class="diff-text diff-target" style="font-size:22px">${s.zh}</div>
-          ${s.py?`<div style="font-size:14px;color:#6366f1;margin-top:4px;letter-spacing:.08em">${s.py}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${s.ja}</div>`:""}
+          <div class="diff-text diff-target" style="font-size:22px">${esc(s.zh)}</div>
+          ${s.py?`<div style="font-size:14px;color:#6366f1;margin-top:4px;letter-spacing:.08em">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${esc(s.ja)}</div>`:""}
         </div>
       </div>`;
       html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:white;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
@@ -1552,7 +1555,7 @@ function render(){
       if(dr.explain){
         html+=`<div class="pronun-box" style="margin-top:6px">
           <div class="pronun-title">📖 AI解説</div>
-          <div class="pronun-text">${dr.explain}</div>
+          <div class="pronun-text">${esc(dr.explain)}</div>
         </div>`;
       }
       html+=`<div class="btn-row" style="margin-top:10px">
@@ -1642,10 +1645,10 @@ function render(){
       <div class="diff-label">認識された発音</div>
       <div class="diff-text">${diffHtml(s?.zh||"",r.recognized)}</div>
       <div class="diff-label" style="margin-top:8px">お手本</div>
-      <div class="diff-text diff-target">${s?.zh||""}</div>
+      <div class="diff-text diff-target">${esc(s?.zh||"")}</div>
     </div>`;
-    if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${r.pronun}</div></div>`;
-    html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${r.feedback}</div></div>`;
+    if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${esc(r.pronun)}</div></div>`;
+    html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${esc(r.feedback)}</div></div>`;
     html+=`<div class="btn-row">
       <button class="btn btn-gray" onclick="retryRecord()">⟳ 録り直す</button>
       <button class="btn" style="background:${S.level.color}" onclick="nextStep()">会話を続ける → [N]</button>
