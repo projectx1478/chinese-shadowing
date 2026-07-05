@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>中国語シャドーイング</title>
+<title>听写跟读</title>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#f0ede8; min-height:100vh; }
@@ -161,8 +161,8 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 <!-- ══ LOGIN ══════════════════════════════════════════ -->
 <div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#f0ede8">
   <div style="text-align:center;margin-bottom:40px">
-    <div style="font-size:64px;font-weight:900;color:#6366f1;letter-spacing:-2px">跟读</div>
-    <div style="font-size:20px;color:#555;margin-top:8px;font-weight:600">中国語シャドーイング練習</div>
+    <div style="font-size:56px;font-weight:900;color:#6366f1;letter-spacing:-2px">听写跟读</div>
+    <div style="font-size:18px;color:#555;margin-top:8px;font-weight:600">ディクテーション＆シャドーイング練習</div>
   </div>
   <div style="background:white;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
     <div style="font-size:15px;color:#444;margin-bottom:8px;font-weight:600">ログインして始める</div>
@@ -178,8 +178,8 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 <!-- ══ SETUP ══════════════════════════════════════════ -->
 <div id="screen-setup" class="hidden">
   <div class="hero">
-    <div class="hero-kanji">跟读</div>
-    <div class="hero-title">シャドーイング練習</div>
+    <div class="hero-kanji">听写跟读</div>
+    <div class="hero-title">ディクテーション＆シャドーイング</div>
     <div id="app-version" style="font-size:10px;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:2px">読込中…</div>
     <div id="auth-bar" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px">
       <span id="auth-user" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
@@ -355,7 +355,7 @@ const LEVELS = [
   {id:"hsk5",label:"HSK 5",color:"#7c3aed",desc:"中上級"},
   {id:"hsk6",label:"HSK 6",color:"#dc2626",desc:"上級"},
 ];
-const TOPICS = ["日常生活","職場・ビジネス","医療・病院","教育・学校","買い物・サービス","旅行・ホテル","食べ物・レストラン","健康・スポーツ","社会・ニュース","感情・意見","自然・環境"];
+const TOPICS = ["日常生活","職場・ビジネス","医療・病院","教育・学校","買い物・サービス","旅行・ホテル","食べ物・レストラン","健康・スポーツ","社会・ニュース","感情・意見","自然・環境","中国SNS・ネット流行語","家族間の会話"];
 const STEPS = [
   {id:"listen",name:"初聴"},
   {id:"dictation",name:"書取"},
@@ -960,10 +960,16 @@ async function generateSentence(){
     : `・「相手のセリフ」は状況や質問を提示する1文\n・「返答」は学習者がシャドーイングする1文（レベルに合った自然な返答）`;
   const histLines=S.conversationHistory.slice(-5).map((h,i)=>`ターン${i+1}　相手：${h.partner}　返答：${h.zh}`).join("\n");
   const contextHint=histLines?`\n\n【これまでの会話（この続きを生成）】\n${histLines}`:"";
+  const topicHint=
+    S.topic==="中国SNS・ネット流行語"
+      ?"\n補足：小红书・微博・抖音などで実際に使われる口語表現・流行語・ネットスラングを自然に含めること（例：yyds、绝绝子、内卷、躺平、打工人、破防了 など）"
+    :S.topic==="家族間の会話"
+      ?"\n補足：親子・夫婦・兄弟姉妹など家族間のリアルな日常会話。くだけた口語表現を含めてよい（例：吃了吗、快来吃饭、作业写完了吗 など）"
+    :"";
   const raw=await gemini([{role:"user",content:
     `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
-トピック：${S.topic}${hskHint}${contextHint}
+トピック：${S.topic}${hskHint}${topicHint}${contextHint}
 
 ルール：
 ・会話の文脈を踏まえた自然な次のターンを生成すること
