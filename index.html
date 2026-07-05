@@ -1519,7 +1519,13 @@ function render(){
           <span style="background:#fef9c3;color:#92400e;padding:0 4px;border-radius:2px">＿</span><span> 抜け</span>
         </div>
         <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee">
-          <div class="diff-label">正解</div>
+          ${s.partner?`
+          <div class="diff-label">相手のセリフ</div>
+          <div style="font-size:16px;color:#1e1b4b;font-weight:600;margin-bottom:2px">${s.partner}</div>
+          ${s.partnerPy?`<div style="font-size:12px;color:#818cf8;margin-bottom:2px">${s.partnerPy}</div>`:""}
+          ${s.partnerJa?`<div style="font-size:12px;color:#aaa;margin-bottom:8px">${s.partnerJa}</div>`:""}
+          <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
+          `:"<div class='diff-label'>正解</div>"}
           <div class="diff-text diff-target" style="font-size:22px">${s.zh}</div>
           ${s.py?`<div style="font-size:14px;color:#6366f1;margin-top:4px;letter-spacing:.08em">${s.py}</div>`:""}
           ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${s.ja}</div>`:""}
