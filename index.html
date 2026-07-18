@@ -189,6 +189,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
   <div class="tabs">
     <button class="tab active" onclick="showSetupTab('main')">設定</button>
+    <button class="tab" onclick="showSetupTab('coach')">🤖 AIコーチ</button>
     <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
     <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
     <button class="tab" onclick="showSetupTab('history')">履歴・分析</button>
@@ -273,6 +274,16 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label">保存済みセット</div>
     <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+
+  <!-- AI Coach tab -->
+  <div id="stab-coach" class="setup-body hidden">
+    <div class="sec-label">🤖 今日の学習</div>
+    <div style="background:white;border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <div id="coach-menu" style="font-size:13px;color:#555"></div>
+      <button class="start-btn" style="margin-top:14px;background:#7c3aed" onclick="startCoachSession()">開始する →</button>
+    </div>
+    <div id="coach-streak" style="font-size:12px;color:#aaa;margin-top:8px;text-align:center"></div>
   </div>
 
   <!-- Weak list tab -->
@@ -383,6 +394,9 @@ const S = {
   weakList: [],
   savedSets: [],
   conversationHistory: [],
+  reviewQueue: [],
+  coach: {lastSessionDate:null, streak:0},
+  coachQueue: [], coachIndex: 0, coachActive: false,
   // 練習中の一時状態
   sentence: null,
   phase:    "loading",
@@ -468,12 +482,13 @@ document.getElementById("start-btn").onclick=()=>{
 };
 
 function showSetupTab(name){
-  ["main","custom","weak","history","shortcuts"].forEach(t=>{
+  ["main","coach","custom","weak","history","shortcuts"].forEach(t=>{
     document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
   });
   document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","custom","weak","history","shortcuts"][i]===name);
+    b.classList.toggle("active",["main","coach","custom","weak","history","shortcuts"][i]===name);
   });
+  if(name==="coach") renderCoachTab();
   if(name==="weak") renderWeakList();
   if(name==="custom") renderSavedSets();
   if(name==="history") renderHistoryTab();
@@ -909,7 +924,7 @@ async function callGeminiModel(model, body) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 }
 
-async function gemini(messages, system) {
+async function gemini(messages, system, temperature=0.7) {
   const body = {
     system_instruction: system ? {parts:[{text:system}]} : undefined,
     contents: messages.map(m=>({
@@ -918,7 +933,7 @@ async function gemini(messages, system) {
         ? m.content.map(c => c.type==="text" ? {text:c.text} : {inline_data:{mime_type:c.mime,data:c.data}})
         : [{text:m.content}]
     })),
-    generationConfig: {maxOutputTokens:1024, temperature:0.7}
+    generationConfig: {maxOutputTokens:1024, temperature}
   };
   for (const model of GEMINI_MODELS) {
     for (let attempt=1; attempt<=2; attempt++) {
@@ -953,16 +968,26 @@ async function generateSentence(){
     :S.topic==="家族間の会話"
       ?"\n補足：親子・夫婦・兄弟姉妹など家族間のリアルな日常会話。くだけた口語表現を含めてよい（例：吃了吗、快来吃饭、作业写完了吗 など）"
     :"";
+  // 同トピックの既出文（Firestore履歴＋今セッション分）を集めて重複回避リストを作る
+  const pastSameTopic=S.history.filter(h=>h.sentence?.topic===S.topic).map(h=>h.sentence.zh);
+  const avoidList=[...new Set([...pastSameTopic,...S.used])].slice(-15);
+  const avoidHint=avoidList.length
+    ?`\n\n【出題済み・避けるべき文】（同じ単語・言い回し・場面設定を使い回さないこと）\n${avoidList.map(z=>"・"+z).join("\n")}`
+    :"";
+  // 新しい会話の起点となる場面をランダムに1つ提示し、マンネリ化を防ぐ
+  const angleSeed=Math.floor(Math.random()*10000);
+  const randomHint=histLines?"":`\n\nランダムシード：${angleSeed}（この数字を使い、トピック内でも普段選ばれにくい切り口・状況設定・語彙を選ぶこと）`;
   const raw=await gemini([{role:"user",content:
     `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
-トピック：${S.topic}${hskHint}${topicHint}${contextHint}
+トピック：${S.topic}${hskHint}${topicHint}${contextHint}${avoidHint}${randomHint}
 
 ルール：
 ・会話の文脈を踏まえた自然な次のターンを生成すること
 ・文脈がない場合は会話の冒頭から始めること
 ${styleRule}
 ・前のターンと全く同じ内容・表現は避けること
+・「出題済み・避けるべき文」と単語・文型・場面が似ないよう、新しい語彙・状況を積極的に選ぶこと
 
 出力形式（厳守）：
 相手：<相手のセリフ（漢字のみ）>
@@ -970,12 +995,12 @@ ${styleRule}
 相手訳：<相手のセリフの日本語訳>
 返答：<返答文（漢字のみ）>
 拼音：<返答文の声調記号付きピンイン>
-訳：<返答文の日本語訳>`}]);
+訳：<返答文の日本語訳>`}], undefined, 1.05);
   const partner    = raw.match(/相手[：:]\s*(.+)/)?.[1]?.trim() || "";
-  const partnerPy  = raw.match(/相手拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const partnerPy  = raw.match(/^相手拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerJa  = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
   const zh         = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
-  const py         = raw.match(/拼音[：:]\s*(.+)/)?.[1]?.trim() || "";
+  const py         = raw.match(/^拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const ja         = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
   return { zh, py, ja, partner, partnerPy, partnerJa };
@@ -1289,6 +1314,129 @@ function startPractice(){
   loadSentence();
 }
 
+// ══ AI Coach ═════════════════════════════════════════════
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+function dueReviewItems(){
+  const today=todayStr();
+  return S.reviewQueue.filter(q=>!q.dueDate||q.dueDate<=today).sort((a,b)=>(b.priority||0)-(a.priority||0));
+}
+
+function buildCoachMenu(){
+  const due=dueReviewItems();
+  const reviewCount=Math.min(3,due.length);
+  return {reviewCount, dictationCount:2, shadowCount:3, convCount:1, due};
+}
+
+function renderCoachTab(){
+  const el=document.getElementById("coach-menu");
+  const streakEl=document.getElementById("coach-streak");
+  if(!el)return;
+  const m=buildCoachMenu();
+  const total=m.reviewCount+m.dictationCount+m.shadowCount+m.convCount;
+  const mins=Math.max(5,Math.round(total*1.6));
+  el.innerHTML=`
+    ① 復習 ${m.reviewCount}問<br>
+    ② ディクテーション ${m.dictationCount}問<br>
+    ③ シャドーイング ${m.shadowCount}問<br>
+    ④ 会話練習 ${m.convCount}問<br>
+    <span style="color:#aaa;font-size:12px">約${mins}分</span>`;
+  if(streakEl)streakEl.textContent=S.coach.streak>0?`🔥 連続${S.coach.streak}日`:"";
+}
+
+function startCoachSession(){
+  const m=buildCoachMenu();
+  const queue=[];
+  m.due.slice(0,m.reviewCount).forEach(item=>queue.push({type:"review",mode:"shadow",reviewId:item.id,item}));
+  for(let i=0;i<m.dictationCount;i++) queue.push({type:"new",mode:"dictation"});
+  for(let i=0;i<m.shadowCount;i++) queue.push({type:"new",mode:"shadow"});
+  for(let i=0;i<m.convCount;i++) queue.push({type:"new",mode:"shadow"});
+  S._preCoachMode=S.practiceMode;
+  S.coachQueue=queue;
+  S.coachIndex=0;
+  S.coachActive=true;
+  S.used=[];S.conversationHistory=[];
+  applyCoachStep();
+  document.getElementById("top-badge").textContent="🤖";
+  document.getElementById("top-badge").style.background="#7c3aed";
+  document.getElementById("top-topic").textContent="AIコーチ";
+  show("practice");
+  loadSentence();
+}
+
+function applyCoachStep(){
+  const step=S.coachQueue[S.coachIndex];
+  if(!step)return;
+  S.practiceMode=step.mode;
+  if(step.type==="review"){
+    S.customMode=true;
+    S.customSentence={zh:step.item.zh,py:step.item.py||"",ja:step.item.ja||""};
+  } else {
+    S.customMode=false;
+    S.customSentence=null;
+  }
+}
+
+function coachOnItemComplete(){
+  const step=S.coachQueue[S.coachIndex];
+  if(step&&step.type==="review") applyReviewSRS(step.reviewId,S.result);
+  if(S.sentence&&!S.customMode){
+    S.conversationHistory.push({partner:S.sentence.partner||"",zh:S.sentence.zh});
+    if(S.conversationHistory.length>10) S.conversationHistory.shift();
+  }
+  S.coachIndex++;
+  if(S.coachIndex>=S.coachQueue.length){finishCoachSession();return;}
+  applyCoachStep();
+  loadSentence();
+}
+
+function applyReviewSRS(id,result){
+  const idx=S.reviewQueue.findIndex(q=>q.id===id);
+  if(idx<0)return;
+  const score=result?.score??0;
+  const days=score>=4?7:score===3?3:1;
+  const due=new Date();due.setDate(due.getDate()+days);
+  S.reviewQueue[idx].dueDate=due.toISOString().slice(0,10);
+  S.reviewQueue[idx].reviewCount=(S.reviewQueue[idx].reviewCount||0)+1;
+  S.reviewQueue[idx].lastMatchPct=result?.match??S.reviewQueue[idx].lastMatchPct;
+  S.reviewQueue[idx].priority=Math.max(0,5-score);
+  saveReviewQueueToCloud();
+}
+
+function finishCoachSession(){
+  S.coachActive=false;
+  if(S._preCoachMode) S.practiceMode=S._preCoachMode;
+  S.coach.lastSessionDate=todayStr();
+  S.coach.streak=(S.coach.streak||0)+1;
+  saveCoachToCloud();
+  goHome();
+  showSetupTab("coach");
+  alert("お疲れ様でした！今日の学習を完了しました。");
+}
+
+function migrateWeakListToReviewQueueIfNeeded(){
+  if(S.reviewQueue.length>0||!S.weakList.length)return;
+  const today=todayStr();
+  S.reviewQueue=S.weakList.map(w=>({
+    id:w.zh, zh:w.zh, py:w.py||"", ja:w.ja||"",
+    priority:Math.max(1,5-(w.score||0)),
+    dueDate:today, reviewCount:0, lastMatchPct:0
+  }));
+  saveReviewQueueToCloud();
+}
+
+async function saveReviewQueueToCloud(){
+  if(!currentUser)return;
+  try{await db.collection("users").doc(currentUser.uid).set({reviewQueue:S.reviewQueue},{merge:true});}
+  catch(e){console.warn("reviewQueue保存失敗:",e.message);}
+}
+
+async function saveCoachToCloud(){
+  if(!currentUser)return;
+  try{await db.collection("users").doc(currentUser.uid).set({coach:S.coach},{merge:true});}
+  catch(e){console.warn("coach保存失敗:",e.message);}
+}
+
 function retryRecord(){
   // 前回結果を保存しておく（比較採点用）
   if(S.result) S.prevResult={ ...S.result, blob: S.recordedBlob };
@@ -1299,6 +1447,7 @@ function retryRecord(){
 
 function goHome(){
   stopAll();
+  if(S.coachActive){S.coachActive=false;if(S._preCoachMode)S.practiceMode=S._preCoachMode;}
   S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   show("setup");updateSetupStats();renderWeakList();renderSavedSets();
@@ -1313,7 +1462,9 @@ function nextStep(){
   const order=orderMap[S.practiceMode]||orderMap.full;
   const i=order.indexOf(S.phase);
   if(i>=0&&i<order.length-1){setPhase(order[i+1]);render();}
-  else {
+  else if(S.coachActive){
+    coachOnItemComplete();
+  } else {
     if(S.sentence&&!S.customMode){
       S.conversationHistory.push({partner:S.sentence.partner||"",zh:S.sentence.zh});
       if(S.conversationHistory.length>10) S.conversationHistory.shift();
@@ -1747,6 +1898,8 @@ async function loadUserData() {
       const data = userSnap.data();
       if (Array.isArray(data.weakList))  S.weakList  = data.weakList;
       if (Array.isArray(data.savedSets)) S.savedSets = data.savedSets;
+      if (Array.isArray(data.reviewQueue)) S.reviewQueue = data.reviewQueue;
+      if (data.coach) S.coach = { lastSessionDate:null, streak:0, ...data.coach };
       if (data.settings) {
         const sv = data.settings;
         if (sv.levelId) S.level = LEVELS.find(l=>l.id===sv.levelId) || S.level;
@@ -1786,6 +1939,7 @@ async function loadUserData() {
         return { sentence:dd.sentence, result:dd.result, date:dd.date };
       }).reverse();
     }
+    migrateWeakListToReviewQueueIfNeeded();
   } catch(e) { console.warn("ユーザーデータ読み込み失敗:", e.message); }
 }
 
