@@ -6,86 +6,86 @@
 <title>听写跟读</title>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
-body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#f0ede8; min-height:100vh; }
+body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#0e0f16; color:#e8e9ee; min-height:100vh; }
 
 /* ── Layout ── */
-.hero { background:#1a1a2e; padding:22px 20px 16px; text-align:center; color:white; }
-.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:#f0c040; line-height:1; margin-bottom:3px; }
+.hero { background:#12141C; padding:22px 20px 16px; text-align:center; color:white; }
+.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:#4FD1C5; line-height:1; margin-bottom:3px; }
 .hero-title { font-size:17px; font-weight:700; letter-spacing:3px; }
 
-.tabs { display:flex; background:#111827; border-bottom:1px solid #333; }
-.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:#666; border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
-.tab.active { color:#f0c040; border-bottom-color:#f0c040; }
+.tabs { display:flex; background:#0e0f16; border-bottom:1px solid #232634; }
+.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:#a8adc0; border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
+.tab.active { color:#4FD1C5; border-bottom-color:#4FD1C5; }
 
 .setup-body { padding:18px 15px; max-width:520px; margin:0 auto; }
-.sec-label { font-size:11px; font-weight:700; color:#777; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
+.sec-label { font-size:11px; font-weight:700; color:#9498a8; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
 
 /* ── Form elements ── */
-.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; outline:none; font-family:inherit; }
+.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid #2a2e3d; border-radius:10px; font-size:13px; outline:none; font-family:inherit; background:#171a24; color:#e8e9ee; }
 .api-input { font-family:monospace; }
 .level-row { display:flex; gap:6px; flex-wrap:wrap; }
-.level-btn { flex:1 1 65px; background:white; border:2px solid #ddd; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
+.level-btn { flex:1 1 65px; background:#171a24; border:2px solid #2a2e3d; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
 .level-btn.active { color:white; }
 .level-lbl { font-weight:700; font-size:13px; }
 .level-desc { font-size:10px; opacity:.8; }
 .topic-grid { display:flex; flex-wrap:wrap; gap:6px; }
-.topic-btn { background:white; border:1.5px solid #ddd; border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
-.topic-btn.active { background:#1a1a2e; color:white; border-color:#1a1a2e; }
+.topic-btn { background:#171a24; border:1.5px solid #2a2e3d; border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
+.topic-btn.active { background:#12141C; color:white; border-color:#12141C; }
 .speed-row { display:flex; align-items:center; gap:10px; }
-.speed-row input { flex:1; accent-color:#1a1a2e; }
+.speed-row input { flex:1; accent-color:#4FD1C5; }
 .start-btn { width:100%; padding:13px; font-size:15px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:18px; letter-spacing:1px; font-family:inherit; }
 
 /* ── Topbar ── */
-.topbar { display:flex; align-items:center; justify-content:space-between; background:#1a1a2e; padding:9px 13px; position:sticky; top:0; z-index:10; }
+.topbar { display:flex; align-items:center; justify-content:space-between; background:#12141C; padding:9px 13px; position:sticky; top:0; z-index:10; }
 .topbar-back { background:transparent; border:1px solid rgba(255,255,255,.25); color:white; border-radius:6px; padding:4px 9px; font-size:12px; cursor:pointer; font-family:inherit; }
 .badge { border-radius:10px; padding:2px 8px; font-size:11px; font-weight:700; color:white; }
-.topbar-stats { font-size:12px; color:#f0c040; font-weight:600; }
+.topbar-stats { font-size:12px; color:#4FD1C5; font-weight:600; }
 
 /* ── Step bar ── */
-.step-bar { background:#111827; padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
+.step-bar { background:#0e0f16; padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
 .step-item { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; }
-.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid #444; color:#666; background:#1f2937; transition:all .2s; }
+.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid #3a3f52; color:#a8adc0; background:#1f2937; transition:all .2s; }
 .step-dot.done { background:#22c55e; border-color:#22c55e; color:white; }
-.step-dot.active { border-color:#f0c040; color:#f0c040; }
-.step-name { font-size:9px; color:#666; text-align:center; white-space:nowrap; }
-.step-name.active { color:#f0c040; }
+.step-dot.active { border-color:#4FD1C5; color:#4FD1C5; }
+.step-name { font-size:9px; color:#a8adc0; text-align:center; white-space:nowrap; }
+.step-name.active { color:#4FD1C5; }
 .step-name.done { color:#22c55e; }
-.step-line { width:14px; height:2px; background:#333; flex-shrink:0; margin-bottom:13px; }
+.step-line { width:14px; height:2px; background:#e8e9ee; flex-shrink:0; margin-bottom:13px; }
 .step-line.done { background:#22c55e; }
 
 /* ── Practice ── */
 .practice-body { padding:11px 13px 40px; display:flex; flex-direction:column; gap:10px; max-width:600px; margin:0 auto; }
-.card { background:white; border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
-.card-title { font-size:10px; font-weight:700; color:#aaa; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
+.card { background:#171a24; border:1px solid #232634; border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.card-title { font-size:10px; font-weight:700; color:#6b7086; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
 
 /* ── Sentence ── */
-.hanzi { font-size:25px; font-weight:700; color:#1a1a2e; text-align:center; letter-spacing:.05em; line-height:1.5; }
-.pinyin { font-size:15px; color:#6366f1; letter-spacing:.08em; line-height:2; text-align:center; }
-.trans { font-size:13px; color:#888; text-align:center; margin-top:3px; }
-.reveal-btn { background:#f3f4f6; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#666; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
-.hide-btn { background:#fff5f5; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#e53935; cursor:pointer; display:block; margin:8px auto 0; font-family:inherit; }
+.hanzi { font-size:25px; font-weight:700; color:#12141C; text-align:center; letter-spacing:.05em; line-height:1.5; }
+.pinyin { font-size:15px; color:#4FD1C5; letter-spacing:.08em; line-height:2; text-align:center; }
+.trans { font-size:13px; color:#8a90a6; text-align:center; margin-top:3px; }
+.reveal-btn { background:#1c1f2b; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#a8adc0; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
+.hide-btn { background:#2a1618; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#e53935; cursor:pointer; display:block; margin:8px auto 0; font-family:inherit; }
 
 /* ── Buttons ── */
 .btn { border:none; border-radius:11px; padding:12px 16px; font-size:14px; font-weight:700; color:white; cursor:pointer; width:100%; font-family:inherit; transition:opacity .15s; margin-top:8px; }
 .btn:disabled { opacity:.4; cursor:not-allowed; }
-.btn-dark { background:#1a1a2e; }
+.btn-dark { background:#12141C; }
 .btn-red { background:#e53935; }
-.btn-stop { background:#333; }
+.btn-stop { background:#e8e9ee; }
 .btn-gray { background:#6b7280; }
 .btn-row { display:flex; gap:8px; margin-top:8px; }
 .btn-row .btn { flex:1; margin-top:0; }
 
 /* ── Step instruction ── */
-.step-instruction { background:#f8f7f4; border-left:3px solid #f0c040; border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:#555; line-height:1.6; margin-bottom:6px; }
-.step-num { font-weight:700; color:#b8860b; }
+.step-instruction { background:#1c1f2b; border-left:3px solid #4FD1C5; border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:#c8cad6; line-height:1.6; margin-bottom:6px; }
+.step-num { font-weight:700; color:#e8c468; }
 
 /* ── Repeat counter ── */
 .repeat-counter { display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; }
 .repeat-dots { display:flex; gap:5px; }
-.rdot { width:12px; height:12px; border-radius:50%; background:#e5e7eb; transition:all .2s; }
+.rdot { width:12px; height:12px; border-radius:50%; background:#2a2e3d; transition:all .2s; }
 .rdot.done { background:#22c55e; }
-.rdot.active { background:#f0c040; transform:scale(1.2); }
-.repeat-label { font-size:13px; color:#888; }
+.rdot.active { background:#4FD1C5; transform:scale(1.2); }
+.repeat-label { font-size:13px; color:#8a90a6; }
 
 /* ── Recording ── */
 .rec-status { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0; }
@@ -94,60 +94,60 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 .rec-label { font-size:15px; font-weight:700; color:#e53935; }
 
 /* ── Waveform ── */
-#waveform { width:100%; height:50px; background:#f8f7f4; border-radius:8px; margin:6px 0; }
+#waveform { width:100%; height:50px; background:#1c1f2b; border-radius:8px; margin:6px 0; }
 
 /* ── Audio ── */
 .audio-row { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-.audio-item { background:#f3f4f6; border-radius:10px; padding:8px 11px; }
-.audio-label { font-size:10px; color:#888; font-weight:700; margin-bottom:4px; }
+.audio-item { background:#1c1f2b; border-radius:10px; padding:8px 11px; }
+.audio-label { font-size:10px; color:#8a90a6; font-weight:700; margin-bottom:4px; }
 .audio-item audio { width:100%; height:32px; }
 
 /* ── Result ── */
 .score-row { text-align:center; margin-bottom:6px; }
-.match-pct { font-size:13px; color:#888; margin-top:2px; }
-.diff-box { background:#f8f7f4; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.diff-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
+.match-pct { font-size:15px; color:#8a90a6; margin-top:2px; }
+.diff-box { background:#1c1f2b; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.diff-label { font-size:10px; color:#6b7086; font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
 .diff-text { font-size:18px; letter-spacing:.05em; line-height:1.6; word-break:break-all; }
-.diff-target { font-size:16px; color:#1a1a2e; }
+.diff-target { font-size:18px; color:#12141C; }
 .ok { color:#16a34a; }
 .err { color:#dc2626; font-weight:700; }
-.pronun-box { background:#eef2ff; border:1.5px solid #818cf8; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.pronun-title { font-size:10px; font-weight:700; color:#4f46e5; margin-bottom:5px; }
-.pronun-text { font-size:13px; color:#312e81; line-height:1.75; white-space:pre-wrap; }
-.feedback-box { background:#fffbee; border:1.5px solid #f0c040; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.feedback-title { font-size:10px; font-weight:700; color:#b8860b; margin-bottom:5px; }
-.feedback-text { font-size:13px; color:#4a3800; line-height:1.75; white-space:pre-wrap; }
+.pronun-box { background:#171a2e; border:1.5px solid #4FD1C5; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.pronun-title { font-size:10px; font-weight:700; color:#4FD1C5; margin-bottom:5px; }
+.pronun-text { font-size:15px; color:#cdd6ea; line-height:1.8; white-space:pre-wrap; }
+.feedback-box { background:#241f10; border:1.5px solid #4FD1C5; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.feedback-title { font-size:10px; font-weight:700; color:#e8c468; margin-bottom:5px; }
+.feedback-text { font-size:15px; color:#f0e6c8; line-height:1.8; white-space:pre-wrap; }
 
 /* ── Weak list ── */
-.weak-item { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:10px; }
-.weak-zh { font-size:16px; font-weight:600; color:#1a1a2e; flex:1; }
+.weak-item { background:#171a24; border:1px solid #232634; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:10px; }
+.weak-zh { font-size:16px; font-weight:600; color:#12141C; flex:1; }
 .weak-score { font-size:13px; color:#dc2626; font-weight:700; }
 .weak-btn { background:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; color:white; cursor:pointer; font-family:inherit; white-space:nowrap; }
-.weak-del { background:none; border:1px solid #ddd; border-radius:8px; padding:5px 8px; font-size:12px; color:#aaa; cursor:pointer; font-family:inherit; }
+.weak-del { background:none; border:1px solid #2a2e3d; border-radius:8px; padding:5px 8px; font-size:12px; color:#6b7086; cursor:pointer; font-family:inherit; }
 
 /* ── History ── */
 .history-wrap { display:flex; flex-direction:column; gap:7px; }
-.history-label { font-size:10px; color:#aaa; font-weight:700; letter-spacing:1px; padding-left:2px; }
-.history-item { background:white; border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
-.history-zh { font-size:14px; font-weight:600; color:#1a1a2e; margin-bottom:3px; }
-.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:#888; flex-wrap:wrap; }
+.history-label { font-size:10px; color:#6b7086; font-weight:700; letter-spacing:1px; padding-left:2px; }
+.history-item { background:#171a24; border:1px solid #232634; border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.history-zh { font-size:14px; font-weight:600; color:#12141C; margin-bottom:3px; }
+.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:#8a90a6; flex-wrap:wrap; }
 
 /* ── Custom sentence tab ── */
-.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; }
-.saved-set { background:white; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
-.saved-set-name { font-size:14px; font-weight:600; color:#1a1a2e; flex:1; }
-.saved-set-count { font-size:12px; color:#aaa; }
+.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid #2a2e3d; border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; background:#171a24; color:#e8e9ee; }
+.saved-set { background:#171a24; border:1px solid #232634; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:8px; }
+.saved-set-name { font-size:14px; font-weight:600; color:#12141C; flex:1; }
+.saved-set-count { font-size:12px; color:#6b7086; }
 
 /* ── Shortcuts ── */
-.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
-.shortcut-key { background:#f3f4f6; border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:#444; }
+.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #232634; font-size:13px; }
+.shortcut-key { background:#1c1f2b; border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:#d5d7e0; }
 
 /* ── Loading / Error ── */
 .loading-box { display:flex; flex-direction:column; align-items:center; gap:9px; padding:16px 0; }
-.spinner { width:24px; height:24px; border-radius:50%; border:3px solid #eee; border-top:3px solid #1a1a2e; animation:spin .8s linear infinite; }
+.spinner { width:24px; height:24px; border-radius:50%; border:3px solid #232634; border-top:3px solid #12141C; animation:spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-.err-text { font-size:13px; color:#dc2626; background:#fff5f5; border-radius:8px; padding:8px 11px; line-height:1.6; white-space:pre-wrap; }
-.info-text { font-size:13px; color:#555; background:#f8f7f4; border-radius:8px; padding:10px 12px; line-height:1.7; }
+.err-text { font-size:13px; color:#dc2626; background:#2a1618; border-radius:8px; padding:8px 11px; line-height:1.6; white-space:pre-wrap; }
+.info-text { font-size:13px; color:#c8cad6; background:#1c1f2b; border-radius:8px; padding:10px 12px; line-height:1.7; }
 
 .hidden { display:none!important; }
 </style>
@@ -159,15 +159,15 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 <body>
 
 <!-- ══ LOGIN ══════════════════════════════════════════ -->
-<div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#f0ede8">
+<div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#0e0f16">
   <div style="text-align:center;margin-bottom:40px">
-    <div style="font-size:56px;font-weight:900;color:#6366f1;letter-spacing:-2px">听写跟读</div>
-    <div style="font-size:18px;color:#555;margin-top:8px;font-weight:600">ディクテーション＆シャドーイング練習</div>
+    <div style="font-size:56px;font-weight:900;color:#4FD1C5;letter-spacing:-2px">听写跟读</div>
+    <div style="font-size:18px;color:#c8cad6;margin-top:8px;font-weight:600">ディクテーション＆シャドーイング練習</div>
   </div>
-  <div style="background:white;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
-    <div style="font-size:15px;color:#444;margin-bottom:8px;font-weight:600">ログインして始める</div>
-    <div style="font-size:13px;color:#aaa;margin-bottom:24px;line-height:1.6">履歴・設定をGoogleアカウントに紐づけて複数デバイスで同期します</div>
-    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:#6366f1;color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
+  <div style="background:#171a24;border:1px solid #232634;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
+    <div style="font-size:15px;color:#d5d7e0;margin-bottom:8px;font-weight:600">ログインして始める</div>
+    <div style="font-size:13px;color:#6b7086;margin-bottom:24px;line-height:1.6">履歴・設定をGoogleアカウントに紐づけて複数デバイスで同期します</div>
+    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:#4FD1C5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
       Googleでログイン
     </button>
@@ -218,9 +218,15 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label">手本の速度 <span id="speed-val">85%</span></div>
     <div class="speed-row">
-      <span style="font-size:11px;color:#aaa">遅</span>
+      <span style="font-size:11px;color:#6b7086">遅</span>
       <input type="range" id="speed-slider" min="0.5" max="1.2" step="0.05" value="0.85">
-      <span style="font-size:11px;color:#aaa">速</span>
+      <span style="font-size:11px;color:#6b7086">速</span>
+    </div>
+
+    <div class="sec-label">手本の音声</div>
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px">
+      <select id="voice-select" style="width:100%;padding:9px 10px;border:1.5px solid #2a2e3d;border-radius:8px;font-size:13px;font-family:inherit;background:#171a24;color:#e8e9ee"></select>
+      <button class="topic-btn" style="margin-top:8px" onclick="previewVoice()">🔊 試し聞き</button>
     </div>
 
     <div class="sec-label">追読の繰り返し回数</div>
@@ -231,26 +237,26 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     </div>
 
     <div class="sec-label">履歴 <span id="hist-count"></span></div>
-    <div style="background:white;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div id="hist-summary" style="font-size:13px;color:#555;line-height:1.6"></div>
-      <button onclick="clearHistory()" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 9px;font-size:12px;color:#999;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div id="hist-summary" style="font-size:13px;color:#c8cad6;line-height:1.6"></div>
+      <button onclick="clearHistory()" style="background:none;border:1px solid #2a2e3d;border-radius:8px;padding:5px 9px;font-size:12px;color:#7d8296;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
     </div>
 
     <div class="sec-label">練習モード</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       <button class="topic-btn active" id="mode-full" onclick="setMode('full')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        📚 フルモード <span style="font-size:11px;color:#aaa">初聴→書取→確認→音読→追読→録音→採点</span>
+        📚 フルモード <span style="font-size:11px;color:#6b7086">初聴→書取→確認→音読→追読→録音→採点</span>
       </button>
       <button class="topic-btn" id="mode-dictation" onclick="setMode('dictation')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        ✏️ 書取のみ <span style="font-size:11px;color:#aaa">初聴→書取→採点</span>
+        ✏️ 書取のみ <span style="font-size:11px;color:#6b7086">初聴→書取→採点</span>
       </button>
       <button class="topic-btn" id="mode-shadow" onclick="setMode('shadow')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🎙 シャドーイングのみ <span style="font-size:11px;color:#aaa">初聴→確認→音読→追読→録音→採点</span>
+        🎙 シャドーイングのみ <span style="font-size:11px;color:#6b7086">初聴→確認→音読→追読→録音→採点</span>
       </button>
     </div>
 
     <div class="sec-label">練習ステップ</div>
-    <div style="background:white;border-radius:12px;padding:12px 14px;font-size:13px;color:#444;line-height:1.9">
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;font-size:13px;color:#d5d7e0;line-height:1.9">
       <div>① <b>初聴</b>　音だけ聞いて耳を慣らす</div>
       <div>② <b>確認</b>　テキスト・訳・拼音で意味把握</div>
       <div>③ <b>音読</b>　テキストを見ながら声に出す</div>
@@ -270,7 +276,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label" style="margin-top:20px">文セットを保存</div>
     <input class="text-input-field" id="set-name-input" placeholder="セット名（例：教材第3課）" style="margin-bottom:8px">
-    <button class="btn" style="background:#6366f1;margin-top:0" onclick="saveSet()">現在の文を保存</button>
+    <button class="btn" style="background:#4FD1C5;margin-top:0" onclick="saveSet()">現在の文を保存</button>
 
     <div class="sec-label">保存済みセット</div>
     <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
@@ -279,11 +285,13 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <!-- AI Coach tab -->
   <div id="stab-coach" class="setup-body hidden">
     <div class="sec-label">🤖 今日の学習</div>
-    <div style="background:white;border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-      <div id="coach-menu" style="font-size:13px;color:#555"></div>
+    <div id="coach-greeting" style="background:#171a2e;border:1px solid #2f3550;border-radius:12px;padding:12px 14px;font-size:13px;color:#cdd6ea;line-height:1.6;margin-bottom:12px">コーチが今日のひとことを考えています…</div>
+    <div id="coach-comment" class="hidden" style="background:#241f10;border:1px solid #e8c46855;border-radius:12px;padding:12px 14px;font-size:13px;color:#f0e6c8;line-height:1.6;margin-bottom:12px"></div>
+    <div style="background:#171a24;border:1px solid #232634;border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <div id="coach-menu" style="font-size:13px;color:#c8cad6"></div>
       <button class="start-btn" style="margin-top:14px;background:#7c3aed" onclick="startCoachSession()">開始する →</button>
     </div>
-    <div id="coach-streak" style="font-size:12px;color:#aaa;margin-top:8px;text-align:center"></div>
+    <div id="coach-streak" style="font-size:12px;color:#6b7086;margin-top:8px;text-align:center"></div>
   </div>
 
   <!-- Weak list tab -->
@@ -295,37 +303,44 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <!-- History & Analysis tab -->
   <div id="stab-history" class="setup-body hidden">
     <div class="sec-label">スコア・一致率の推移</div>
-    <div style="background:white;border-radius:12px;padding:14px">
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px">
       <canvas id="trend-chart" width="320" height="160"></canvas>
-      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#888;flex-wrap:wrap">
-        <span><span style="color:#6366f1">●</span> 🎙スコア（/5）</span>
+      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#8a90a6;flex-wrap:wrap">
+        <span><span style="color:#4FD1C5">●</span> 🎙スコア（/5）</span>
         <span><span style="color:#10b981">●</span> 🎙一致率（%）</span>
         <span><span style="color:#f59e0b">●</span> ✏️書取一致率（%）</span>
       </div>
     </div>
 
     <div class="sec-label" style="margin-top:16px">AI発音傾向分析</div>
-    <div style="background:white;border-radius:12px;padding:14px">
-      <div id="ai-analysis-result" style="font-size:13px;color:#666;line-height:1.8;min-height:40px">
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px">
+      <div id="ai-analysis-result" style="font-size:13px;color:#a8adc0;line-height:1.8;min-height:40px">
         ボタンを押すと、これまでの発音ミスを分析して改善策を提案します。
       </div>
-      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#6366f1;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
+      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#4FD1C5;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
     </div>
 
     <div class="sec-label" style="margin-top:16px">トピック別スコア</div>
-    <div style="background:white;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
       <canvas id="radar-chart" width="280" height="280"></canvas>
-      <div id="radar-legend" style="font-size:11px;color:#888;margin-top:6px;text-align:center"></div>
+      <div id="radar-legend" style="font-size:11px;color:#8a90a6;margin-top:6px;text-align:center"></div>
     </div>
 
-    <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#aaa;font-weight:normal"></span></div>
+    <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
     <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
   <!-- Shortcuts tab -->
   <div id="stab-shortcuts" class="setup-body hidden">
     <div class="sec-label">キーボードショートカット</div>
-    <div style="background:white;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#e8e9ee">ショートカット機能</div>
+        <div style="font-size:11px;color:#6b7086;margin-top:2px">誤操作が多い場合はOFFにできます</div>
+      </div>
+      <button id="shortcut-toggle-btn" onclick="toggleShortcuts()" style="border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"></button>
+    </div>
+    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
       <div class="shortcut-row"><span>手本を再生</span><span class="shortcut-key">Space</span></div>
       <div class="shortcut-row"><span>次のステップへ</span><span class="shortcut-key">→</span></div>
       <div class="shortcut-row"><span>録音開始/停止</span><span class="shortcut-key">R</span></div>
@@ -388,6 +403,8 @@ const S = {
   hskPrio:  LS.get("sh_settings")?.hskPrio || false,
   practiceStyle: LS.get("sh_settings")?.practiceStyle || "answer",
   practiceMode:  LS.get("sh_settings")?.practiceMode  || "full",
+  shortcutsEnabled: LS.get("sh_settings")?.shortcutsEnabled !== false,
+  voiceURI: LS.get("sh_settings")?.voiceURI || "",
   showPartnerPinyin: false,
   // ユーザーデータ（Firestoreから読む・初期値は空）
   history:  [],
@@ -396,7 +413,7 @@ const S = {
   conversationHistory: [],
   reviewQueue: [],
   coach: {lastSessionDate:null, streak:0},
-  coachQueue: [], coachIndex: 0, coachActive: false,
+  coachQueue: [], coachIndex: 0, coachActive: false, coachStats: [],
   // 練習中の一時状態
   sentence: null,
   phase:    "loading",
@@ -406,6 +423,7 @@ const S = {
   mediaRecorder:null, chunks:[],
   recordedBlob: null, recordedUrl:null, modelUrl:null,
   result:   null, prevResult: null,
+  pitchAnalysis: null, pitchAnalyzing: false,
   isPaused: false,
   used:     [],
   showPinyin:false, showTrans:false, hideHanzi:false,
@@ -475,6 +493,45 @@ function setMode(v){
 }
 setMode(S.practiceMode);
 
+function populateVoiceSelect(){
+  const sel=document.getElementById("voice-select");
+  if(!sel||!window.speechSynthesis)return;
+  const voices=window.speechSynthesis.getVoices().filter(v=>v.lang.replace('_','-').startsWith('zh'));
+  if(!voices.length){
+    sel.innerHTML=`<option value="">中国語音声が見つかりません（端末の言語設定を確認してください）</option>`;
+    return;
+  }
+  sel.innerHTML=voices.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)}（${esc(v.lang)}）</option>`).join("");
+  if(S.voiceURI && voices.some(v=>v.voiceURI===S.voiceURI)) sel.value=S.voiceURI;
+  else { S.voiceURI=voices[0]?.voiceURI||""; sel.value=S.voiceURI; }
+}
+document.getElementById("voice-select")?.addEventListener("change",e=>{
+  S.voiceURI=e.target.value;
+  saveSettings();
+});
+function previewVoice(){
+  speak("你好，很高兴认识你。", S.speed, ()=>{});
+}
+if(window.speechSynthesis){
+  const voices=window.speechSynthesis.getVoices();
+  if(voices.length>0) populateVoiceSelect();
+  else window.speechSynthesis.onvoiceschanged=()=>{populateVoiceSelect();};
+}
+
+function renderShortcutToggle(){
+  const btn=document.getElementById("shortcut-toggle-btn");
+  if(!btn)return;
+  btn.textContent=S.shortcutsEnabled?"ON":"OFF";
+  btn.style.background=S.shortcutsEnabled?"#16a34a":"#454a5c";
+  btn.style.color="white";
+}
+function toggleShortcuts(){
+  S.shortcutsEnabled=!S.shortcutsEnabled;
+  renderShortcutToggle();
+  saveSettings();
+}
+renderShortcutToggle();
+
 document.getElementById("back-btn").onclick=()=>{stopAll();show("setup");updateSetupStats();renderWeakList();renderSavedSets();};
 document.getElementById("start-btn").onclick=()=>{
   S.customMode=false; S.customSentence=null;
@@ -527,9 +584,9 @@ function renderSavedSets(){
     <div class="saved-set">
       <div style="flex:1">
         <div class="saved-set-name">${s.name}</div>
-        <div class="saved-set-count" style="font-size:12px;color:#aaa">${s.text.slice(0,30)}${s.text.length>30?"…":""}</div>
+        <div class="saved-set-count" style="font-size:12px;color:#6b7086">${s.text.slice(0,30)}${s.text.length>30?"…":""}</div>
       </div>
-      <button class="weak-btn" style="background:#1a1a2e" onclick="loadSet(${i})">練習</button>
+      <button class="weak-btn" style="background:#12141C" onclick="loadSet(${i})">練習</button>
       <button class="weak-del" onclick="deleteSet(${i})">削除</button>
     </div>`).join("");
 }
@@ -555,7 +612,7 @@ function renderWeakList(){
     <div class="weak-item">
       <div style="flex:1">
         <div class="weak-zh">${item.zh}</div>
-        <div style="font-size:12px;color:#aaa">${item.py}</div>
+        <div style="font-size:12px;color:#6b7086">${item.py}</div>
       </div>
       <span class="weak-score">${"★".repeat(item.score)}</span>
       <button class="weak-btn" onclick="practiceWeak(${i})">練習</button>
@@ -580,33 +637,33 @@ function renderHistoryTab(){
     const dr=item.dictResult||null;
     const d=item.date?new Date(item.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
     const stars="★".repeat(r.score||0)+"☆".repeat(5-(r.score||0));
-    return `<div style="background:white;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    return `<div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
-          ${isDictation?`<span style="background:#e0f2fe;color:#0369a1;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">書取</span>`:""}
-          <span style="font-size:15px;font-weight:600;color:#222;word-break:break-all">${esc(s.zh||"")}</span>
-          ${s.py?`<div style="font-size:12px;color:#818cf8;margin-top:2px">${esc(s.py)}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${esc(s.ja)}</div>`:""}
-          ${s.partner?`<div style="font-size:11px;color:#aaa;margin-top:4px">相手：${esc(s.partner)}</div>`:""}
+          ${isDictation?`<span style="background:#14293a;color:#7ec8f0;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">書取</span>`:""}
+          <span style="font-size:15px;font-weight:600;color:#e8e9ee;word-break:break-all">${esc(s.zh||"")}</span>
+          ${s.py?`<div style="font-size:12px;color:#4FD1C5;margin-top:2px">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:#8a90a6;margin-top:2px">${esc(s.ja)}</div>`:""}
+          ${s.partner?`<div style="font-size:11px;color:#6b7086;margin-top:4px">相手：${esc(s.partner)}</div>`:""}
         </div>
-        <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
+        <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#6b7086;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
       </div>
       <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
         ${isDictation
-          ?`<span style="background:#fef9c3;color:#92400e;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:700">✏️ ${r.match||0}%</span>`
+          ?`<span style="background:#332b10;color:#f0a860;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:700">✏️ ${r.match||0}%</span>`
           :`<span style="color:#f59e0b;font-size:13px">${stars}</span>
             <span style="color:${(r.match||0)>=80?"#10b981":(r.match||0)>=60?"#f59e0b":"#ef4444"};font-weight:600;font-size:13px">${r.match||0}%</span>`
         }
-        <span style="font-size:11px;color:#aaa">${d}</span>
+        <span style="font-size:11px;color:#6b7086">${d}</span>
       </div>
-      ${isDictation&&dr?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f0f9ff;border-radius:7px">
+      ${isDictation&&dr?`<div style="font-size:12px;color:#c8cad6;margin-top:6px;padding:6px 8px;background:#14293a;border-radius:7px">
         入力：${esc(dr.input||"")}
         ${dr.miss?.length?`　🟨抜け：${esc(dr.miss.join(""))}`:""}
         ${dr.extra?.length?`　🟥余分：${esc(dr.extra.join(""))}`:""}
       </div>`:""}
-      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f8f7f4;border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
-      ${r.pronun?`<div style="font-size:12px;color:#666;margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
-      ${r.feedback?`<div style="font-size:12px;color:#444;margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
+      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:#c8cad6;margin-top:6px;padding:6px 8px;background:#1c1f2b;border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
+      ${r.pronun?`<div style="font-size:12px;color:#a8adc0;margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
+      ${r.feedback?`<div style="font-size:12px;color:#d5d7e0;margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
     </div>`;
   }).join("");
   drawTrendChart(S.history);
@@ -621,7 +678,7 @@ function drawTrendChart(history){
   const padL=28,padR=12,padT=12,padB=28;
   ctx.clearRect(0,0,W,H);
   if(!history.length){
-    ctx.fillStyle="#ccc";ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillStyle="#6b7086";ctx.font="12px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",W/2,H/2);return;
   }
   const shData=history.filter(h=>h.type!=="dictation").slice(-30);
@@ -629,14 +686,14 @@ function drawTrendChart(history){
   const data=[...shData,...dcData].length?history.slice(-30):[];
   const n=data.length;
   const gW=W-padL-padR,gH=H-padT-padB;
-  ctx.strokeStyle="rgba(0,0,0,0.06)";ctx.lineWidth=1;
+  ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;
   [0,25,50,75,100].forEach(v=>{
     const y=padT+gH*(1-v/100);
     ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
-    ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="right";
+    ctx.fillStyle="#c8cad696c";ctx.font="9px sans-serif";ctx.textAlign="right";
     ctx.fillText(v,padL-3,y+3);
   });
-  ctx.fillStyle="#bbb";ctx.font="9px sans-serif";ctx.textAlign="center";
+  ctx.fillStyle="#c8cad696c";ctx.font="9px sans-serif";ctx.textAlign="center";
   [0,Math.floor(n/2),n-1].forEach(i=>{
     if(i<0||i>=n)return;
     const x=padL+gW*(i/(n-1||1));
@@ -662,7 +719,7 @@ function drawTrendChart(history){
     });
   };
   drawLineData(shData,"match","#10b981",v=>v);
-  drawLineData(shData,"score","#6366f1",v=>v/5*100);
+  drawLineData(shData,"score","#4FD1C5",v=>v/5*100);
   drawLineData(dcData,"match","#f59e0b",v=>v);
 }
 
@@ -672,7 +729,7 @@ async function runAiAnalysis(){
   const pronunList=S.history.filter(h=>h.result?.pronun).map(h=>`文：${h.sentence?.zh||""}　評価：${h.result.pronun}`);
   if(pronunList.length<3){result.textContent="分析には3件以上の録音履歴が必要です。";return;}
   btn.disabled=true;btn.textContent="分析中…";
-  result.innerHTML=`<div style="color:#aaa;font-size:13px">AIが分析中です…</div>`;
+  result.innerHTML=`<div style="color:#6b7086;font-size:13px">AIが分析中です…</div>`;
   try{
     const raw=await gemini([{role:"user",content:
 `以下は中国語シャドーイング練習の発音評価データです（${pronunList.length}件）。
@@ -702,7 +759,7 @@ ${pronunList.slice(-20).join("\n")}
     const total=pronunList.length;
     const t=json.tones||{};
     const toneData=[
-      {label:"第1声 (ā)",val:t.t1||0,color:"#6366f1"},
+      {label:"第1声 (ā)",val:t.t1||0,color:"#4FD1C5"},
       {label:"第2声 (á)",val:t.t2||0,color:"#f59e0b"},
       {label:"第3声 (ǎ)",val:t.t3||0,color:"#ef4444"},
       {label:"第4声 (à)",val:t.t4||0,color:"#10b981"},
@@ -711,37 +768,37 @@ ${pronunList.slice(-20).join("\n")}
     const maxVal=Math.max(...toneData.map(d=>d.val),1);
     const barRows=toneData.map(d=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <div style="width:60px;font-size:11px;color:#666;text-align:right;flex-shrink:0">${d.label}</div>
-        <div style="flex:1;background:#f3f4f6;border-radius:4px;height:18px;overflow:hidden">
+        <div style="width:60px;font-size:11px;color:#a8adc0;text-align:right;flex-shrink:0">${d.label}</div>
+        <div style="flex:1;background:#1c1f2b;border-radius:4px;height:18px;overflow:hidden">
           <div style="width:${Math.round(d.val/maxVal*100)}%;background:${d.color};height:100%;border-radius:4px;transition:width .4s;display:flex;align-items:center;padding-left:6px">
             ${d.val>0?`<span style="font-size:10px;color:white;font-weight:700">${d.val}</span>`:""}
           </div>
         </div>
-        <div style="width:28px;font-size:11px;color:#aaa;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
+        <div style="width:28px;font-size:11px;color:#6b7086;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
       </div>`).join("");
     const confBadges=(json.confusions||[]).map(c=>
-      `<span style="background:#eef2ff;color:#4f46e5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
+      `<span style="background:#171a2e;color:#4FD1C5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
     ).join(" ");
     const tipCards=(json.tips||[]).map((tip,i)=>
-      `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6">
-        <div style="width:22px;height:22px;border-radius:50%;background:#6366f1;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-        <div style="font-size:13px;color:#333;line-height:1.6">${tip}</div>
+      `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1c1f2b">
+        <div style="width:22px;height:22px;border-radius:50%;background:#4FD1C5;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+        <div style="font-size:13px;color:#e8e9ee;line-height:1.6">${tip}</div>
       </div>`
     ).join("");
     result.innerHTML=`
       <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
+        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
         ${barRows}
       </div>
       ${confBadges?`<div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
+        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${confBadges}</div>
       </div>`:""}
-      ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#15803d">
+      ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#0f2318;border-radius:8px;font-size:13px;color:#6ee7a8">
         ✅ 得意：${json.strength}
       </div>`:""}
       <div>
-        <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-bottom:4px;letter-spacing:.5px">優先すべき改善策</div>
+        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:4px;letter-spacing:.5px">優先すべき改善策</div>
         ${tipCards}
       </div>`;
   }catch(e){
@@ -771,7 +828,7 @@ function drawRadarChart(history){
   const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,r=100;
   ctx.clearRect(0,0,W,H);
   if(!history.length){
-    ctx.fillStyle="#ccc";ctx.font="13px sans-serif";ctx.textAlign="center";
+    ctx.fillStyle="#6b7086";ctx.font="13px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",cx,cy);return;
   }
   const topics={};
@@ -807,13 +864,13 @@ function drawRadar(ctx,cx,cy,r,labels,vals){
       i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     });
     ctx.closePath();
-    ctx.strokeStyle="rgba(0,0,0,0.08)";ctx.lineWidth=1;ctx.stroke();
+    ctx.strokeStyle="rgba(255,255,255,0.1)";ctx.lineWidth=1;ctx.stroke();
   });
   labels.forEach((_,i)=>{
     const a=angle(i);
     ctx.beginPath();ctx.moveTo(cx,cy);
     ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
-    ctx.strokeStyle="rgba(0,0,0,0.1)";ctx.lineWidth=1;ctx.stroke();
+    ctx.strokeStyle="rgba(255,255,255,0.12)";ctx.lineWidth=1;ctx.stroke();
   });
   ctx.beginPath();
   vals.forEach((v,i)=>{
@@ -822,8 +879,8 @@ function drawRadar(ctx,cx,cy,r,labels,vals){
   });
   ctx.closePath();
   ctx.fillStyle="rgba(99,102,241,0.18)";ctx.fill();
-  ctx.strokeStyle="#6366f1";ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle="#444";ctx.font="11px sans-serif";ctx.textAlign="center";
+  ctx.strokeStyle="#4FD1C5";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#d5d7e0";ctx.font="11px sans-serif";ctx.textAlign="center";
   labels.forEach((label,i)=>{
     const a=angle(i),lx=cx+(r+22)*Math.cos(a),ly=cy+(r+22)*Math.sin(a);
     ctx.fillText(label.slice(0,5),lx,ly+4);
@@ -865,7 +922,7 @@ function updateSetupStats(){
     const avgM=Math.round(dc.reduce((s,x)=>s+x.result.match,0)/dc.length);
     lines+=`✏️ 書取 ${dc.length}文　平均一致率 <b>${avgM}%</b><br>`;
   }
-  lines+=`<span style="font-size:11px;color:#aaa">最終：${d}　${last.sentence?.zh||""}</span>`;
+  lines+=`<span style="font-size:11px;color:#6b7086">最終：${d}　${last.sentence?.zh||""}</span>`;
   summEl.innerHTML=lines;
 }
 
@@ -1006,19 +1063,34 @@ ${styleRule}
   return { zh, py, ja, partner, partnerPy, partnerJa };
 }
 
-async function reviewRecording(blob, prevRec){
+async function blobToBase64(blob){
   const ab=await blob.arrayBuffer();
   const bytes=new Uint8Array(ab);
   let bin="";for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
-  const b64=btoa(bin);
+  return btoa(bin);
+}
+
+async function reviewRecording(blob, prevRec){
+  const b64=await blobToBase64(blob);
   const mime=blob.type||"audio/webm";
+
+  // 第1段階：お手本を見せずに音声のみで文字起こし（自己採点バイアス防止）
+  const transRaw=await gemini([{role:"user",content:[
+    {type:"text",text:`以下の音声を中国語として文字起こししてください。他の情報は与えられていません。実際に聞こえた通りに、忖度せず書き起こしてください。
+
+出力形式（厳守）：
+認識：<文字起こし>`},
+    {type:"audio",mime,data:b64}
+  ]}]);
+  const recognized=transRaw.match(/認識[：:]\s*(.+)/)?.[1]?.trim()||"（認識できませんでした）";
+
+  // 一致率・スコアはJS側で客観的に算出（ディクテーションと同じLCSアルゴリズム）
+  const {matchPct}=scoreDictation(S.sentence.zh, recognized);
+  const score=Math.max(1,Math.min(5,Math.round(matchPct/20)));
 
   // 前回録音との比較モード
   if(prevRec?.blob){
-    const ab2=await prevRec.blob.arrayBuffer();
-    const bytes2=new Uint8Array(ab2);
-    let bin2="";for(let i=0;i<bytes2.length;i++)bin2+=String.fromCharCode(bytes2[i]);
-    const b642=btoa(bin2);
+    const b642=await blobToBase64(prevRec.blob);
     const mime2=prevRec.blob.type||"audio/webm";
     const raw=await gemini([{role:"user",content:[
       {type:"text",text:`シャドーイング練習の録り直し比較評価です。
@@ -1026,14 +1098,12 @@ async function reviewRecording(blob, prevRec){
 拼音：「${S.sentence.py}」
 レベル：${S.level.label}
 前回の認識結果：「${prevRec.recognized}」（スコア${prevRec.score}/5、一致率${prevRec.match}%）
+今回の客観認識結果：「${recognized}」（一致率${matchPct}%、算出済みのため再計算不要）
 
-音声1（前回の録音）と音声2（今回の録音）を比較してください。
-・音声1が環境音のみ・無音・意味のある発話でない場合は比較なしで今回のみ評価してください。
+音声1（前回の録音）と音声2（今回の録音）を比較し、発音・声調の変化を分析してください。
+・音声1が環境音のみ・無音・意味のある発話でない場合は「改善」に「前回音声なし」と記載してください。
 
 出力形式（厳守）：
-認識：<今回の文字起こし>
-スコア：<1〜5>
-一致率：<0〜100>
 改善：<前回から改善できた点（発話でなければ「前回音声なし」）>
 未修正：<まだ残っている課題（発話でなければ「-」）>
 新課題：<今回新たに出たミス（なければ「なし」）>
@@ -1042,49 +1112,42 @@ async function reviewRecording(blob, prevRec){
       {type:"audio",mime:mime2,data:b642},
       {type:"audio",mime,data:b64}
     ]}]);
-    const recognized=raw.match(/認識[：:]\s*(.+)/)?.[1]?.trim()||"（認識できませんでした）";
-    const score=Math.min(5,Math.max(1,parseInt(raw.match(/スコア[：:]\s*(\d)/)?.[1]||"3")));
-    const match=Math.min(100,Math.max(0,parseInt(raw.match(/一致率[：:]\s*(\d+)/)?.[1]||"0")));
     const improved=raw.match(/改善[：:]\s*(.+)/)?.[1]?.trim()||"";
     const remaining=raw.match(/未修正[：:]\s*(.+)/)?.[1]?.trim()||"";
     const newIssue=raw.match(/新課題[：:]\s*(.+)/)?.[1]?.trim()||"";
     const pronun=raw.match(/発音詳細[：:]\s*([\s\S]+?)(?=総評|$)/)?.[1]?.trim()||"";
     const feedback=raw.match(/総評[：:]\s*([\s\S]+)/)?.[1]?.trim()||raw;
-    return{recognized,score,match,pronun,feedback,isRetry:true,improved,remaining,newIssue,prevScore:prevRec.score,prevMatch:prevRec.match};
+    return{recognized,score,match:matchPct,pronun,feedback,isRetry:true,improved,remaining,newIssue,prevScore:prevRec.score,prevMatch:prevRec.match};
   }
 
-  // 通常評価
+  // 第2段階：発音詳細・総評のみ依頼（スコア・一致率は依頼しない）
   const raw=await gemini([{role:"user",content:[
-    {type:"text",text:`シャドーイング練習の録音です。
+    {type:"text",text:`シャドーイング練習の発音評価です。
 お手本：「${S.sentence.zh}」
 拼音：「${S.sentence.py}」
 レベル：${S.level.label}
+実際に認識された発話：「${recognized}」（一致率${matchPct}%、算出済みのため再計算不要）
 
-1. 音声を文字起こし
-2. 一致度を評価
-3. 声調・発音のズレを具体的に指摘
-4. 改善アドバイス
+上記の認識結果を踏まえ、声調・発音のズレを具体的に指摘し、改善アドバイスを提示してください。
 
 出力形式（厳守）：
-認識：<文字起こし>
-スコア：<1〜5>
-一致率：<0〜100>
 発音詳細：<声調ミス・発音のズレを具体的に日本語で>
 総評：<日本語で2文程度>`},
     {type:"audio",mime,data:b64}
   ]}]);
-  const recognized=raw.match(/認識[：:]\s*(.+)/)?.[1]?.trim()||"（認識できませんでした）";
-  const score=Math.min(5,Math.max(1,parseInt(raw.match(/スコア[：:]\s*(\d)/)?.[1]||"3")));
-  const match=Math.min(100,Math.max(0,parseInt(raw.match(/一致率[：:]\s*(\d+)/)?.[1]||"0")));
   const pronun=raw.match(/発音詳細[：:]\s*([\s\S]+?)(?=総評|$)/)?.[1]?.trim()||"";
   const feedback=raw.match(/総評[：:]\s*([\s\S]+)/)?.[1]?.trim()||raw;
-  return{recognized,score,match,pronun,feedback};
+  return{recognized,score,match:matchPct,pronun,feedback};
 }
 
 // ══ TTS ══════════════════════════════════════════════════
 function pickZhVoice(){
   const voices=window.speechSynthesis.getVoices();
   const zh=voices.filter(v=>v.lang.replace('_','-').startsWith('zh'));
+  if(S.voiceURI){
+    const chosen=zh.find(v=>v.voiceURI===S.voiceURI);
+    if(chosen)return chosen;
+  }
   return zh.find(v=>v.lang.replace('_','-').startsWith('zh-CN')&&v.localService)
       || zh.find(v=>v.lang.replace('_','-').startsWith('zh-CN'))
       || zh.find(v=>v.lang.replace('_','-').startsWith('zh-TW'))
@@ -1283,6 +1346,7 @@ async function loadSentence(resetConversation=false){
   S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.dictInput="";S.dictResult=null;
   S.recordedBlob=null;
+  S.pitchAnalysis=null;S.pitchAnalyzing=false;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   setPhase("loading");render();
   try{
@@ -1331,6 +1395,8 @@ function buildCoachMenu(){
 function renderCoachTab(){
   const el=document.getElementById("coach-menu");
   const streakEl=document.getElementById("coach-streak");
+  const greetEl=document.getElementById("coach-greeting");
+  const commentEl=document.getElementById("coach-comment");
   if(!el)return;
   const m=buildCoachMenu();
   const total=m.reviewCount+m.dictationCount+m.shadowCount+m.convCount;
@@ -1340,8 +1406,66 @@ function renderCoachTab(){
     ② ディクテーション ${m.dictationCount}問<br>
     ③ シャドーイング ${m.shadowCount}問<br>
     ④ 会話練習 ${m.convCount}問<br>
-    <span style="color:#aaa;font-size:12px">約${mins}分</span>`;
+    <span style="color:#6b7086;font-size:12px">約${mins}分</span>`;
   if(streakEl)streakEl.textContent=S.coach.streak>0?`🔥 連続${S.coach.streak}日`:"";
+
+  if(greetEl){
+    if(S.coach.greetingDate===todayStr()&&S.coach.greetingText){
+      greetEl.textContent="💬 "+S.coach.greetingText;
+    } else {
+      greetEl.textContent="コーチが今日のひとことを考えています…";
+      getCoachGreeting().then(msg=>{ if(document.getElementById("coach-greeting")) greetEl.textContent="💬 "+(msg||"今日も一緒に頑張りましょう！"); });
+    }
+  }
+  if(commentEl){
+    if(S.coach.lastCommentDate===todayStr()&&S.coach.lastComment){
+      commentEl.textContent="🎉 "+S.coach.lastComment;
+      commentEl.classList.remove("hidden");
+    } else {
+      commentEl.classList.add("hidden");
+    }
+  }
+}
+
+async function getCoachGreeting(){
+  if(S.coach.greetingDate===todayStr()&&S.coach.greetingText) return S.coach.greetingText;
+  const due=dueReviewItems();
+  const weakSample=S.weakList.slice(0,3).map(w=>w.zh).join("、");
+  const gapDays=S.coach.lastSessionDate?Math.round((new Date(todayStr())-new Date(S.coach.lastSessionDate))/86400000):null;
+  const prompt=`あなたは中国語学習者に寄り添うコーチです。以下の状況を踏まえ、やる気が出る具体的な一言（40字以内、日本語、絵文字は使わない）を作ってください。前置き・説明は不要、本文のみ出力してください。
+
+連続学習日数：${S.coach.streak||0}日
+前回学習からの経過：${gapDays===null?"初回":gapDays+"日"}
+今日の復習対象：${due.length}問
+苦手な文の例：${weakSample||"特になし"}`;
+  try{
+    const msg=(await gemini([{role:"user",content:prompt}],undefined,0.9)).trim().slice(0,80);
+    S.coach.greetingText=msg;
+    S.coach.greetingDate=todayStr();
+    saveCoachToCloud();
+    return msg;
+  }catch(e){
+    console.warn("コーチメッセージ生成失敗:",e.message);
+    return "";
+  }
+}
+
+async function generateCoachClosingComment(avgMatch,count){
+  const prompt=`あなたは中国語学習者に寄り添うコーチです。今日の学習結果を踏まえ、褒める点と次回に向けた具体的なアドバイスを含む、温かい一言コメントを80字以内の日本語で作成してください。前置き・説明は不要、本文のみ出力してください。
+
+今日取り組んだ問題数：${count}問
+平均一致率：${avgMatch!==null?avgMatch+"%":"記録なし"}
+連続学習日数：${S.coach.streak}日`;
+  try{
+    const msg=(await gemini([{role:"user",content:prompt}],undefined,0.9)).trim().slice(0,150);
+    S.coach.lastComment=msg;
+  }catch(e){
+    console.warn("コーチコメント生成失敗:",e.message);
+    S.coach.lastComment="今日もお疲れ様でした！この調子で続けましょう。";
+  }
+  S.coach.lastCommentDate=todayStr();
+  saveCoachToCloud();
+  renderCoachTab();
 }
 
 function startCoachSession(){
@@ -1355,6 +1479,7 @@ function startCoachSession(){
   S.coachQueue=queue;
   S.coachIndex=0;
   S.coachActive=true;
+  S.coachStats=[];
   S.used=[];S.conversationHistory=[];
   applyCoachStep();
   document.getElementById("top-badge").textContent="🤖";
@@ -1380,6 +1505,10 @@ function applyCoachStep(){
 function coachOnItemComplete(){
   const step=S.coachQueue[S.coachIndex];
   if(step&&step.type==="review") applyReviewSRS(step.reviewId,S.result);
+  if(step){
+    if(step.mode==="dictation"&&S.dictResult) S.coachStats.push(S.dictResult.matchPct);
+    else if(S.result) S.coachStats.push(S.result.match);
+  }
   if(S.sentence&&!S.customMode){
     S.conversationHistory.push({partner:S.sentence.partner||"",zh:S.sentence.zh});
     if(S.conversationHistory.length>10) S.conversationHistory.shift();
@@ -1408,10 +1537,15 @@ function finishCoachSession(){
   if(S._preCoachMode) S.practiceMode=S._preCoachMode;
   S.coach.lastSessionDate=todayStr();
   S.coach.streak=(S.coach.streak||0)+1;
+  const stats=S.coachStats;
+  const avgMatch=stats.length?Math.round(stats.reduce((a,b)=>a+b,0)/stats.length):null;
+  const count=stats.length;
   saveCoachToCloud();
   goHome();
   showSetupTab("coach");
-  alert("お疲れ様でした！今日の学習を完了しました。");
+  const commentEl=document.getElementById("coach-comment");
+  if(commentEl){commentEl.classList.remove("hidden");commentEl.textContent="コーチが今日のまとめを書いています…";}
+  generateCoachClosingComment(avgMatch,count);
 }
 
 function migrateWeakListToReviewQueueIfNeeded(){
@@ -1437,10 +1571,136 @@ async function saveCoachToCloud(){
   catch(e){console.warn("coach保存失敗:",e.message);}
 }
 
+// ══ Pitch Analysis（声調グラフ）══════════════════════════════
+const TONE_MARK_CHARS = {
+  1: "āēīōūǖĀĒĪŌŪǕ",
+  2: "áéíóúǘÁÉÍÓÚǗ",
+  3: "ǎěǐǒǔǚǍĚǏǑǓǙ",
+  4: "àèìòùǜÀÈÌÒÙǛ",
+};
+const TONE_SHAPE = { 1:[5,5], 2:[3,5], 3:[2,1,4], 4:[5,1], 0:[3,3] };
+const TONE_DIR_LABEL = {up:"上昇",down:"下降",flat:"平坦",dip:"谷型（下がって上がる）"};
+
+function pinyinSyllableTone(syl){
+  for(const t of [1,2,3,4]) for(const ch of TONE_MARK_CHARS[t]) if(syl.includes(ch)) return t;
+  return 0;
+}
+function parsePinyinTones(py){
+  return (py||"").trim().split(/\s+/).filter(Boolean).map(pinyinSyllableTone);
+}
+function toneDirection(shape){
+  if(shape.length===3&&shape[1]<shape[0]&&shape[1]<shape[2]) return "dip";
+  const d=shape[shape.length-1]-shape[0];
+  if(d>=1) return "up";
+  if(d<=-1) return "down";
+  return "flat";
+}
+
+async function analyzePitch(blob, pyStr){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return {error:true};
+  const actx=new AC();
+  try{
+    const ab=await blob.arrayBuffer();
+    const audioBuffer=await actx.decodeAudioData(ab);
+    const data=audioBuffer.getChannelData(0);
+    const sr=audioBuffer.sampleRate;
+    const frameSize=2048, hop=512;
+    const minLag=Math.floor(sr/400), maxLag=Math.min(Math.floor(sr/70),frameSize-1);
+    const raw=[];
+    for(let start=0; start+frameSize<=data.length; start+=hop){
+      const frame=data.subarray(start,start+frameSize);
+      let rms=0; for(let i=0;i<frame.length;i++) rms+=frame[i]*frame[i];
+      rms=Math.sqrt(rms/frame.length);
+      const t=start/sr;
+      if(rms<0.01){ raw.push({t,f0:null}); continue; }
+      let bestLag=-1,bestVal=0;
+      for(let lag=minLag; lag<=maxLag; lag++){
+        let sum=0;
+        for(let i=0;i<frame.length-lag;i++) sum+=frame[i]*frame[i+lag];
+        if(sum>bestVal){bestVal=sum;bestLag=lag;}
+      }
+      let norm=0; for(let i=0;i<frame.length;i++) norm+=frame[i]*frame[i];
+      const confidence=norm>0?bestVal/norm:0;
+      raw.push({t, f0:(bestLag>0&&confidence>0.3)?sr/bestLag:null});
+    }
+    const voiced=raw.filter(p=>p.f0).map(p=>p.f0);
+    if(voiced.length<3) return {error:true};
+    const sorted=[...voiced].sort((a,b)=>a-b);
+    const median=sorted[Math.floor(sorted.length/2)];
+    const actual=raw.map(p=>({t:p.t, semi:p.f0?12*Math.log2(p.f0/median):null}));
+    const duration=raw.length?raw[raw.length-1].t:0;
+    if(!duration) return {error:true};
+
+    const tones=parsePinyinTones(pyStr);
+    const n=tones.length||1;
+    const segDur=duration/n;
+    const expected=[];
+    tones.forEach((tone,i)=>{
+      const shape=TONE_SHAPE[tone]||TONE_SHAPE[0];
+      shape.forEach((lvl,j)=>{
+        expected.push({t:i*segDur+(j/(shape.length-1||1))*segDur, semi:(lvl-3)*2.4});
+      });
+    });
+
+    const tips=[];
+    tones.forEach((tone,i)=>{
+      if(tone===0)return; // 軽声は判定対象外
+      const segStart=i*segDur, segEnd=(i+1)*segDur;
+      const pts=actual.filter(p=>p.t>=segStart&&p.t<segEnd&&p.semi!=null);
+      if(pts.length<2)return;
+      const first=pts[0].semi, last=pts[pts.length-1].semi, mid=pts[Math.floor(pts.length/2)].semi;
+      let actualDir;
+      if(pts.length>=3&&mid<first-0.5&&mid<last-0.5) actualDir="dip";
+      else if(last-first>=1) actualDir="up";
+      else if(last-first<=-1) actualDir="down";
+      else actualDir="flat";
+      const expectedDir=toneDirection(TONE_SHAPE[tone]||TONE_SHAPE[0]);
+      if(actualDir!==expectedDir){
+        tips.push(`${i+1}文字目：${tone}声は${TONE_DIR_LABEL[expectedDir]}が期待されますが、実際は${TONE_DIR_LABEL[actualDir]}でした`);
+      }
+    });
+
+    return {actual, expected, duration, tips:tips.slice(0,5)};
+  } finally {
+    actx.close?.();
+  }
+}
+
+function drawPitchChart(analysis){
+  const canvas=document.getElementById("pitch-chart");
+  if(!canvas)return;
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width,H=canvas.height,padL=6,padR=6,padT=10,padB=6;
+  ctx.clearRect(0,0,W,H);
+  const {actual,expected,duration}=analysis;
+  if(!duration)return;
+  const semis=[...actual,...expected].map(p=>p.semi).filter(v=>v!=null);
+  const maxAbs=Math.max(6,...semis.map(Math.abs));
+  const xOf=t=>padL+(W-padL-padR)*(t/duration);
+  const yOf=sm=>padT+(H-padT-padB)*(1-(sm+maxAbs)/(2*maxAbs));
+  ctx.strokeStyle="rgba(255,255,255,0.1)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,yOf(0));ctx.lineTo(W-padR,yOf(0));ctx.stroke();
+  ctx.strokeStyle="#c7c7c7";ctx.lineWidth=2;ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  expected.forEach((p,i)=>{const x=xOf(p.t),y=yOf(p.semi);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle="#4FD1C5";ctx.lineWidth=2.5;
+  ctx.beginPath();
+  let started=false;
+  actual.forEach(p=>{
+    if(p.semi==null){started=false;return;}
+    const x=xOf(p.t),y=yOf(p.semi);
+    if(!started){ctx.moveTo(x,y);started=true;} else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
 function retryRecord(){
   // 前回結果を保存しておく（比較採点用）
   if(S.result) S.prevResult={ ...S.result, blob: S.recordedBlob };
   S.result=null;S.recordedBlob=null;
+  S.pitchAnalysis=null;S.pitchAnalyzing=false;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   setPhase("record");render();
 }
@@ -1474,7 +1734,7 @@ function nextStep(){
 }
 
 // ══ Render ════════════════════════════════════════════════
-function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#f0c040":"#ddd"}">★</span>`).join("");}
+function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#4FD1C5":"#2a2e3d"}">★</span>`).join("");}
 function matchColor(m){return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626";}
 function diffHtml(target,input){let h="";for(let i=0;i<input.length;i++){const ok=i<target.length&&input[i]===target[i];h+=`<span class="${ok?"ok":"err"}">${input[i]}</span>`;}return h;}
 
@@ -1529,24 +1789,24 @@ function render(){
   const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
   html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
-    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">文を生成中…</span></div>`;
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#6b7086;font-size:13px">文を生成中…</span></div>`;
   } else if(s){
     if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing") {
-      html += `<div style="background:#f0f4ff;border-radius:10px;padding:10px 13px;margin-bottom:10px">
-        <div style="font-size:10px;font-weight:700;color:#6366f1;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
-        <div style="font-size:17px;color:#1e1b4b;font-weight:600">${esc(s.partner)}</div>
-        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#6366f1;margin-top:2px">${esc(s.partnerPy)}</div>`:""}
-        ${s.partnerJa?`<div style="font-size:12px;color:#818cf8;margin-top:3px">${esc(s.partnerJa)}</div>`:""}
-        <button style="margin-top:4px;background:none;border:1px solid #c7d2fe;border-radius:12px;padding:2px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
+      html += `<div style="background:#171a2e;border-radius:10px;padding:10px 13px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:#4FD1C5;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
+        <div style="font-size:17px;color:#cdd6ea;font-weight:600">${esc(s.partner)}</div>
+        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#4FD1C5;margin-top:2px">${esc(s.partnerPy)}</div>`:""}
+        ${s.partnerJa?`<div style="font-size:12px;color:#4FD1C5;margin-top:3px">${esc(s.partnerJa)}</div>`:""}
+        <button style="margin-top:4px;background:none;border:1px solid #2f3550;border-radius:12px;padding:2px 10px;font-size:11px;color:#4FD1C5;cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
           ${S.showPartnerPinyin?"拼音を隠す":"相手の拼音を表示"}
         </button>
       </div>
-      <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
+      <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
     }
     if(ph==="listen"){
-      html+=`<div style="text-align:center;font-size:14px;color:#aaa;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
+      html+=`<div style="text-align:center;font-size:14px;color:#6b7086;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
     } else if(ph==="dictation"||ph==="dictreviewing"){
-      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:#ccc;margin-top:4px">正解は採点後に表示されます</div></div>`;
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#6b7086">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:#6b7086;margin-top:4px">正解は採点後に表示されます</div></div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${esc(s.zh)}</div>`;
       if(s.py){
@@ -1561,7 +1821,7 @@ function render(){
       const isShadow=ph==="shadow";
       const isRecord=ph==="record"||ph==="recording";
       if(S.hideHanzi){
-        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#aaa;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
+        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#6b7086;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
       } else {
         html+=`<div class="hanzi">${esc(s.zh)}</div>`;
         if(S.showPinyin&&s.py)html+=`<div class="pinyin">${esc(s.py)}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
@@ -1586,7 +1846,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#6366f1;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
@@ -1598,11 +1858,11 @@ function render(){
     html+=`<div class="step-instruction"><span class="step-num">②書取</span>　音声を聞いて、聞こえた中国語を入力してください。</div>`;
     // 速度スライダー + 再生
     html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:11px;color:#aaa;white-space:nowrap">速度</span>
+      <span style="font-size:11px;color:#6b7086;white-space:nowrap">速度</span>
       <input type="range" min="0.4" max="1.0" step="0.05" value="${S.dictSpeed}"
-        style="flex:1;accent-color:#1a1a2e"
+        style="flex:1;accent-color:#4FD1C5"
         oninput="S.dictSpeed=parseFloat(this.value);this.nextElementSibling.textContent=Math.round(S.dictSpeed*100)+'%'">
-      <span style="font-size:12px;color:#555;width:34px">${Math.round(S.dictSpeed*100)}%</span>
+      <span style="font-size:12px;color:#c8cad6;width:34px">${Math.round(S.dictSpeed*100)}%</span>
     </div>`;
     if(S.isSpeaking){
       html+=`<div class="btn-row">
@@ -1625,7 +1885,7 @@ function render(){
     // 入力欄（採点前）
     if(!dr){
       html+=`<textarea id="dict-input"
-        style="width:100%;margin-top:10px;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:22px;outline:none;font-family:inherit;resize:none;min-height:64px;letter-spacing:.05em"
+        style="width:100%;margin-top:10px;padding:10px 12px;border:1.5px solid #2a2e3d;border-radius:10px;font-size:22px;outline:none;font-family:inherit;resize:none;min-height:64px;letter-spacing:.05em;background:#171a24;color:#e8e9ee"
         placeholder="ここに中国語を入力…"
         oninput="S.dictInput=this.value"></textarea>`;
       html+=`<div class="btn-row" style="margin-top:8px">`;
@@ -1641,51 +1901,51 @@ function render(){
     if(dr){
       const diffHtmlStr=dr.diff.map(d=>{
         if(d.type==="ok")   return `<span style="color:#16a34a">${d.ch}</span>`;
-        if(d.type==="miss") return `<span style="background:#fef9c3;color:#92400e;border-bottom:2px solid #f59e0b">＿</span>`;
+        if(d.type==="miss") return `<span style="background:#332b10;color:#f0a860;border-bottom:2px solid #f59e0b">＿</span>`;
         if(d.type==="extra")return `<span style="color:#dc2626;text-decoration:line-through">${d.ch}</span>`;
       }).join("");
       const sc=dr.matchPct;
       const scoreColor=sc>=80?"#16a34a":sc>=50?"#d97706":"#dc2626";
       html+=`<div style="text-align:center;margin:10px 0 6px">
-        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${sc}<span style="font-size:14px;color:#aaa">%</span></div>
-        <div style="font-size:12px;color:#aaa">一致率</div>
+        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${sc}<span style="font-size:14px;color:#6b7086">%</span></div>
+        <div style="font-size:12px;color:#6b7086">一致率</div>
       </div>`;
       html+=`<div class="diff-box">
         <div class="diff-label">あなたの入力（差分）</div>
         <div class="diff-text" style="font-size:22px;letter-spacing:.08em;line-height:1.8">${diffHtmlStr}</div>
-        <div style="font-size:11px;color:#aaa;margin-top:6px;display:flex;gap:12px">
+        <div style="font-size:11px;color:#6b7086;margin-top:6px;display:flex;gap:12px">
           <span><span style="color:#16a34a">■</span> 正解</span>
           <span><span style="color:#dc2626;text-decoration:line-through">■</span> 余分</span>
-          <span style="background:#fef9c3;color:#92400e;padding:0 4px;border-radius:2px">＿</span><span> 抜け</span>
+          <span style="background:#332b10;color:#f0a860;padding:0 4px;border-radius:2px">＿</span><span> 抜け</span>
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee">
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #232634">
           ${s.partner?`
           <div class="diff-label">相手のセリフ</div>
-          <div style="font-size:16px;color:#1e1b4b;font-weight:600;margin-bottom:2px">${esc(s.partner)}</div>
-          ${s.partnerPy?`<div style="font-size:12px;color:#818cf8;margin-bottom:2px">${esc(s.partnerPy)}</div>`:""}
-          ${s.partnerJa?`<div style="font-size:12px;color:#aaa;margin-bottom:8px">${esc(s.partnerJa)}</div>`:""}
-          <div style="font-size:10px;font-weight:700;color:#aaa;letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
+          <div style="font-size:16px;color:#cdd6ea;font-weight:600;margin-bottom:2px">${esc(s.partner)}</div>
+          ${s.partnerPy?`<div style="font-size:12px;color:#4FD1C5;margin-bottom:2px">${esc(s.partnerPy)}</div>`:""}
+          ${s.partnerJa?`<div style="font-size:12px;color:#6b7086;margin-bottom:8px">${esc(s.partnerJa)}</div>`:""}
+          <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
           `:"<div class='diff-label'>正解</div>"}
           <div class="diff-text diff-target" style="font-size:22px">${esc(s.zh)}</div>
-          ${s.py?`<div style="font-size:14px;color:#6366f1;margin-top:4px;letter-spacing:.08em">${esc(s.py)}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#888;margin-top:2px">${esc(s.ja)}</div>`:""}
+          ${s.py?`<div style="font-size:14px;color:#4FD1C5;margin-top:4px;letter-spacing:.08em">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:#8a90a6;margin-top:2px">${esc(s.ja)}</div>`:""}
         </div>
       </div>`;
-      html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:white;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-        <tr style="background:#f8f7f4">
-          <th style="padding:7px 10px;text-align:left;color:#888;font-weight:600;font-size:11px">項目</th>
-          <th style="padding:7px 10px;text-align:right;color:#888;font-weight:600;font-size:11px">結果</th>
+      html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:#171a24;border:1px solid #232634;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <tr style="background:#1c1f2b">
+          <th style="padding:7px 10px;text-align:left;color:#8a90a6;font-weight:600;font-size:11px">項目</th>
+          <th style="padding:7px 10px;text-align:right;color:#8a90a6;font-weight:600;font-size:11px">結果</th>
         </tr>
-        <tr style="border-top:1px solid #f0f0f0">
-          <td style="padding:7px 10px;color:#555">🟩 正解</td>
+        <tr style="border-top:1px solid #232634">
+          <td style="padding:7px 10px;color:#c8cad6">🟩 正解</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#16a34a">${dr.diff.filter(d=>d.type==="ok").length} / ${dr.tLen??[...s.zh].length} 文字</td>
         </tr>
-        <tr style="border-top:1px solid #f0f0f0">
-          <td style="padding:7px 10px;color:#555">🟨 抜け</td>
+        <tr style="border-top:1px solid #232634">
+          <td style="padding:7px 10px;color:#c8cad6">🟨 抜け</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">${dr.miss.length>0?dr.miss.join(" "):"なし"}</td>
         </tr>
-        <tr style="border-top:1px solid #f0f0f0">
-          <td style="padding:7px 10px;color:#555">🟥 余分</td>
+        <tr style="border-top:1px solid #232634">
+          <td style="padding:7px 10px;color:#c8cad6">🟥 余分</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#dc2626">${dr.extra.length>0?dr.extra.join(" "):"なし"}</td>
         </tr>
       </table>`;
@@ -1714,7 +1974,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#6366f1;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 もう一度聞く [Space]</button>`;
       }
@@ -1731,7 +1991,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#6366f1;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（何度でも）[Space]</button>`;
       }
@@ -1749,7 +2009,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.repCount=Math.min(S.reps,S.repCount+1);S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く（+1回）[Space]</button>`;
-        html+=`<button class="btn" style="background:#6366f1;margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（+1回）[Space]</button>`;
       }
@@ -1762,17 +2022,23 @@ function render(){
   }
   if(ph==="recording"){
     html+=`<div class="rec-status"><span class="rec-dot"></span><span class="rec-label">録音中 ${S.recSeconds}秒</span></div>`;
-    html+=`<p style="font-size:13px;color:#777;text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
+    html+=`<p style="font-size:13px;color:#9498a8;text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
     html+=`<button class="btn btn-stop" onclick="stopRecording()">⏹ 録音停止・送信 [R]</button>`;
   }
   if(ph==="reviewing"){
-    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#aaa;font-size:13px">音声を解析・採点中…</span></div>`;
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#6b7086;font-size:13px">音声を解析・採点中…</span></div>`;
   }
   if(ph==="result"&&S.result){
     const r=S.result;
+    if(!S.pitchAnalysis&&!S.pitchAnalyzing&&S.recordedBlob){
+      S.pitchAnalyzing=true;
+      analyzePitch(S.recordedBlob,s?.py||"").then(res=>{
+        S.pitchAnalysis=res;S.pitchAnalyzing=false;render();
+      }).catch(e=>{console.warn("声調解析失敗:",e.message);S.pitchAnalyzing=false;S.pitchAnalysis={error:true};render();});
+    }
     const turnCount=S.conversationHistory.length;
-    if(turnCount>0)html+=`<div style="text-align:center;font-size:11px;color:#6366f1;margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`;
-    html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:#888">${r.score}/5</span></div>
+    if(turnCount>0)html+=`<div style="text-align:center;font-size:11px;color:#4FD1C5;margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`;
+    html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:#8a90a6">${r.score}/5</span></div>
       <div class="match-pct">一致率 <span style="font-weight:700;color:${matchColor(r.match)}">${r.match}%</span></div></div>`;
     html+=`<div class="audio-row">`;
     html+=`<div class="audio-item"><div class="audio-label">🎙 手本</div><button class="btn" style="padding:6px 14px;font-size:13px" onclick="S.isSpeaking=true;render();speak('${(s?.zh||'').replace(/'/g,"\\'")}',S.speed,()=>{S.isSpeaking=false;render();})">▶ 再生</button></div>`;
@@ -1786,6 +2052,25 @@ function render(){
     </div>`;
     if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${esc(r.pronun)}</div></div>`;
     html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${esc(r.feedback)}</div></div>`;
+    // 声調（ピッチ）グラフ
+    if(S.pitchAnalyzing){
+      html+=`<div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:12px 14px;margin:7px 0;text-align:center">
+        <div class="spinner" style="width:18px;height:18px;margin:0 auto"></div>
+        <div style="font-size:11px;color:#6b7086;margin-top:6px">声調を解析中…</div>
+      </div>`;
+    } else if(S.pitchAnalysis&&!S.pitchAnalysis.error){
+      html+=`<div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:12px 14px;margin:7px 0">
+        <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:.5px;margin-bottom:6px">声調（ピッチ）グラフ</div>
+        <canvas id="pitch-chart" width="300" height="120" style="width:100%"></canvas>
+        <div style="display:flex;gap:14px;font-size:10px;color:#8a90a6;margin-top:4px">
+          <span><span style="color:#4FD1C5">●</span> あなたの声</span>
+          <span><span style="color:#c7c7c7">┄</span> 期待される概形</span>
+        </div>
+        ${S.pitchAnalysis.tips.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #232634">
+          ${S.pitchAnalysis.tips.map(t=>`<div style="font-size:12px;color:#c8cad6;margin-top:3px">・${esc(t)}</div>`).join("")}
+        </div>`:`<div style="font-size:12px;color:#16a34a;margin-top:6px">✅ 声調のパターンは概ね一致しています</div>`}
+      </div>`;
+    }
     html+=`<div class="btn-row">
       <button class="btn btn-gray" onclick="retryRecord()">⟳ 録り直す</button>
       <button class="btn" style="background:${S.level.color}" onclick="nextStep()">会話を続ける → [N]</button>
@@ -1804,18 +2089,6 @@ function render(){
 
   html+=`</div>`;
 
-  if(S.history.length>0){
-    html+=`<div class="history-wrap"><div class="history-label">HISTORY</div>`;
-    [...S.history].reverse().slice(0,10).forEach(h=>{
-      const d=h.date?new Date(h.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
-      html+=`<div class="history-item">
-        <div class="history-zh">${h.sentence.zh}<span style="font-size:11px;color:#ccc;margin-left:8px">${d}</span></div>
-        <div class="history-meta"><span>${starsHtml(h.result.score)}</span><span style="color:${matchColor(h.result.match)};font-weight:600">${h.result.match}%</span><span>${h.result.recognized}</span></div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
-
   body.innerHTML=html;
   // dictation フェーズ：再描画後に入力途中の内容を復元
   if((S.phase==="dictation"||S.phase==="dictreviewing")&&S.dictInput){
@@ -1823,10 +2096,12 @@ function render(){
     if(ta){ta.value=S.dictInput;ta.setSelectionRange(ta.value.length,ta.value.length);}
   }
   if(ph==="result")body.scrollTop=body.scrollHeight;
+  if(ph==="result"&&S.pitchAnalysis&&!S.pitchAnalysis.error) drawPitchChart(S.pitchAnalysis);
 }
 
 // ══ Keyboard shortcuts ═══════════════════════════════════
 document.addEventListener("keydown",e=>{
+  if(!S.shortcutsEnabled)return;
   if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
   const ph=S.phase;
   if(e.code==="Space"){
@@ -1909,6 +2184,8 @@ async function loadUserData() {
         if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
         if (sv.practiceStyle) S.practiceStyle = sv.practiceStyle;
         if (sv.practiceMode)  { S.practiceMode = sv.practiceMode; setMode(sv.practiceMode); }
+        if (sv.shortcutsEnabled !== undefined) { S.shortcutsEnabled = sv.shortcutsEnabled; renderShortcutToggle(); }
+        if (sv.voiceURI) { S.voiceURI = sv.voiceURI; populateVoiceSelect(); }
         document.getElementById("speed-slider").value = S.speed;
         document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
         setReps(S.reps);
@@ -2002,7 +2279,7 @@ async function saveSettingsToCloud() {
   if (!currentUser) return;
   try {
     await db.collection("users").doc(currentUser.uid).set({
-      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode }
+      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode, shortcutsEnabled:S.shortcutsEnabled, voiceURI:S.voiceURI }
     }, { merge: true });
   } catch(e) { console.warn("設定の保存失敗:", e.message); }
 }
