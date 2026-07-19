@@ -167,7 +167,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <div style="background:#171a24;border:1px solid #232634;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
     <div style="font-size:15px;color:#d5d7e0;margin-bottom:8px;font-weight:600">ログインして始める</div>
     <div style="font-size:13px;color:#6b7086;margin-bottom:24px;line-height:1.6">履歴・設定をGoogleアカウントに紐づけて複数デバイスで同期します</div>
-    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:#4FD1C5;color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
+    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:#4FD1C5;color:#0e0f16;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
       Googleでログイン
     </button>
@@ -193,6 +193,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
     <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
     <button class="tab" onclick="showSetupTab('history')">履歴・分析</button>
+    <button class="tab" onclick="showSetupTab('dex')">📖 図鑑</button>
     <button class="tab" onclick="showSetupTab('shortcuts')">ショートカット</button>
   </div>
 
@@ -276,7 +277,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label" style="margin-top:20px">文セットを保存</div>
     <input class="text-input-field" id="set-name-input" placeholder="セット名（例：教材第3課）" style="margin-bottom:8px">
-    <button class="btn" style="background:#4FD1C5;margin-top:0" onclick="saveSet()">現在の文を保存</button>
+    <button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:0" onclick="saveSet()">現在の文を保存</button>
 
     <div class="sec-label">保存済みセット</div>
     <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
@@ -317,7 +318,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
       <div id="ai-analysis-result" style="font-size:13px;color:#a8adc0;line-height:1.8;min-height:40px">
         ボタンを押すと、これまでの発音ミスを分析して改善策を提案します。
       </div>
-      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#4FD1C5;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
+      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#4FD1C5;color:#0e0f16;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
     </div>
 
     <div class="sec-label" style="margin-top:16px">トピック別スコア</div>
@@ -328,6 +329,17 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
     <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- Vocabulary/Grammar Dex tab -->
+  <div id="stab-dex" class="setup-body hidden">
+    <div class="sec-label">📖 単語図鑑 <span id="vocab-dex-count" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
+    <div id="vocab-dex-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px"></div>
+
+    <div class="sec-label">📜 文法図鑑 <span id="grammar-dex-count" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
+    <div id="grammar-dex-list" style="display:flex;flex-direction:column;gap:8px"></div>
+
+    <div class="info-text" style="margin-top:14px">練習に登場した単語・文法が自動で記録されます。正答率はその単語・文法が含まれる文でのスコア・一致率をもとに算出されます。</div>
   </div>
 
   <!-- Shortcuts tab -->
@@ -363,6 +375,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     </div>
     <div class="topbar-stats" id="top-stats"></div>
   </div>
+  <div id="mode-indicator" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0;font-size:12px;font-weight:700"></div>
   <div class="step-bar" id="step-bar"></div>
   <div class="practice-body" id="practice-body"></div>
 </div>
@@ -412,6 +425,7 @@ const S = {
   savedSets: [],
   conversationHistory: [],
   reviewQueue: [],
+  vocabDex: [], grammarDex: [],
   coach: {lastSessionDate:null, streak:0},
   coachQueue: [], coachIndex: 0, coachActive: false, coachStats: [],
   // 練習中の一時状態
@@ -518,6 +532,54 @@ if(window.speechSynthesis){
   else window.speechSynthesis.onvoiceschanged=()=>{populateVoiceSelect();};
 }
 
+function vocabCardHtml(v){
+  const correctRate=v.count?Math.round((v.correctCount||0)/v.count*100):0;
+  const avgMatch=v.matchN?Math.round(v.matchSum/v.matchN):null;
+  const rateColor=correctRate>=80?"#6ee7a8":correctRate>=50?"#f0a860":"#ff8a80";
+  return `
+    <div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:10px 6px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:#e8e9ee">${esc(v.word)}</div>
+      <div style="font-size:10px;color:#4FD1C5;margin-top:2px">${esc(v.py)}</div>
+      <div style="font-size:10px;color:#8a90a6;margin-top:2px">${esc(v.meaning)}</div>
+      <div style="font-size:9px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
+      <div style="font-size:9px;color:#6b7086;margin-top:1px">出現${v.count}回${avgMatch!=null?`・平均${avgMatch}%`:""}</div>
+    </div>`;
+}
+function renderDexTab(){
+  const vGrid=document.getElementById("vocab-dex-grid");
+  const vCount=document.getElementById("vocab-dex-count");
+  const gList=document.getElementById("grammar-dex-list");
+  const gCount=document.getElementById("grammar-dex-count");
+  if(!vGrid)return;
+  if(vCount)vCount.textContent=`(${S.vocabDex.length})`;
+  if(gCount)gCount.textContent=`(${S.grammarDex.length})`;
+
+  if(!S.vocabDex.length){
+    vGrid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:#6b7086;font-size:12px;padding:20px 0">まだ収集した単語がありません</div>`;
+  } else {
+    const levelOrder=["1","2","3","4","5","6","?"];
+    const groups={};
+    S.vocabDex.forEach(v=>{const lv=levelOrder.includes(v.level)?v.level:"?";(groups[lv]=groups[lv]||[]).push(v);});
+    vGrid.innerHTML=levelOrder.filter(lv=>groups[lv]&&groups[lv].length).map(lv=>{
+      const items=[...groups[lv]].sort((a,b)=>(b.count||0)-(a.count||0));
+      const label=lv==="?"?"級不明":`HSK ${lv}`;
+      return `<div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#4FD1C5;letter-spacing:.5px;margin:10px 0 4px">${label} <span style="color:#6b7086;font-weight:normal">(${items.length})</span></div>
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${items.map(vocabCardHtml).join("")}</div>`;
+    }).join("");
+  }
+
+  gList.innerHTML=S.grammarDex.length?[...S.grammarDex].sort((a,b)=>(b.count||0)-(a.count||0)).map(g=>{
+    const correctRate=g.count?Math.round((g.correctCount||0)/g.count*100):0;
+    const rateColor=correctRate>=80?"#6ee7a8":correctRate>=50?"#f0a860":"#ff8a80";
+    return `
+    <div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:10px 13px">
+      <div style="font-size:14px;font-weight:700;color:#FF6B5C">${esc(g.name)}<span style="font-size:10px;color:#6b7086;font-weight:normal;margin-left:6px">出現${g.count}回</span></div>
+      <div style="font-size:12px;color:#a8adc0;margin-top:3px">${esc(g.desc)}</div>
+      <div style="font-size:9px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
+    </div>`;
+  }).join(""):`<div style="text-align:center;color:#6b7086;font-size:12px;padding:10px 0">まだ収集した文法がありません</div>`;
+}
+
 function renderShortcutToggle(){
   const btn=document.getElementById("shortcut-toggle-btn");
   if(!btn)return;
@@ -539,16 +601,17 @@ document.getElementById("start-btn").onclick=()=>{
 };
 
 function showSetupTab(name){
-  ["main","coach","custom","weak","history","shortcuts"].forEach(t=>{
+  ["main","coach","custom","weak","history","dex","shortcuts"].forEach(t=>{
     document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
   });
   document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","coach","custom","weak","history","shortcuts"][i]===name);
+    b.classList.toggle("active",["main","coach","custom","weak","history","dex","shortcuts"][i]===name);
   });
   if(name==="coach") renderCoachTab();
   if(name==="weak") renderWeakList();
   if(name==="custom") renderSavedSets();
   if(name==="history") renderHistoryTab();
+  if(name==="dex") renderDexTab();
 }
 
 function startWithCustom(){
@@ -759,11 +822,11 @@ ${pronunList.slice(-20).join("\n")}
     const total=pronunList.length;
     const t=json.tones||{};
     const toneData=[
-      {label:"第1声 (ā)",val:t.t1||0,color:"#4FD1C5"},
-      {label:"第2声 (á)",val:t.t2||0,color:"#f59e0b"},
-      {label:"第3声 (ǎ)",val:t.t3||0,color:"#ef4444"},
-      {label:"第4声 (à)",val:t.t4||0,color:"#10b981"},
-      {label:"軽声",     val:t.t0||0,color:"#8b5cf6"},
+      {label:"第1声 (ā)",val:t.t1||0,color:"#4FD1C5",text:"#0e0f16"},
+      {label:"第2声 (á)",val:t.t2||0,color:"#f59e0b",text:"#0e0f16"},
+      {label:"第3声 (ǎ)",val:t.t3||0,color:"#ef4444",text:"white"},
+      {label:"第4声 (à)",val:t.t4||0,color:"#10b981",text:"#0e0f16"},
+      {label:"軽声",     val:t.t0||0,color:"#8b5cf6",text:"white"},
     ];
     const maxVal=Math.max(...toneData.map(d=>d.val),1);
     const barRows=toneData.map(d=>`
@@ -771,7 +834,7 @@ ${pronunList.slice(-20).join("\n")}
         <div style="width:60px;font-size:11px;color:#a8adc0;text-align:right;flex-shrink:0">${d.label}</div>
         <div style="flex:1;background:#1c1f2b;border-radius:4px;height:18px;overflow:hidden">
           <div style="width:${Math.round(d.val/maxVal*100)}%;background:${d.color};height:100%;border-radius:4px;transition:width .4s;display:flex;align-items:center;padding-left:6px">
-            ${d.val>0?`<span style="font-size:10px;color:white;font-weight:700">${d.val}</span>`:""}
+            ${d.val>0?`<span style="font-size:10px;color:${d.text};font-weight:700">${d.val}</span>`:""}
           </div>
         </div>
         <div style="width:28px;font-size:11px;color:#6b7086;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
@@ -781,7 +844,7 @@ ${pronunList.slice(-20).join("\n")}
     ).join(" ");
     const tipCards=(json.tips||[]).map((tip,i)=>
       `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1c1f2b">
-        <div style="width:22px;height:22px;border-radius:50%;background:#4FD1C5;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#4FD1C5;color:#0e0f16;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
         <div style="font-size:13px;color:#e8e9ee;line-height:1.6">${tip}</div>
       </div>`
     ).join("");
@@ -1052,15 +1115,80 @@ ${styleRule}
 相手訳：<相手のセリフの日本語訳>
 返答：<返答文（漢字のみ）>
 拼音：<返答文の声調記号付きピンイン>
-訳：<返答文の日本語訳>`}], undefined, 1.05);
+訳：<返答文の日本語訳>
+語彙：<返答文中の重要単語2〜4個を「単語|ピンイン|日本語訳|HSK級」の形式で；区切り。HSK級は1〜6の数字のみ、判断できなければ「?」。例：工作|gōngzuò|仕事|3；已经|yǐjīng|すでに|2>
+文法：<返答文で使われている文法パターン1個を「名称|簡潔な説明」の形式で。無ければ「なし」>`}], undefined, 1.05);
   const partner    = raw.match(/相手[：:]\s*(.+)/)?.[1]?.trim() || "";
   const partnerPy  = raw.match(/^相手拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerJa  = raw.match(/相手訳[：:]\s*(.+)/)?.[1]?.trim() || "";
   const zh         = raw.match(/返答[：:]\s*(.+)/)?.[1]?.trim();
   const py         = raw.match(/^拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const ja         = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const vocabRaw   = raw.match(/^語彙[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const grammarRaw = raw.match(/^文法[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const vocab = vocabRaw.split(/[；;]/).map(s=>s.trim()).filter(Boolean).map(s=>{
+    const [word,py2,meaning,hsk]=s.split("|").map(x=>x?.trim());
+    return word?{word,py:py2||"",meaning:meaning||"",level:/^[1-6]$/.test(hsk)?hsk:"?"}:null;
+  }).filter(Boolean);
+  const grammar = (grammarRaw&&!/^なし$/.test(grammarRaw)) ? (()=>{
+    const [name,desc]=grammarRaw.split("|").map(x=>x?.trim());
+    return name?[{name,desc:desc||""}]:[];
+  })() : [];
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
-  return { zh, py, ja, partner, partnerPy, partnerJa };
+  return { zh, py, ja, partner, partnerPy, partnerJa, vocab, grammar };
+}
+
+// ══ 単語・文法図鑑 ════════════════════════════════════════
+function registerCollection(sentence, score, matchPct){
+  if(!sentence)return;
+  // 正誤判定：スコア(シャドーイング)か一致率(ディクテーション)のどちらか一方で判定
+  const isCorrect=(typeof score==="number"&&score>=4)||(typeof matchPct==="number"&&matchPct>=80);
+  const matchVal=typeof matchPct==="number"?matchPct:(typeof score==="number"?score*20:null);
+  let changed=false;
+  (sentence.vocab||[]).forEach(v=>{
+    if(!v.word)return;
+    const idx=S.vocabDex.findIndex(x=>x.word===v.word);
+    if(idx<0){
+      S.vocabDex.push({
+        word:v.word, py:v.py, meaning:v.meaning, level:v.level||"?",
+        count:1, correctCount:isCorrect?1:0,
+        matchSum:matchVal!=null?matchVal:0, matchN:matchVal!=null?1:0,
+        firstSeen:todayStr(), lastSeen:todayStr()
+      });
+    } else {
+      const e=S.vocabDex[idx];
+      e.count=(e.count||1)+1;
+      e.correctCount=(e.correctCount||0)+(isCorrect?1:0);
+      if(matchVal!=null){e.matchSum=(e.matchSum||0)+matchVal;e.matchN=(e.matchN||0)+1;}
+      e.lastSeen=todayStr();
+    }
+    changed=true;
+  });
+  (sentence.grammar||[]).forEach(g=>{
+    if(!g.name)return;
+    const idx=S.grammarDex.findIndex(x=>x.name===g.name);
+    if(idx<0){
+      S.grammarDex.push({
+        name:g.name, desc:g.desc,
+        count:1, correctCount:isCorrect?1:0,
+        matchSum:matchVal!=null?matchVal:0, matchN:matchVal!=null?1:0,
+        firstSeen:todayStr(), lastSeen:todayStr()
+      });
+    } else {
+      const e=S.grammarDex[idx];
+      e.count=(e.count||1)+1;
+      e.correctCount=(e.correctCount||0)+(isCorrect?1:0);
+      if(matchVal!=null){e.matchSum=(e.matchSum||0)+matchVal;e.matchN=(e.matchN||0)+1;}
+      e.lastSeen=todayStr();
+    }
+    changed=true;
+  });
+  if(changed)saveDexToCloud();
+}
+async function saveDexToCloud(){
+  if(!currentUser)return;
+  try{await db.collection("users").doc(currentUser.uid).set({vocabDex:S.vocabDex,grammarDex:S.grammarDex},{merge:true});}
+  catch(e){console.warn("図鑑保存失敗:",e.message);}
 }
 
 async function blobToBase64(blob){
@@ -1268,6 +1396,7 @@ async function submitDictation(){
   };
   S.history.push(histItem);
   saveHistoryToCloud(histItem);
+  registerCollection(S.sentence, null, matchPct);
   setPhase("dictation");render();
 }
 
@@ -1296,6 +1425,7 @@ async function startRecording(){
         S.history.push(histItem);
         saveHistoryToCloud(histItem);  // Firestoreのみ
         S.used.push(S.sentence.zh);
+        registerCollection(S.sentence, S.result.score, S.result.match);
         if(S.result.score<=3){
           const already=S.weakList.some(w=>w.zh===S.sentence.zh);
           if(!already){
@@ -1776,11 +1906,30 @@ function renderStepBar(){
   bar.innerHTML=h;
 }
 
+const PHASE_MODE_INFO={
+  listen:      {icon:"🎧",label:"初聴",bg:"#1c1f2b",color:"#8a90a6"},
+  dictation:   {icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
+  dictreviewing:{icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
+  check:       {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
+  read:        {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
+  shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
+  record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
+  result:      {icon:"✅",label:"採点結果",bg:"#0f2318",color:"#6ee7a8"},
+};
+function renderModeIndicator(){
+  const el=document.getElementById("mode-indicator");
+  if(!el)return;
+  const info=PHASE_MODE_INFO[S.phase];
+  if(!info){el.innerHTML="";return;}
+  const coachTag=S.coachActive?`<span style="background:#2a1e3d;color:#c4a6f5;padding:4px 10px;border-radius:20px;margin-right:6px">🤖 AIコーチ</span>`:"";
+  el.innerHTML=`${coachTag}<span style="background:${info.bg};color:${info.color};padding:4px 12px;border-radius:20px">${info.icon} ${info.label}</span>`;
+}
+
 // XSSエスケープ（Gemini返答・生成文をinnerHTMLに埋め込む前に必ず通す）
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 function render(){
-  updateStats();renderStepBar();
+  updateStats();renderStepBar();renderModeIndicator();
   const body=document.getElementById("practice-body");if(!body)return;
   const ph=S.phase,s=S.sentence;
   let html="";
@@ -1846,7 +1995,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
@@ -1974,7 +2123,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 もう一度聞く [Space]</button>`;
       }
@@ -1991,7 +2140,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（何度でも）[Space]</button>`;
       }
@@ -2009,7 +2158,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.repCount=Math.min(S.reps,S.repCount+1);S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く（+1回）[Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
+        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（+1回）[Space]</button>`;
       }
@@ -2069,6 +2218,15 @@ function render(){
         ${S.pitchAnalysis.tips.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #232634">
           ${S.pitchAnalysis.tips.map(t=>`<div style="font-size:12px;color:#c8cad6;margin-top:3px">・${esc(t)}</div>`).join("")}
         </div>`:`<div style="font-size:12px;color:#16a34a;margin-top:6px">✅ 声調のパターンは概ね一致しています</div>`}
+      </div>`;
+    }
+    // 関連ニュース検索リンク（追加API不要・検索エンジンへのリンク方式）
+    if(S.topic&&!S.customMode){
+      const nq=encodeURIComponent(S.topic);
+      html+=`<div style="text-align:center;margin:10px 0">
+        <div style="font-size:10px;color:#6b7086;margin-bottom:6px">📰 似たトピックのニュースを読んでみる</div>
+        <a href="https://news.google.com/search?q=${nq}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans" target="_blank" rel="noopener" style="display:inline-block;background:#171a24;border:1px solid #232634;color:#4FD1C5;padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">Google ニュース</a>
+        <a href="https://www.baidu.com/s?tn=news&word=${nq}" target="_blank" rel="noopener" style="display:inline-block;background:#171a24;border:1px solid #232634;color:#4FD1C5;padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">百度新闻</a>
       </div>`;
     }
     html+=`<div class="btn-row">
@@ -2174,6 +2332,8 @@ async function loadUserData() {
       if (Array.isArray(data.weakList))  S.weakList  = data.weakList;
       if (Array.isArray(data.savedSets)) S.savedSets = data.savedSets;
       if (Array.isArray(data.reviewQueue)) S.reviewQueue = data.reviewQueue;
+      if (Array.isArray(data.vocabDex)) S.vocabDex = data.vocabDex;
+      if (Array.isArray(data.grammarDex)) S.grammarDex = data.grammarDex;
       if (data.coach) S.coach = { lastSessionDate:null, streak:0, ...data.coach };
       if (data.settings) {
         const sv = data.settings;
