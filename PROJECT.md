@@ -1,0 +1,244 @@
+# PROJECT
+
+# 1. プロジェクト概要
+
+## プロジェクト名
+听写跟读（ディクテーション＆シャドーイング練習アプリ）
+
+## 目的
+中国語のディクテーション・シャドーイング練習を、AIが生成する会話文とAI発音採点によって効率化する。個人の学習継続・苦手克服・発音矯正を支援する。
+
+## 対象ユーザー
+開発者本人（悠）のみ。マルチデバイス（iPad Pro / Android スマートフォン）で同一アカウントを使用。
+
+## 動作環境
+- iPad Pro（Safari、TTS音声：Meijia zh-TW）
+- SHARP AQUOS9 Android（Chrome、TTS音声：中国語 中国 zh_CN）
+- HTTPS環境必須（Web Speech API / MediaRecorder APIの制約）
+
+## 使用技術
+フロントエンド：Vanilla JS / HTML / CSS（単一ファイル）
+バックエンド：Firebase（Authentication + Firestore）
+AIプロキシ：Cloudflare Workers
+AI：Google Gemini API
+音声：Web Speech API、MediaRecorder API、Web Audio API
+
+---
+
+# 2. 要件定義
+
+## 必須機能
+- AIによる会話文自動生成（レベル/トピック/HSK優先/練習スタイル指定）
+- ディクテーション（書取）とLCSベースの客観採点
+- シャドーイング（音読・追読・録音・AI発音採点）
+- 声調（ピッチ）の可視化と改善点提示
+- 学習履歴の保存・分析（トレンドチャート、レーダーチャート、AI傾向分析）
+- 苦手リストの自動登録・復習
+- Google認証によるマルチデバイス同期
+- AIコーチモード（今日の学習メニュー自動生成、簡易SRS、声掛け・締めコメント）
+
+## 任意機能
+- カスタム文での練習、文セットの保存
+- キーボードショートカット（ON/OFF切替可能）
+- Web Speech音声の選択
+
+## 将来追加予定
+- AIコーチ Phase2：ディクテーション/シャドーイング結果からの苦手音・苦手単語のより精緻な連携
+- AIコーチ Phase3：苦手分析の高度化、学習統計拡充、復習アルゴリズムの精緻化（フルSRS化検討）
+- AIコーチ Phase4：HSK合格コース、旅行/ビジネス中国語コース、学習カレンダー、バッジ、週間/月間レポート
+- 週間・月間の学習レポート
+
+---
+
+# 3. システム設計
+
+## 全体構成
+```
+画面（index.html 内 render() 群）
+  ↓
+状態管理（グローバル State オブジェクト S）
+  ↓
+サービス層（generateSentence / reviewRecording / scoreDictation / analyzePitch 等）
+  ↓
+API（Cloudflare Worker 経由の Gemini API、Firebase Auth/Firestore）
+  ↓
+データ保存（Firestore：history サブコレクション、ユーザードキュメント直下に各種設定・キュー）
+```
+
+## セキュリティアーキテクチャ
+```
+ブラウザ
+  │ Authorization: Bearer <Firebase IDトークン>
+  ▼
+Cloudflare Worker（gemini-proxy）
+  │ JWKS公開鍵でトークンをその場検証（外部問い合わせ不要）
+  │ uid が ALLOWED_UID と一致するかチェック
+  ▼
+Gemini API（APIキーはWorker側Secretのみに保持、クライアントには一切露出しない）
+```
+- Worker Secrets：`GEMINI_API_KEY`、`ALLOWED_UID`
+- `worker.js` の `ALLOWED_ORIGIN` はGitHub Pages URLに限定（CORS）
+- クライアント側にAPIキー入力欄・保存機構は存在しない
+
+## データ構造（Firestore）
+```
+users/{uid}
+  - weakList: array                 // 苦手な文（score<=3 で自動登録）
+  - savedSets: array                // カスタム文セット
+  - reviewQueue: array              // AIコーチの復習キュー
+      [{ id, zh, py, ja, priority, dueDate, reviewCount, lastMatchPct }]
+  - coach: object                   // AIコーチの状態
+      { lastSessionDate, streak, greetingText, greetingDate, lastComment, lastCommentDate }
+  - settings: object
+      { levelId, topic, speed, reps, hskPrio, practiceStyle, practiceMode,
+        shortcutsEnabled, voiceURI }
+
+users/{uid}/history（subcollection）
+  - sentence: { zh, py, ja, partner, partnerPy, partnerJa, topic }
+  - result: { score, match, recognized, pronun, feedback }
+  - type: "dictation" | undefined
+  - dictResult: { matchPct, miss, extra, explain, input }   // dictationのみ
+  - date: ISO string
+  - createdAt: serverTimestamp
+```
+
+## API
+
+**使用するAPI**
+- Google Gemini API（`gemini-3.1-flash-lite` → `gemini-2.5-flash-lite` → `gemini-2.5-flash` の順にフォールバック）
+- Firebase Authentication API（Google OAuth経由）
+- Firestore API
+- Cloudflare Workers（自前のGeminiプロキシ）
+
+**認証方法**
+- ユーザー：Firebase Authentication（Google ログイン）
+- Worker→Gemini間：Worker Secretとして保持するAPIキー
+- ブラウザ→Worker間：Firebase IDトークン（JWKS方式でWorker内検証）
+
+**利用制限・方針**
+- Gemini APIはWorker経由のみ。呼び出し回数を最小化する方針（採点はJS側LCSアルゴリズムを優先、AIは解説・コメント生成など補助的用途に限定）
+- Gemini TTS（音声合成）は無料枠のレート制限（実質1日10回程度）が既知の問題のため不採用。Web Speech APIで代替
+
+---
+
+# 4. 開発ルール
+
+## 基本方針
+- AIは共同開発者として振る舞う。
+- 既存機能を壊さない。
+- 差分修正を基本とする。
+- 小さな変更を積み重ねる。
+- 不要なリファクタリングは行わない。
+- **コード修正の前に実装方針を提示し、確認を得てから着手する。**
+- 仕様が不明な場合は推測せず確認する。
+
+## GitHub運用
+- GitHubを唯一のソースコード管理場所とする（Private Repository）。
+- Small Commit / Small Pull Request。
+- **Claudeによるmainへの直接pushは禁止。** 必ずブランチ作成→コミット→Pull Request作成とする。
+- Mergeは人が行う（差分レビュー必須）。
+- レビュー必須対象：Google認証、Firestore、State管理、データ保存、API通信、Firebase Security Rules。
+- UI・CSS・文言変更のみの場合は簡易レビュー可。
+- ブランチ命名：`feature/xxx` 形式。
+
+## セキュリティ
+以下はリポジトリへ保存しない。
+- Gemini APIキー
+- Firebaseサービスアカウントキー
+- OAuth Secret
+- .env
+- 秘密鍵
+- 各種認証情報
+
+Firebase Web Config（`apiKey`等）はpublicな値のため保存可（Firestore Security Rulesでアクセス制御）。
+Gemini APIキーは Cloudflare Worker の Secret としてのみ保持し、リポジトリ・クライアントコードには一切含めない。
+
+**GitHubトークン運用**
+- Fine-grained Personal Access Tokenを使用
+- 対象リポジトリを限定
+- 必要最小権限のみ付与（Contents, Pull requests。Actions/Pages操作が必要な場合のみ都度追加）
+- 有効期限は短め（7〜14日目安）に設定
+- 作業終了後は速やかに失効（Delete または Regenerate）
+
+## コーディング規約
+- 可読性を優先する。
+- 保守性を優先する。
+- コメントを整理する。
+- 修正範囲外は変更しない。
+- 既存の設計を尊重する。
+- 単一 `index.html` 構成を維持し、ビルドツールは導入しない。
+- ファイル分割は行わない（将来的にモジュール分割を検討する場合は別途合意の上で実施）。
+
+## トークン最適化
+- コード全文は要求時のみ表示する。
+- 修正対象のみ扱う（diff優先）。
+- 長い説明は不要。
+- 必要最小限の回答とする。
+
+---
+
+# 5. このプロジェクト固有の設計
+
+## 学習フロー（practiceMode別）
+| モード | ステップ |
+|---|---|
+| full | 初聴→書取→確認→音読→追読→録音→採点 |
+| dictation | 初聴→書取→採点 |
+| shadow | 初聴→確認→音読→追読→録音→採点 |
+
+AIコーチモードは上記フローを流用し、次に出す文の選択元をキュー制御する（`S.coachActive` 時に `nextStep()` が `coachOnItemComplete()` に分岐）。
+
+## 採点ロジック
+| 種別 | 採点主体 | AIの役割 |
+|---|---|---|
+| シャドーイング | JS（LCS差分、盲目文字起こしとの比較） | 2段階方式：①音声のみでお手本非提示の文字起こし → ②JSでスコア算出 → ③発音詳細・総評のみAI生成 |
+| ディクテーション | JS（LCS差分比較） | 解説のみ生成（100〜150字） |
+
+盲目文字起こし方式を採用した理由：お手本を提示した状態でGeminiに文字起こしさせると、実際の発話よりお手本に引っ張られた（＝甘い）認識結果が返りやすいため。録り直し比較モードも同様の方式。
+
+## AIコーチ（Phase1実装済み）
+- 今日の学習メニュー：復習3・ディクテーション2・シャドーイング3・会話1の固定テンプレ（JS側で構成）
+- 復習項目：`reviewQueue` から期日到来分を優先度順に抽出
+- 簡易SRS：正解(score≥4)→7日後／普通(score=3)→3日後／不正解→翌日
+- 初回のみ既存 `weakList` から `reviewQueue` へ自動移行
+- コーチの声掛け：連続日数・復習件数・苦手文をもとにGeminiが40字以内で生成（1日1回キャッシュ）
+- セッション終了コメント：平均一致率・連続日数を踏まえてGeminiが80字以内で生成
+- Gemini利用は「教材生成・学習終了後分析・コメント生成」のみに限定し、採点・集計・苦手登録はJSで行う方針（API利用量最小化）
+
+## 声調（ピッチ）分析
+- 録音BlobをWeb Audio APIで解析（自己相関法によるF0推定、Gemini不使用）
+- 拼音の声調記号からChao式簡易概形を生成し、実測ピッチ曲線と重ねて表示（縦軸：相対音高＝半音差）
+- 音節ごとの実測傾きと期待方向を比較し、不一致箇所をテキストで提示
+
+## デザイン
+- ダークテーマ（声調グラフをモチーフにした配色）を全面適用
+- 背景 #0e0f16 / カード #171a24 / 枠線 #232634 / アクセント ティール #4FD1C5・コーラル #FF6B5C
+- 成功・警告・危険を示す状態色は視認性維持のため変更していない
+
+## 既知の技術的制約
+- Web Speech API / MediaRecorder はiframe内・HTTP環境では動作しない（GitHub Pages = HTTPSで解決済み）
+- Web Speech APIの音声はOS/ブラウザ管理のため、アプリ側から新規ダウンロードは不可能
+- `gemini-1.5-flash` 等旧モデル名は無効。`gemini-2.x`/`3.x` 系を使用
+- textareaのinnerHTML埋め込みは `render()` 再描画で消えるため、`dict-input.value` を手動復元している
+- 拼音パース用の正規表現は行頭アンカー必須（`相手拼音：` 行への誤マッチを防止）
+
+---
+
+# 6. 今後追加予定
+- AIコーチ Phase2〜4（上記「将来追加予定」参照）
+- 週間・月間の学習レポート
+- 復習アルゴリズムの精緻化
+
+---
+
+# 7. AIへの指示
+
+作業開始時は
+1. PROJECT.md
+2. SESSION.md
+
+を読むこと。
+
+チャット履歴ではなく、このファイルを仕様書とする。
+設計変更時は本ファイルを更新する。
+コード修正を伴う依頼では、着手前に実装方針を提示し、確認を得てから実施する。
