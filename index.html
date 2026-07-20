@@ -6,86 +6,106 @@
 <title>听写跟读</title>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
-body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:#0e0f16; color:#e8e9ee; min-height:100vh; }
+
+:root, [data-theme="dark"] {
+  --bg:#0e0f16; --navy:#12141C;
+  --card:#171a24; --card-alt:#1c1f2b;
+  --border:#232634; --border-strong:#2a2e3d;
+  --text:#e8e9ee; --text-sec:#c8cad6; --text-muted:#8a90a6; --text-faint:#6b7086;
+  --accent:#4FD1C5; --accent-fg:#0e0f16; --accent-text:#4FD1C5;
+  --accent2:#FF6B5C; --accent2-fg:#0e0f16; --accent2-text:#FF6B5C;
+  --shadow:rgba(0,0,0,.25);
+}
+[data-theme="light"] {
+  --bg:#f2efe9; --navy:#1a1a2e;
+  --card:#ffffff; --card-alt:#f6f4ef;
+  --border:#e6e2d8; --border-strong:#d8d3c4;
+  --text:#20202a; --text-sec:#4a4a56; --text-muted:#7a7a86; --text-faint:#9a9aa4;
+  --accent:#0d9488; --accent-fg:#ffffff; --accent-text:#0f766e;
+  --accent2:#e04a38; --accent2-fg:#ffffff; --accent2-text:#c8402c;
+  --shadow:rgba(0,0,0,.1);
+}
+
+body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
 /* ── Layout ── */
-.hero { background:#12141C; padding:22px 20px 16px; text-align:center; color:white; }
-.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:#4FD1C5; line-height:1; margin-bottom:3px; }
+.hero { background:var(--navy); padding:22px 20px 16px; text-align:center; color:white; }
+.hero-kanji { font-size:42px; font-weight:900; font-family:serif; color:var(--accent-text); line-height:1; margin-bottom:3px; }
 .hero-title { font-size:17px; font-weight:700; letter-spacing:3px; }
 
-.tabs { display:flex; background:#0e0f16; border-bottom:1px solid #232634; }
-.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:#a8adc0; border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
-.tab.active { color:#4FD1C5; border-bottom-color:#4FD1C5; }
+.tabs { display:flex; background:var(--bg); border-bottom:1px solid var(--border); }
+.tab { flex:1; padding:10px 4px; font-size:12px; font-weight:600; color:var(--text-sec); border:none; background:none; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; transition:all .15s; }
+.tab.active { color:var(--accent-text); border-bottom-color:var(--accent-text); }
 
 .setup-body { padding:18px 15px; max-width:520px; margin:0 auto; }
-.sec-label { font-size:11px; font-weight:700; color:#9498a8; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
+.sec-label { font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; margin-top:18px; }
 
 /* ── Form elements ── */
-.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid #2a2e3d; border-radius:10px; font-size:13px; outline:none; font-family:inherit; background:#171a24; color:#e8e9ee; }
+.api-input, .text-input-field { width:100%; padding:10px 12px; border:1.5px solid var(--border-strong); border-radius:10px; font-size:13px; outline:none; font-family:inherit; background:var(--card); color:var(--text); }
 .api-input { font-family:monospace; }
 .level-row { display:flex; gap:6px; flex-wrap:wrap; }
-.level-btn { flex:1 1 65px; background:#171a24; border:2px solid #2a2e3d; border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
+.level-btn { flex:1 1 65px; background:var(--card); border:2px solid var(--border-strong); border-radius:10px; padding:9px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit; transition:all .15s; }
 .level-btn.active { color:white; }
 .level-lbl { font-weight:700; font-size:13px; }
 .level-desc { font-size:10px; opacity:.8; }
 .topic-grid { display:flex; flex-wrap:wrap; gap:6px; }
-.topic-btn { background:#171a24; border:1.5px solid #2a2e3d; border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
-.topic-btn.active { background:#12141C; color:white; border-color:#12141C; }
+.topic-btn { background:var(--card); border:1.5px solid var(--border-strong); border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; }
+.topic-btn.active { background:var(--navy); color:white; border-color:var(--navy); }
 .speed-row { display:flex; align-items:center; gap:10px; }
-.speed-row input { flex:1; accent-color:#4FD1C5; }
+.speed-row input { flex:1; accent-color:var(--accent-text); }
 .start-btn { width:100%; padding:13px; font-size:15px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:18px; letter-spacing:1px; font-family:inherit; }
 
 /* ── Topbar ── */
-.topbar { display:flex; align-items:center; justify-content:space-between; background:#12141C; padding:9px 13px; position:sticky; top:0; z-index:10; }
+.topbar { display:flex; align-items:center; justify-content:space-between; background:var(--navy); padding:9px 13px; position:sticky; top:0; z-index:10; }
 .topbar-back { background:transparent; border:1px solid rgba(255,255,255,.25); color:white; border-radius:6px; padding:4px 9px; font-size:12px; cursor:pointer; font-family:inherit; }
 .badge { border-radius:10px; padding:2px 8px; font-size:11px; font-weight:700; color:white; }
-.topbar-stats { font-size:12px; color:#4FD1C5; font-weight:600; }
+.topbar-stats { font-size:12px; color:var(--accent-text); font-weight:600; }
 
 /* ── Step bar ── */
-.step-bar { background:#0e0f16; padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
+.step-bar { background:var(--bg); padding:9px 13px; display:flex; align-items:center; overflow-x:auto; }
 .step-item { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; }
-.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid #3a3f52; color:#a8adc0; background:#1f2937; transition:all .2s; }
+.step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; border:2px solid var(--text-faint); color:var(--text-sec); background:var(--card-alt); transition:all .2s; }
 .step-dot.done { background:#22c55e; border-color:#22c55e; color:white; }
-.step-dot.active { border-color:#4FD1C5; color:#4FD1C5; }
-.step-name { font-size:9px; color:#a8adc0; text-align:center; white-space:nowrap; }
-.step-name.active { color:#4FD1C5; }
+.step-dot.active { border-color:var(--accent-text); color:var(--accent-text); }
+.step-name { font-size:9px; color:var(--text-sec); text-align:center; white-space:nowrap; }
+.step-name.active { color:var(--accent-text); }
 .step-name.done { color:#22c55e; }
-.step-line { width:14px; height:2px; background:#e8e9ee; flex-shrink:0; margin-bottom:13px; }
+.step-line { width:14px; height:2px; background:var(--text); flex-shrink:0; margin-bottom:13px; }
 .step-line.done { background:#22c55e; }
 
 /* ── Practice ── */
 .practice-body { padding:11px 13px 40px; display:flex; flex-direction:column; gap:10px; max-width:600px; margin:0 auto; }
-.card { background:#171a24; border:1px solid #232634; border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
-.card-title { font-size:10px; font-weight:700; color:#6b7086; letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:15px 14px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.card-title { font-size:10px; font-weight:700; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:9px; }
 
 /* ── Sentence ── */
-.hanzi { font-size:25px; font-weight:700; color:#12141C; text-align:center; letter-spacing:.05em; line-height:1.5; }
-.pinyin { font-size:15px; color:#4FD1C5; letter-spacing:.08em; line-height:2; text-align:center; }
-.trans { font-size:13px; color:#8a90a6; text-align:center; margin-top:3px; }
-.reveal-btn { background:#1c1f2b; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#a8adc0; cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
+.hanzi { font-size:25px; font-weight:700; color:var(--text); text-align:center; letter-spacing:.05em; line-height:1.5; }
+.pinyin { font-size:15px; color:var(--accent-text); letter-spacing:.08em; line-height:2; text-align:center; }
+.trans { font-size:13px; color:var(--text-muted); text-align:center; margin-top:3px; }
+.reveal-btn { background:var(--card-alt); border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:var(--text-sec); cursor:pointer; display:block; margin:5px auto 0; font-family:inherit; }
 .hide-btn { background:#2a1618; border:none; border-radius:20px; padding:5px 15px; font-size:12px; color:#e53935; cursor:pointer; display:block; margin:8px auto 0; font-family:inherit; }
 
 /* ── Buttons ── */
 .btn { border:none; border-radius:11px; padding:12px 16px; font-size:14px; font-weight:700; color:white; cursor:pointer; width:100%; font-family:inherit; transition:opacity .15s; margin-top:8px; }
 .btn:disabled { opacity:.4; cursor:not-allowed; }
-.btn-dark { background:#12141C; }
+.btn-dark { background:var(--navy); }
 .btn-red { background:#e53935; }
-.btn-stop { background:#e8e9ee; }
+.btn-stop { background:var(--text); }
 .btn-gray { background:#6b7280; }
 .btn-row { display:flex; gap:8px; margin-top:8px; }
 .btn-row .btn { flex:1; margin-top:0; }
 
 /* ── Step instruction ── */
-.step-instruction { background:#1c1f2b; border-left:3px solid #4FD1C5; border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:#c8cad6; line-height:1.6; margin-bottom:6px; }
+.step-instruction { background:var(--card-alt); border-left:3px solid var(--accent-text); border-radius:0 8px 8px 0; padding:9px 11px; font-size:13px; color:var(--text-sec); line-height:1.6; margin-bottom:6px; }
 .step-num { font-weight:700; color:#e8c468; }
 
 /* ── Repeat counter ── */
 .repeat-counter { display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; }
 .repeat-dots { display:flex; gap:5px; }
-.rdot { width:12px; height:12px; border-radius:50%; background:#2a2e3d; transition:all .2s; }
+.rdot { width:12px; height:12px; border-radius:50%; background:var(--border-strong); transition:all .2s; }
 .rdot.done { background:#22c55e; }
-.rdot.active { background:#4FD1C5; transform:scale(1.2); }
-.repeat-label { font-size:13px; color:#8a90a6; }
+.rdot.active { background:var(--accent); transform:scale(1.2); }
+.repeat-label { font-size:13px; color:var(--text-muted); }
 
 /* ── Recording ── */
 .rec-status { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0; }
@@ -94,60 +114,60 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 .rec-label { font-size:15px; font-weight:700; color:#e53935; }
 
 /* ── Waveform ── */
-#waveform { width:100%; height:50px; background:#1c1f2b; border-radius:8px; margin:6px 0; }
+#waveform { width:100%; height:50px; background:var(--card-alt); border-radius:8px; margin:6px 0; }
 
 /* ── Audio ── */
 .audio-row { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-.audio-item { background:#1c1f2b; border-radius:10px; padding:8px 11px; }
-.audio-label { font-size:10px; color:#8a90a6; font-weight:700; margin-bottom:4px; }
+.audio-item { background:var(--card-alt); border-radius:10px; padding:8px 11px; }
+.audio-label { font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:4px; }
 .audio-item audio { width:100%; height:32px; }
 
 /* ── Result ── */
 .score-row { text-align:center; margin-bottom:6px; }
-.match-pct { font-size:15px; color:#8a90a6; margin-top:2px; }
-.diff-box { background:#1c1f2b; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.diff-label { font-size:10px; color:#6b7086; font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
+.match-pct { font-size:15px; color:var(--text-muted); margin-top:2px; }
+.diff-box { background:var(--card-alt); border-radius:10px; padding:10px 12px; margin:7px 0; }
+.diff-label { font-size:10px; color:var(--text-faint); font-weight:700; letter-spacing:.5px; margin-bottom:3px; }
 .diff-text { font-size:18px; letter-spacing:.05em; line-height:1.6; word-break:break-all; }
-.diff-target { font-size:18px; color:#12141C; }
+.diff-target { font-size:18px; color:var(--text); }
 .ok { color:#16a34a; }
 .err { color:#dc2626; font-weight:700; }
-.pronun-box { background:#171a2e; border:1.5px solid #4FD1C5; border-radius:10px; padding:10px 12px; margin:7px 0; }
-.pronun-title { font-size:10px; font-weight:700; color:#4FD1C5; margin-bottom:5px; }
-.pronun-text { font-size:15px; color:#cdd6ea; line-height:1.8; white-space:pre-wrap; }
-.feedback-box { background:#241f10; border:1.5px solid #4FD1C5; border-radius:10px; padding:10px 12px; margin:7px 0; }
+.pronun-box { background:#171a2e; border:1.5px solid var(--accent-text); border-radius:10px; padding:10px 12px; margin:7px 0; }
+.pronun-title { font-size:10px; font-weight:700; color:var(--accent-text); margin-bottom:5px; }
+.pronun-text { font-size:15px; color:var(--text); line-height:1.8; white-space:pre-wrap; }
+.feedback-box { background:#241f10; border:1.5px solid var(--accent-text); border-radius:10px; padding:10px 12px; margin:7px 0; }
 .feedback-title { font-size:10px; font-weight:700; color:#e8c468; margin-bottom:5px; }
 .feedback-text { font-size:15px; color:#f0e6c8; line-height:1.8; white-space:pre-wrap; }
 
 /* ── Weak list ── */
-.weak-item { background:#171a24; border:1px solid #232634; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:10px; }
-.weak-zh { font-size:16px; font-weight:600; color:#12141C; flex:1; }
+.weak-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:10px; }
+.weak-zh { font-size:16px; font-weight:600; color:var(--text); flex:1; }
 .weak-score { font-size:13px; color:#dc2626; font-weight:700; }
 .weak-btn { background:#7c3aed; border:none; border-radius:8px; padding:5px 10px; font-size:12px; color:white; cursor:pointer; font-family:inherit; white-space:nowrap; }
-.weak-del { background:none; border:1px solid #2a2e3d; border-radius:8px; padding:5px 8px; font-size:12px; color:#6b7086; cursor:pointer; font-family:inherit; }
+.weak-del { background:none; border:1px solid var(--border-strong); border-radius:8px; padding:5px 8px; font-size:12px; color:var(--text-faint); cursor:pointer; font-family:inherit; }
 
 /* ── History ── */
 .history-wrap { display:flex; flex-direction:column; gap:7px; }
-.history-label { font-size:10px; color:#6b7086; font-weight:700; letter-spacing:1px; padding-left:2px; }
-.history-item { background:#171a24; border:1px solid #232634; border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
-.history-zh { font-size:14px; font-weight:600; color:#12141C; margin-bottom:3px; }
-.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:#8a90a6; flex-wrap:wrap; }
+.history-label { font-size:10px; color:var(--text-faint); font-weight:700; letter-spacing:1px; padding-left:2px; }
+.history-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.history-zh { font-size:14px; font-weight:600; color:var(--text); margin-bottom:3px; }
+.history-meta { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-muted); flex-wrap:wrap; }
 
 /* ── Custom sentence tab ── */
-.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid #2a2e3d; border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; background:#171a24; color:#e8e9ee; }
-.saved-set { background:#171a24; border:1px solid #232634; border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:8px; }
-.saved-set-name { font-size:14px; font-weight:600; color:#12141C; flex:1; }
-.saved-set-count { font-size:12px; color:#6b7086; }
+.custom-textarea { width:100%; padding:10px 12px; border:1.5px solid var(--border-strong); border-radius:10px; font-size:17px; outline:none; font-family:inherit; resize:none; min-height:80px; background:var(--card); color:var(--text); }
+.saved-set { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 13px; box-shadow:0 1px 4px rgba(0,0,0,.2); display:flex; align-items:center; gap:8px; }
+.saved-set-name { font-size:14px; font-weight:600; color:var(--text); flex:1; }
+.saved-set-count { font-size:12px; color:var(--text-faint); }
 
 /* ── Shortcuts ── */
-.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #232634; font-size:13px; }
-.shortcut-key { background:#1c1f2b; border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:#d5d7e0; }
+.shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.shortcut-key { background:var(--card-alt); border-radius:5px; padding:2px 7px; font-family:monospace; font-size:12px; color:var(--text); }
 
 /* ── Loading / Error ── */
 .loading-box { display:flex; flex-direction:column; align-items:center; gap:9px; padding:16px 0; }
-.spinner { width:24px; height:24px; border-radius:50%; border:3px solid #232634; border-top:3px solid #12141C; animation:spin .8s linear infinite; }
+.spinner { width:24px; height:24px; border-radius:50%; border:3px solid var(--border); border-top:3px solid var(--accent-text); animation:spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 .err-text { font-size:13px; color:#dc2626; background:#2a1618; border-radius:8px; padding:8px 11px; line-height:1.6; white-space:pre-wrap; }
-.info-text { font-size:13px; color:#c8cad6; background:#1c1f2b; border-radius:8px; padding:10px 12px; line-height:1.7; }
+.info-text { font-size:13px; color:var(--text-sec); background:var(--card-alt); border-radius:8px; padding:10px 12px; line-height:1.7; }
 
 .hidden { display:none!important; }
 </style>
@@ -159,15 +179,15 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 <body>
 
 <!-- ══ LOGIN ══════════════════════════════════════════ -->
-<div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:#0e0f16">
+<div id="screen-login" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:var(--bg)">
   <div style="text-align:center;margin-bottom:40px">
-    <div style="font-size:56px;font-weight:900;color:#4FD1C5;letter-spacing:-2px">听写跟读</div>
-    <div style="font-size:18px;color:#c8cad6;margin-top:8px;font-weight:600">ディクテーション＆シャドーイング練習</div>
+    <div style="font-size:56px;font-weight:900;color:var(--accent-text);letter-spacing:-2px">听写跟读</div>
+    <div style="font-size:18px;color:var(--text-sec);margin-top:8px;font-weight:600">ディクテーション＆シャドーイング練習</div>
   </div>
-  <div style="background:#171a24;border:1px solid #232634;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
-    <div style="font-size:15px;color:#d5d7e0;margin-bottom:8px;font-weight:600">ログインして始める</div>
-    <div style="font-size:13px;color:#6b7086;margin-bottom:24px;line-height:1.6">履歴・設定をGoogleアカウントに紐づけて複数デバイスで同期します</div>
-    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:#4FD1C5;color:#0e0f16;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center">
+    <div style="font-size:15px;color:var(--text);margin-bottom:8px;font-weight:600">ログインして始める</div>
+    <div style="font-size:13px;color:var(--text-faint);margin-bottom:24px;line-height:1.6">履歴・設定をGoogleアカウントに紐づけて複数デバイスで同期します</div>
+    <button onclick="toggleAuth()" style="width:100%;padding:13px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
       Googleでログイン
     </button>
@@ -199,6 +219,12 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
   <!-- Main settings -->
   <div id="stab-main" class="setup-body">
+    <div class="sec-label">🎨 テーマ</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" style="flex:1;padding:10px 5px;border-radius:10px;border:2px solid var(--border-strong);background:var(--card);color:var(--text);font-family:inherit;cursor:pointer;font-size:13px;font-weight:600">🌙 ダーク</button>
+      <button class="theme-btn" id="theme-light" onclick="setTheme('light')" style="flex:1;padding:10px 5px;border-radius:10px;border:2px solid var(--border-strong);background:var(--card);color:var(--text);font-family:inherit;cursor:pointer;font-size:13px;font-weight:600">☀️ ライト</button>
+    </div>
+
     <div class="sec-label">レベル</div>
     <div class="level-row" id="level-row"></div>
 
@@ -219,14 +245,14 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label">手本の速度 <span id="speed-val">85%</span></div>
     <div class="speed-row">
-      <span style="font-size:11px;color:#6b7086">遅</span>
+      <span style="font-size:11px;color:var(--text-faint)">遅</span>
       <input type="range" id="speed-slider" min="0.5" max="1.2" step="0.05" value="0.85">
-      <span style="font-size:11px;color:#6b7086">速</span>
+      <span style="font-size:11px;color:var(--text-faint)">速</span>
     </div>
 
     <div class="sec-label">手本の音声</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px">
-      <select id="voice-select" style="width:100%;padding:9px 10px;border:1.5px solid #2a2e3d;border-radius:8px;font-size:13px;font-family:inherit;background:#171a24;color:#e8e9ee"></select>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px">
+      <select id="voice-select" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:inherit;background:var(--card);color:var(--text)"></select>
       <button class="topic-btn" style="margin-top:8px" onclick="previewVoice()">🔊 試し聞き</button>
     </div>
 
@@ -238,26 +264,26 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
     </div>
 
     <div class="sec-label">履歴 <span id="hist-count"></span></div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div id="hist-summary" style="font-size:13px;color:#c8cad6;line-height:1.6"></div>
-      <button onclick="clearHistory()" style="background:none;border:1px solid #2a2e3d;border-radius:8px;padding:5px 9px;font-size:12px;color:#7d8296;cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div id="hist-summary" style="font-size:13px;color:var(--text-sec);line-height:1.6"></div>
+      <button onclick="clearHistory()" style="background:none;border:1px solid var(--border-strong);border-radius:8px;padding:5px 9px;font-size:12px;color:var(--text-muted);cursor:pointer;white-space:nowrap;font-family:inherit">消去</button>
     </div>
 
     <div class="sec-label">練習モード</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       <button class="topic-btn active" id="mode-full" onclick="setMode('full')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        📚 フルモード <span style="font-size:11px;color:#6b7086">初聴→書取→確認→音読→追読→録音→採点</span>
+        📚 フルモード <span style="font-size:11px;color:var(--text-faint)">初聴→書取→確認→音読→追読→録音→採点</span>
       </button>
       <button class="topic-btn" id="mode-dictation" onclick="setMode('dictation')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        ✏️ 書取のみ <span style="font-size:11px;color:#6b7086">初聴→書取→採点</span>
+        ✏️ 書取のみ <span style="font-size:11px;color:var(--text-faint)">初聴→書取→採点</span>
       </button>
       <button class="topic-btn" id="mode-shadow" onclick="setMode('shadow')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🎙 シャドーイングのみ <span style="font-size:11px;color:#6b7086">初聴→確認→音読→追読→録音→採点</span>
+        🎙 シャドーイングのみ <span style="font-size:11px;color:var(--text-faint)">初聴→確認→音読→追読→録音→採点</span>
       </button>
     </div>
 
     <div class="sec-label">練習ステップ</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;font-size:13px;color:#d5d7e0;line-height:1.9">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.9">
       <div>① <b>初聴</b>　音だけ聞いて耳を慣らす</div>
       <div>② <b>確認</b>　テキスト・訳・拼音で意味把握</div>
       <div>③ <b>音読</b>　テキストを見ながら声に出す</div>
@@ -277,7 +303,7 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 
     <div class="sec-label" style="margin-top:20px">文セットを保存</div>
     <input class="text-input-field" id="set-name-input" placeholder="セット名（例：教材第3課）" style="margin-bottom:8px">
-    <button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:0" onclick="saveSet()">現在の文を保存</button>
+    <button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:0" onclick="saveSet()">現在の文を保存</button>
 
     <div class="sec-label">保存済みセット</div>
     <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
@@ -286,13 +312,13 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <!-- AI Coach tab -->
   <div id="stab-coach" class="setup-body hidden">
     <div class="sec-label">🤖 今日の学習</div>
-    <div id="coach-greeting" style="background:#171a2e;border:1px solid #2f3550;border-radius:12px;padding:12px 14px;font-size:13px;color:#cdd6ea;line-height:1.6;margin-bottom:12px">コーチが今日のひとことを考えています…</div>
+    <div id="coach-greeting" style="background:#171a2e;border:1px solid #2f3550;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px">コーチが今日のひとことを考えています…</div>
     <div id="coach-comment" class="hidden" style="background:#241f10;border:1px solid #e8c46855;border-radius:12px;padding:12px 14px;font-size:13px;color:#f0e6c8;line-height:1.6;margin-bottom:12px"></div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-      <div id="coach-menu" style="font-size:13px;color:#c8cad6"></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <div id="coach-menu" style="font-size:13px;color:var(--text-sec)"></div>
       <button class="start-btn" style="margin-top:14px;background:#7c3aed" onclick="startCoachSession()">開始する →</button>
     </div>
-    <div id="coach-streak" style="font-size:12px;color:#6b7086;margin-top:8px;text-align:center"></div>
+    <div id="coach-streak" style="font-size:12px;color:var(--text-faint);margin-top:8px;text-align:center"></div>
   </div>
 
   <!-- Weak list tab -->
@@ -304,39 +330,39 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <!-- History & Analysis tab -->
   <div id="stab-history" class="setup-body hidden">
     <div class="sec-label">スコア・一致率の推移</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">
       <canvas id="trend-chart" width="320" height="160"></canvas>
-      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:#8a90a6;flex-wrap:wrap">
-        <span><span style="color:#4FD1C5">●</span> 🎙スコア（/5）</span>
+      <div id="trend-legend" style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;color:var(--text-muted);flex-wrap:wrap">
+        <span><span style="color:var(--accent-text)">●</span> 🎙スコア（/5）</span>
         <span><span style="color:#10b981">●</span> 🎙一致率（%）</span>
         <span><span style="color:#f59e0b">●</span> ✏️書取一致率（%）</span>
       </div>
     </div>
 
     <div class="sec-label" style="margin-top:16px">AI発音傾向分析</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px">
-      <div id="ai-analysis-result" style="font-size:13px;color:#a8adc0;line-height:1.8;min-height:40px">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">
+      <div id="ai-analysis-result" style="font-size:13px;color:var(--text-sec);line-height:1.8;min-height:40px">
         ボタンを押すと、これまでの発音ミスを分析して改善策を提案します。
       </div>
-      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:#4FD1C5;color:#0e0f16;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
+      <button id="ai-analysis-btn" onclick="runAiAnalysis()" style="margin-top:10px;width:100%;padding:10px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">🔍 AI分析を実行</button>
     </div>
 
     <div class="sec-label" style="margin-top:16px">トピック別スコア</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;align-items:center">
       <canvas id="radar-chart" width="280" height="280"></canvas>
-      <div id="radar-legend" style="font-size:11px;color:#8a90a6;margin-top:6px;text-align:center"></div>
+      <div id="radar-legend" style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center"></div>
     </div>
 
-    <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
+    <div class="sec-label" style="margin-top:16px">全履歴 <span id="history-count-label" style="font-size:11px;color:var(--text-faint);font-weight:normal"></span></div>
     <div id="history-detail-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
   <!-- Vocabulary/Grammar Dex tab -->
   <div id="stab-dex" class="setup-body hidden">
-    <div class="sec-label">📖 単語図鑑 <span id="vocab-dex-count" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
+    <div class="sec-label">📖 単語図鑑 <span id="vocab-dex-count" style="font-size:11px;color:var(--text-faint);font-weight:normal"></span></div>
     <div id="vocab-dex-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px"></div>
 
-    <div class="sec-label">📜 文法図鑑 <span id="grammar-dex-count" style="font-size:11px;color:#6b7086;font-weight:normal"></span></div>
+    <div class="sec-label">📜 文法図鑑 <span id="grammar-dex-count" style="font-size:11px;color:var(--text-faint);font-weight:normal"></span></div>
     <div id="grammar-dex-list" style="display:flex;flex-direction:column;gap:8px"></div>
 
     <div class="info-text" style="margin-top:14px">練習に登場した単語・文法が自動で記録されます。正答率はその単語・文法が含まれる文でのスコア・一致率をもとに算出されます。</div>
@@ -345,14 +371,14 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
   <!-- Shortcuts tab -->
   <div id="stab-shortcuts" class="setup-body hidden">
     <div class="sec-label">キーボードショートカット</div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
       <div>
-        <div style="font-size:14px;font-weight:600;color:#e8e9ee">ショートカット機能</div>
-        <div style="font-size:11px;color:#6b7086;margin-top:2px">誤操作が多い場合はOFFにできます</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">ショートカット機能</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:2px">誤操作が多い場合はOFFにできます</div>
       </div>
       <button id="shortcut-toggle-btn" onclick="toggleShortcuts()" style="border:none;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"></button>
     </div>
-    <div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:0">
       <div class="shortcut-row"><span>手本を再生</span><span class="shortcut-key">Space</span></div>
       <div class="shortcut-row"><span>次のステップへ</span><span class="shortcut-key">→</span></div>
       <div class="shortcut-row"><span>録音開始/停止</span><span class="shortcut-key">R</span></div>
@@ -409,6 +435,7 @@ const LS = {
 // ══ State ════════════════════════════════════════════════
 const S = {
   // 設定（localStorageから初期値を読む）
+  theme:    LS.get("sh_settings")?.theme === "light" ? "light" : "dark",
   level:    LEVELS.find(l=>l.id===(LS.get("sh_settings")?.levelId))||LEVELS[2],
   topic:    TOPICS.includes(LS.get("sh_settings")?.topic) ? LS.get("sh_settings").topic : TOPICS[0],
   speed:    LS.get("sh_settings")?.speed  || 0.85,
@@ -537,12 +564,12 @@ function vocabCardHtml(v){
   const avgMatch=v.matchN?Math.round(v.matchSum/v.matchN):null;
   const rateColor=correctRate>=80?"#6ee7a8":correctRate>=50?"#f0a860":"#ff8a80";
   return `
-    <div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:10px 6px;text-align:center">
-      <div style="font-size:18px;font-weight:700;color:#e8e9ee">${esc(v.word)}</div>
-      <div style="font-size:10px;color:#4FD1C5;margin-top:2px">${esc(v.py)}</div>
-      <div style="font-size:10px;color:#8a90a6;margin-top:2px">${esc(v.meaning)}</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:var(--text)">${esc(v.word)}</div>
+      <div style="font-size:10px;color:var(--accent-text);margin-top:2px">${esc(v.py)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${esc(v.meaning)}</div>
       <div style="font-size:9px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
-      <div style="font-size:9px;color:#6b7086;margin-top:1px">出現${v.count}回${avgMatch!=null?`・平均${avgMatch}%`:""}</div>
+      <div style="font-size:9px;color:var(--text-faint);margin-top:1px">出現${v.count}回${avgMatch!=null?`・平均${avgMatch}%`:""}</div>
     </div>`;
 }
 function renderDexTab(){
@@ -555,7 +582,7 @@ function renderDexTab(){
   if(gCount)gCount.textContent=`(${S.grammarDex.length})`;
 
   if(!S.vocabDex.length){
-    vGrid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:#6b7086;font-size:12px;padding:20px 0">まだ収集した単語がありません</div>`;
+    vGrid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--text-faint);font-size:12px;padding:20px 0">まだ収集した単語がありません</div>`;
   } else {
     const levelOrder=["1","2","3","4","5","6","?"];
     const groups={};
@@ -563,7 +590,7 @@ function renderDexTab(){
     vGrid.innerHTML=levelOrder.filter(lv=>groups[lv]&&groups[lv].length).map(lv=>{
       const items=[...groups[lv]].sort((a,b)=>(b.count||0)-(a.count||0));
       const label=lv==="?"?"級不明":`HSK ${lv}`;
-      return `<div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#4FD1C5;letter-spacing:.5px;margin:10px 0 4px">${label} <span style="color:#6b7086;font-weight:normal">(${items.length})</span></div>
+      return `<div style="grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:.5px;margin:10px 0 4px">${label} <span style="color:var(--text-faint);font-weight:normal">(${items.length})</span></div>
         <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${items.map(vocabCardHtml).join("")}</div>`;
     }).join("");
   }
@@ -572,19 +599,29 @@ function renderDexTab(){
     const correctRate=g.count?Math.round((g.correctCount||0)/g.count*100):0;
     const rateColor=correctRate>=80?"#6ee7a8":correctRate>=50?"#f0a860":"#ff8a80";
     return `
-    <div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:10px 13px">
-      <div style="font-size:14px;font-weight:700;color:#FF6B5C">${esc(g.name)}<span style="font-size:10px;color:#6b7086;font-weight:normal;margin-left:6px">出現${g.count}回</span></div>
-      <div style="font-size:12px;color:#a8adc0;margin-top:3px">${esc(g.desc)}</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 13px">
+      <div style="font-size:14px;font-weight:700;color:var(--accent2-text)">${esc(g.name)}<span style="font-size:10px;color:var(--text-faint);font-weight:normal;margin-left:6px">出現${g.count}回</span></div>
+      <div style="font-size:12px;color:var(--text-sec);margin-top:3px">${esc(g.desc)}</div>
       <div style="font-size:9px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
     </div>`;
-  }).join(""):`<div style="text-align:center;color:#6b7086;font-size:12px;padding:10px 0">まだ収集した文法がありません</div>`;
+  }).join(""):`<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:10px 0">まだ収集した文法がありません</div>`;
 }
+
+function setTheme(v){
+  S.theme=v;
+  document.documentElement.setAttribute("data-theme",v);
+  document.documentElement.style.colorScheme=v;
+  document.getElementById("theme-dark")?.style.setProperty("border-color", v==="dark"?"var(--accent)":"var(--border-strong)");
+  document.getElementById("theme-light")?.style.setProperty("border-color", v==="light"?"var(--accent)":"var(--border-strong)");
+  saveSettings();
+}
+setTheme(S.theme);
 
 function renderShortcutToggle(){
   const btn=document.getElementById("shortcut-toggle-btn");
   if(!btn)return;
   btn.textContent=S.shortcutsEnabled?"ON":"OFF";
-  btn.style.background=S.shortcutsEnabled?"#16a34a":"#454a5c";
+  btn.style.background=S.shortcutsEnabled?"#16a34a":"var(--text-faint)";
   btn.style.color="white";
 }
 function toggleShortcuts(){
@@ -647,9 +684,9 @@ function renderSavedSets(){
     <div class="saved-set">
       <div style="flex:1">
         <div class="saved-set-name">${s.name}</div>
-        <div class="saved-set-count" style="font-size:12px;color:#6b7086">${s.text.slice(0,30)}${s.text.length>30?"…":""}</div>
+        <div class="saved-set-count" style="font-size:12px;color:var(--text-faint)">${s.text.slice(0,30)}${s.text.length>30?"…":""}</div>
       </div>
-      <button class="weak-btn" style="background:#12141C" onclick="loadSet(${i})">練習</button>
+      <button class="weak-btn" style="background:var(--navy)" onclick="loadSet(${i})">練習</button>
       <button class="weak-del" onclick="deleteSet(${i})">削除</button>
     </div>`).join("");
 }
@@ -675,7 +712,7 @@ function renderWeakList(){
     <div class="weak-item">
       <div style="flex:1">
         <div class="weak-zh">${item.zh}</div>
-        <div style="font-size:12px;color:#6b7086">${item.py}</div>
+        <div style="font-size:12px;color:var(--text-faint)">${item.py}</div>
       </div>
       <span class="weak-score">${"★".repeat(item.score)}</span>
       <button class="weak-btn" onclick="practiceWeak(${i})">練習</button>
@@ -700,16 +737,16 @@ function renderHistoryTab(){
     const dr=item.dictResult||null;
     const d=item.date?new Date(item.date).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
     const stars="★".repeat(r.score||0)+"☆".repeat(5-(r.score||0));
-    return `<div style="background:#171a24;border:1px solid #232634;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           ${isDictation?`<span style="background:#14293a;color:#7ec8f0;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">書取</span>`:""}
-          <span style="font-size:15px;font-weight:600;color:#e8e9ee;word-break:break-all">${esc(s.zh||"")}</span>
-          ${s.py?`<div style="font-size:12px;color:#4FD1C5;margin-top:2px">${esc(s.py)}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#8a90a6;margin-top:2px">${esc(s.ja)}</div>`:""}
-          ${s.partner?`<div style="font-size:11px;color:#6b7086;margin-top:4px">相手：${esc(s.partner)}</div>`:""}
+          <span style="font-size:15px;font-weight:600;color:var(--text);word-break:break-all">${esc(s.zh||"")}</span>
+          ${s.py?`<div style="font-size:12px;color:var(--accent-text);margin-top:2px">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(s.ja)}</div>`:""}
+          ${s.partner?`<div style="font-size:11px;color:var(--text-faint);margin-top:4px">相手：${esc(s.partner)}</div>`:""}
         </div>
-        <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:#6b7086;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
+        <button onclick="deleteHistoryItem(${S.history.length-1-i})" style="background:none;border:none;color:var(--text-faint);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">✕</button>
       </div>
       <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
         ${isDictation
@@ -717,16 +754,16 @@ function renderHistoryTab(){
           :`<span style="color:#f59e0b;font-size:13px">${stars}</span>
             <span style="color:${(r.match||0)>=80?"#10b981":(r.match||0)>=60?"#f59e0b":"#ef4444"};font-weight:600;font-size:13px">${r.match||0}%</span>`
         }
-        <span style="font-size:11px;color:#6b7086">${d}</span>
+        <span style="font-size:11px;color:var(--text-faint)">${d}</span>
       </div>
-      ${isDictation&&dr?`<div style="font-size:12px;color:#c8cad6;margin-top:6px;padding:6px 8px;background:#14293a;border-radius:7px">
+      ${isDictation&&dr?`<div style="font-size:12px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:#14293a;border-radius:7px">
         入力：${esc(dr.input||"")}
         ${dr.miss?.length?`　🟨抜け：${esc(dr.miss.join(""))}`:""}
         ${dr.extra?.length?`　🟥余分：${esc(dr.extra.join(""))}`:""}
       </div>`:""}
-      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:#c8cad6;margin-top:6px;padding:6px 8px;background:#1c1f2b;border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
-      ${r.pronun?`<div style="font-size:12px;color:#a8adc0;margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
-      ${r.feedback?`<div style="font-size:12px;color:#d5d7e0;margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
+      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:var(--card-alt);border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
+      ${r.pronun?`<div style="font-size:12px;color:var(--text-sec);margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
+      ${r.feedback?`<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
     </div>`;
   }).join("");
   drawTrendChart(S.history);
@@ -741,7 +778,7 @@ function drawTrendChart(history){
   const padL=28,padR=12,padT=12,padB=28;
   ctx.clearRect(0,0,W,H);
   if(!history.length){
-    ctx.fillStyle="#6b7086";ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillStyle="var(--text-faint)";ctx.font="12px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",W/2,H/2);return;
   }
   const shData=history.filter(h=>h.type!=="dictation").slice(-30);
@@ -753,10 +790,10 @@ function drawTrendChart(history){
   [0,25,50,75,100].forEach(v=>{
     const y=padT+gH*(1-v/100);
     ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
-    ctx.fillStyle="#c8cad696c";ctx.font="9px sans-serif";ctx.textAlign="right";
+    ctx.fillStyle="var(--text-sec)96c";ctx.font="9px sans-serif";ctx.textAlign="right";
     ctx.fillText(v,padL-3,y+3);
   });
-  ctx.fillStyle="#c8cad696c";ctx.font="9px sans-serif";ctx.textAlign="center";
+  ctx.fillStyle="var(--text-sec)96c";ctx.font="9px sans-serif";ctx.textAlign="center";
   [0,Math.floor(n/2),n-1].forEach(i=>{
     if(i<0||i>=n)return;
     const x=padL+gW*(i/(n-1||1));
@@ -782,7 +819,7 @@ function drawTrendChart(history){
     });
   };
   drawLineData(shData,"match","#10b981",v=>v);
-  drawLineData(shData,"score","#4FD1C5",v=>v/5*100);
+  drawLineData(shData,"score","var(--accent-text)",v=>v/5*100);
   drawLineData(dcData,"match","#f59e0b",v=>v);
 }
 
@@ -792,7 +829,7 @@ async function runAiAnalysis(){
   const pronunList=S.history.filter(h=>h.result?.pronun).map(h=>`文：${h.sentence?.zh||""}　評価：${h.result.pronun}`);
   if(pronunList.length<3){result.textContent="分析には3件以上の録音履歴が必要です。";return;}
   btn.disabled=true;btn.textContent="分析中…";
-  result.innerHTML=`<div style="color:#6b7086;font-size:13px">AIが分析中です…</div>`;
+  result.innerHTML=`<div style="color:var(--text-faint);font-size:13px">AIが分析中です…</div>`;
   try{
     const raw=await gemini([{role:"user",content:
 `以下は中国語シャドーイング練習の発音評価データです（${pronunList.length}件）。
@@ -831,37 +868,37 @@ ${pronunList.slice(-20).join("\n")}
     const maxVal=Math.max(...toneData.map(d=>d.val),1);
     const barRows=toneData.map(d=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <div style="width:60px;font-size:11px;color:#a8adc0;text-align:right;flex-shrink:0">${d.label}</div>
-        <div style="flex:1;background:#1c1f2b;border-radius:4px;height:18px;overflow:hidden">
+        <div style="width:60px;font-size:11px;color:var(--text-sec);text-align:right;flex-shrink:0">${d.label}</div>
+        <div style="flex:1;background:var(--card-alt);border-radius:4px;height:18px;overflow:hidden">
           <div style="width:${Math.round(d.val/maxVal*100)}%;background:${d.color};height:100%;border-radius:4px;transition:width .4s;display:flex;align-items:center;padding-left:6px">
             ${d.val>0?`<span style="font-size:10px;color:${d.text};font-weight:700">${d.val}</span>`:""}
           </div>
         </div>
-        <div style="width:28px;font-size:11px;color:#6b7086;flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
+        <div style="width:28px;font-size:11px;color:var(--text-faint);flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
       </div>`).join("");
     const confBadges=(json.confusions||[]).map(c=>
-      `<span style="background:#171a2e;color:#4FD1C5;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
+      `<span style="background:#171a2e;color:var(--accent-text);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
     ).join(" ");
     const tipCards=(json.tips||[]).map((tip,i)=>
-      `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1c1f2b">
-        <div style="width:22px;height:22px;border-radius:50%;background:#4FD1C5;color:#0e0f16;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-        <div style="font-size:13px;color:#e8e9ee;line-height:1.6">${tip}</div>
+      `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--card-alt)">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6">${tip}</div>
       </div>`
     ).join("");
     result.innerHTML=`
       <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);margin-bottom:8px;letter-spacing:.5px">声調別ミス数（全${total}件）</div>
         ${barRows}
       </div>
       ${confBadges?`<div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${confBadges}</div>
       </div>`:""}
       ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#0f2318;border-radius:8px;font-size:13px;color:#6ee7a8">
         ✅ 得意：${json.strength}
       </div>`:""}
       <div>
-        <div style="font-size:11px;font-weight:700;color:#4FD1C5;margin-bottom:4px;letter-spacing:.5px">優先すべき改善策</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);margin-bottom:4px;letter-spacing:.5px">優先すべき改善策</div>
         ${tipCards}
       </div>`;
   }catch(e){
@@ -891,7 +928,7 @@ function drawRadarChart(history){
   const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,r=100;
   ctx.clearRect(0,0,W,H);
   if(!history.length){
-    ctx.fillStyle="#6b7086";ctx.font="13px sans-serif";ctx.textAlign="center";
+    ctx.fillStyle="var(--text-faint)";ctx.font="13px sans-serif";ctx.textAlign="center";
     ctx.fillText("履歴がありません",cx,cy);return;
   }
   const topics={};
@@ -942,8 +979,8 @@ function drawRadar(ctx,cx,cy,r,labels,vals){
   });
   ctx.closePath();
   ctx.fillStyle="rgba(99,102,241,0.18)";ctx.fill();
-  ctx.strokeStyle="#4FD1C5";ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle="#d5d7e0";ctx.font="11px sans-serif";ctx.textAlign="center";
+  ctx.strokeStyle="var(--accent-text)";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="var(--text)";ctx.font="11px sans-serif";ctx.textAlign="center";
   labels.forEach((label,i)=>{
     const a=angle(i),lx=cx+(r+22)*Math.cos(a),ly=cy+(r+22)*Math.sin(a);
     ctx.fillText(label.slice(0,5),lx,ly+4);
@@ -985,7 +1022,7 @@ function updateSetupStats(){
     const avgM=Math.round(dc.reduce((s,x)=>s+x.result.match,0)/dc.length);
     lines+=`✏️ 書取 ${dc.length}文　平均一致率 <b>${avgM}%</b><br>`;
   }
-  lines+=`<span style="font-size:11px;color:#6b7086">最終：${d}　${last.sentence?.zh||""}</span>`;
+  lines+=`<span style="font-size:11px;color:var(--text-faint)">最終：${d}　${last.sentence?.zh||""}</span>`;
   summEl.innerHTML=lines;
 }
 
@@ -1536,7 +1573,7 @@ function renderCoachTab(){
     ② ディクテーション ${m.dictationCount}問<br>
     ③ シャドーイング ${m.shadowCount}問<br>
     ④ 会話練習 ${m.convCount}問<br>
-    <span style="color:#6b7086;font-size:12px">約${mins}分</span>`;
+    <span style="color:var(--text-faint);font-size:12px">約${mins}分</span>`;
   if(streakEl)streakEl.textContent=S.coach.streak>0?`🔥 連続${S.coach.streak}日`:"";
 
   if(greetEl){
@@ -1815,7 +1852,7 @@ function drawPitchChart(analysis){
   ctx.beginPath();
   expected.forEach((p,i)=>{const x=xOf(p.t),y=yOf(p.semi);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
   ctx.stroke();ctx.setLineDash([]);
-  ctx.strokeStyle="#4FD1C5";ctx.lineWidth=2.5;
+  ctx.strokeStyle="var(--accent-text)";ctx.lineWidth=2.5;
   ctx.beginPath();
   let started=false;
   actual.forEach(p=>{
@@ -1864,7 +1901,7 @@ function nextStep(){
 }
 
 // ══ Render ════════════════════════════════════════════════
-function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"#4FD1C5":"#2a2e3d"}">★</span>`).join("");}
+function starsHtml(n,total=5){return Array.from({length:total}).map((_,i)=>`<span style="color:${i<n?"var(--accent-text)":"var(--border-strong)"}">★</span>`).join("");}
 function matchColor(m){return m>=80?"#16a34a":m>=50?"#d97706":"#dc2626";}
 function diffHtml(target,input){let h="";for(let i=0;i<input.length;i++){const ok=i<target.length&&input[i]===target[i];h+=`<span class="${ok?"ok":"err"}">${input[i]}</span>`;}return h;}
 
@@ -1907,13 +1944,13 @@ function renderStepBar(){
 }
 
 const PHASE_MODE_INFO={
-  listen:      {icon:"🎧",label:"初聴",bg:"#1c1f2b",color:"#8a90a6"},
+  listen:      {icon:"🎧",label:"初聴",bg:"var(--card-alt)",color:"var(--text-muted)"},
   dictation:   {icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
   dictreviewing:{icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
-  check:       {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
-  read:        {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
-  shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
-  record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"#4FD1C5"},
+  check:       {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
+  read:        {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
+  shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
+  record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   result:      {icon:"✅",label:"採点結果",bg:"#0f2318",color:"#6ee7a8"},
 };
 function renderModeIndicator(){
@@ -1938,24 +1975,24 @@ function render(){
   const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
   html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
-    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#6b7086;font-size:13px">文を生成中…</span></div>`;
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:var(--text-faint);font-size:13px">文を生成中…</span></div>`;
   } else if(s){
     if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing") {
       html += `<div style="background:#171a2e;border-radius:10px;padding:10px 13px;margin-bottom:10px">
-        <div style="font-size:10px;font-weight:700;color:#4FD1C5;letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
-        <div style="font-size:17px;color:#cdd6ea;font-weight:600">${esc(s.partner)}</div>
-        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:#4FD1C5;margin-top:2px">${esc(s.partnerPy)}</div>`:""}
-        ${s.partnerJa?`<div style="font-size:12px;color:#4FD1C5;margin-top:3px">${esc(s.partnerJa)}</div>`:""}
-        <button style="margin-top:4px;background:none;border:1px solid #2f3550;border-radius:12px;padding:2px 10px;font-size:11px;color:#4FD1C5;cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
+        <div style="font-size:10px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
+        <div style="font-size:17px;color:var(--text);font-weight:600">${esc(s.partner)}</div>
+        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:var(--accent-text);margin-top:2px">${esc(s.partnerPy)}</div>`:""}
+        ${s.partnerJa?`<div style="font-size:12px;color:var(--accent-text);margin-top:3px">${esc(s.partnerJa)}</div>`:""}
+        <button style="margin-top:4px;background:none;border:1px solid #2f3550;border-radius:12px;padding:2px 10px;font-size:11px;color:var(--accent-text);cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
           ${S.showPartnerPinyin?"拼音を隠す":"相手の拼音を表示"}
         </button>
       </div>
-      <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
+      <div style="font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:1px;margin-bottom:6px;text-align:center">▼ あなたの返答（シャドーイング）</div>`;
     }
     if(ph==="listen"){
-      html+=`<div style="text-align:center;font-size:14px;color:#6b7086;padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
+      html+=`<div style="text-align:center;font-size:14px;color:var(--text-faint);padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
     } else if(ph==="dictation"||ph==="dictreviewing"){
-      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#6b7086">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:#6b7086;margin-top:4px">正解は採点後に表示されます</div></div>`;
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">正解は採点後に表示されます</div></div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${esc(s.zh)}</div>`;
       if(s.py){
@@ -1970,7 +2007,7 @@ function render(){
       const isShadow=ph==="shadow";
       const isRecord=ph==="record"||ph==="recording";
       if(S.hideHanzi){
-        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:#6b7086;margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
+        html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint);margin-bottom:8px">🙈 テキスト非表示</div><button class="reveal-btn" onclick="S.hideHanzi=false;render()">テキストを表示</button></div>`;
       } else {
         html+=`<div class="hanzi">${esc(s.zh)}</div>`;
         if(S.showPinyin&&s.py)html+=`<div class="pinyin">${esc(s.py)}</div><button class="hide-btn" onclick="S.showPinyin=false;render()">拼音を隠す</button>`;
@@ -1995,7 +2032,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
@@ -2007,11 +2044,11 @@ function render(){
     html+=`<div class="step-instruction"><span class="step-num">②書取</span>　音声を聞いて、聞こえた中国語を入力してください。</div>`;
     // 速度スライダー + 再生
     html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:11px;color:#6b7086;white-space:nowrap">速度</span>
+      <span style="font-size:11px;color:var(--text-faint);white-space:nowrap">速度</span>
       <input type="range" min="0.4" max="1.0" step="0.05" value="${S.dictSpeed}"
-        style="flex:1;accent-color:#4FD1C5"
+        style="flex:1;accent-color:var(--accent-text)"
         oninput="S.dictSpeed=parseFloat(this.value);this.nextElementSibling.textContent=Math.round(S.dictSpeed*100)+'%'">
-      <span style="font-size:12px;color:#c8cad6;width:34px">${Math.round(S.dictSpeed*100)}%</span>
+      <span style="font-size:12px;color:var(--text-sec);width:34px">${Math.round(S.dictSpeed*100)}%</span>
     </div>`;
     if(S.isSpeaking){
       html+=`<div class="btn-row">
@@ -2034,7 +2071,7 @@ function render(){
     // 入力欄（採点前）
     if(!dr){
       html+=`<textarea id="dict-input"
-        style="width:100%;margin-top:10px;padding:10px 12px;border:1.5px solid #2a2e3d;border-radius:10px;font-size:22px;outline:none;font-family:inherit;resize:none;min-height:64px;letter-spacing:.05em;background:#171a24;color:#e8e9ee"
+        style="width:100%;margin-top:10px;padding:10px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-size:22px;outline:none;font-family:inherit;resize:none;min-height:64px;letter-spacing:.05em;background:var(--card);color:var(--text)"
         placeholder="ここに中国語を入力…"
         oninput="S.dictInput=this.value"></textarea>`;
       html+=`<div class="btn-row" style="margin-top:8px">`;
@@ -2056,45 +2093,45 @@ function render(){
       const sc=dr.matchPct;
       const scoreColor=sc>=80?"#16a34a":sc>=50?"#d97706":"#dc2626";
       html+=`<div style="text-align:center;margin:10px 0 6px">
-        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${sc}<span style="font-size:14px;color:#6b7086">%</span></div>
-        <div style="font-size:12px;color:#6b7086">一致率</div>
+        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${sc}<span style="font-size:14px;color:var(--text-faint)">%</span></div>
+        <div style="font-size:12px;color:var(--text-faint)">一致率</div>
       </div>`;
       html+=`<div class="diff-box">
         <div class="diff-label">あなたの入力（差分）</div>
         <div class="diff-text" style="font-size:22px;letter-spacing:.08em;line-height:1.8">${diffHtmlStr}</div>
-        <div style="font-size:11px;color:#6b7086;margin-top:6px;display:flex;gap:12px">
+        <div style="font-size:11px;color:var(--text-faint);margin-top:6px;display:flex;gap:12px">
           <span><span style="color:#16a34a">■</span> 正解</span>
           <span><span style="color:#dc2626;text-decoration:line-through">■</span> 余分</span>
           <span style="background:#332b10;color:#f0a860;padding:0 4px;border-radius:2px">＿</span><span> 抜け</span>
         </div>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #232634">
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
           ${s.partner?`
           <div class="diff-label">相手のセリフ</div>
-          <div style="font-size:16px;color:#cdd6ea;font-weight:600;margin-bottom:2px">${esc(s.partner)}</div>
-          ${s.partnerPy?`<div style="font-size:12px;color:#4FD1C5;margin-bottom:2px">${esc(s.partnerPy)}</div>`:""}
-          ${s.partnerJa?`<div style="font-size:12px;color:#6b7086;margin-bottom:8px">${esc(s.partnerJa)}</div>`:""}
-          <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
+          <div style="font-size:16px;color:var(--text);font-weight:600;margin-bottom:2px">${esc(s.partner)}</div>
+          ${s.partnerPy?`<div style="font-size:12px;color:var(--accent-text);margin-bottom:2px">${esc(s.partnerPy)}</div>`:""}
+          ${s.partnerJa?`<div style="font-size:12px;color:var(--text-faint);margin-bottom:8px">${esc(s.partnerJa)}</div>`:""}
+          <div style="font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:1px;margin-bottom:4px">▼ 正解（あなたの返答）</div>
           `:"<div class='diff-label'>正解</div>"}
           <div class="diff-text diff-target" style="font-size:22px">${esc(s.zh)}</div>
-          ${s.py?`<div style="font-size:14px;color:#4FD1C5;margin-top:4px;letter-spacing:.08em">${esc(s.py)}</div>`:""}
-          ${s.ja?`<div style="font-size:12px;color:#8a90a6;margin-top:2px">${esc(s.ja)}</div>`:""}
+          ${s.py?`<div style="font-size:14px;color:var(--accent-text);margin-top:4px;letter-spacing:.08em">${esc(s.py)}</div>`:""}
+          ${s.ja?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(s.ja)}</div>`:""}
         </div>
       </div>`;
-      html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:#171a24;border:1px solid #232634;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-        <tr style="background:#1c1f2b">
-          <th style="padding:7px 10px;text-align:left;color:#8a90a6;font-weight:600;font-size:11px">項目</th>
-          <th style="padding:7px 10px;text-align:right;color:#8a90a6;font-weight:600;font-size:11px">結果</th>
+      html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <tr style="background:var(--card-alt)">
+          <th style="padding:7px 10px;text-align:left;color:var(--text-muted);font-weight:600;font-size:11px">項目</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--text-muted);font-weight:600;font-size:11px">結果</th>
         </tr>
-        <tr style="border-top:1px solid #232634">
-          <td style="padding:7px 10px;color:#c8cad6">🟩 正解</td>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:7px 10px;color:var(--text-sec)">🟩 正解</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#16a34a">${dr.diff.filter(d=>d.type==="ok").length} / ${dr.tLen??[...s.zh].length} 文字</td>
         </tr>
-        <tr style="border-top:1px solid #232634">
-          <td style="padding:7px 10px;color:#c8cad6">🟨 抜け</td>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:7px 10px;color:var(--text-sec)">🟨 抜け</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#d97706">${dr.miss.length>0?dr.miss.join(" "):"なし"}</td>
         </tr>
-        <tr style="border-top:1px solid #232634">
-          <td style="padding:7px 10px;color:#c8cad6">🟥 余分</td>
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:7px 10px;color:var(--text-sec)">🟥 余分</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700;color:#dc2626">${dr.extra.length>0?dr.extra.join(" "):"なし"}</td>
         </tr>
       </table>`;
@@ -2123,7 +2160,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 もう一度聞く [Space]</button>`;
       }
@@ -2140,7 +2177,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
+        html+=`<button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（何度でも）[Space]</button>`;
       }
@@ -2158,7 +2195,7 @@ function render(){
     } else {
       if(s.partner){
         html+=`<button class="btn btn-dark" onclick="S.repCount=Math.min(S.reps,S.repCount+1);S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く（+1回）[Space]</button>`;
-        html+=`<button class="btn" style="background:#4FD1C5;color:#0e0f16;margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
+        html+=`<button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:6px" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く（+1回）</button>`;
       } else {
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;S.repCount=Math.min(S.reps,S.repCount+1);render();speak(S.sentence.zh,S.speed,()=>{})">🔊 再生（+1回）[Space]</button>`;
       }
@@ -2171,11 +2208,11 @@ function render(){
   }
   if(ph==="recording"){
     html+=`<div class="rec-status"><span class="rec-dot"></span><span class="rec-label">録音中 ${S.recSeconds}秒</span></div>`;
-    html+=`<p style="font-size:13px;color:#9498a8;text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
+    html+=`<p style="font-size:13px;color:var(--text-muted);text-align:center;margin:4px 0 8px">お手本の文を声に出して読んでください</p>`;
     html+=`<button class="btn btn-stop" onclick="stopRecording()">⏹ 録音停止・送信 [R]</button>`;
   }
   if(ph==="reviewing"){
-    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:#6b7086;font-size:13px">音声を解析・採点中…</span></div>`;
+    html+=`<div class="loading-box"><div class="spinner"></div><span style="color:var(--text-faint);font-size:13px">音声を解析・採点中…</span></div>`;
   }
   if(ph==="result"&&S.result){
     const r=S.result;
@@ -2186,8 +2223,8 @@ function render(){
       }).catch(e=>{console.warn("声調解析失敗:",e.message);S.pitchAnalyzing=false;S.pitchAnalysis={error:true};render();});
     }
     const turnCount=S.conversationHistory.length;
-    if(turnCount>0)html+=`<div style="text-align:center;font-size:11px;color:#4FD1C5;margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`;
-    html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:#8a90a6">${r.score}/5</span></div>
+    if(turnCount>0)html+=`<div style="text-align:center;font-size:11px;color:var(--accent-text);margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`;
+    html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:var(--text-muted)">${r.score}/5</span></div>
       <div class="match-pct">一致率 <span style="font-weight:700;color:${matchColor(r.match)}">${r.match}%</span></div></div>`;
     html+=`<div class="audio-row">`;
     html+=`<div class="audio-item"><div class="audio-label">🎙 手本</div><button class="btn" style="padding:6px 14px;font-size:13px" onclick="S.isSpeaking=true;render();speak('${(s?.zh||'').replace(/'/g,"\\'")}',S.speed,()=>{S.isSpeaking=false;render();})">▶ 再生</button></div>`;
@@ -2203,20 +2240,20 @@ function render(){
     html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${esc(r.feedback)}</div></div>`;
     // 声調（ピッチ）グラフ
     if(S.pitchAnalyzing){
-      html+=`<div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:12px 14px;margin:7px 0;text-align:center">
+      html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:7px 0;text-align:center">
         <div class="spinner" style="width:18px;height:18px;margin:0 auto"></div>
-        <div style="font-size:11px;color:#6b7086;margin-top:6px">声調を解析中…</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:6px">声調を解析中…</div>
       </div>`;
     } else if(S.pitchAnalysis&&!S.pitchAnalysis.error){
-      html+=`<div style="background:#171a24;border:1px solid #232634;border-radius:10px;padding:12px 14px;margin:7px 0">
-        <div style="font-size:10px;font-weight:700;color:#6b7086;letter-spacing:.5px;margin-bottom:6px">声調（ピッチ）グラフ</div>
+      html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:7px 0">
+        <div style="font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:.5px;margin-bottom:6px">声調（ピッチ）グラフ</div>
         <canvas id="pitch-chart" width="300" height="120" style="width:100%"></canvas>
-        <div style="display:flex;gap:14px;font-size:10px;color:#8a90a6;margin-top:4px">
-          <span><span style="color:#4FD1C5">●</span> あなたの声</span>
+        <div style="display:flex;gap:14px;font-size:10px;color:var(--text-muted);margin-top:4px">
+          <span><span style="color:var(--accent-text)">●</span> あなたの声</span>
           <span><span style="color:#c7c7c7">┄</span> 期待される概形</span>
         </div>
-        ${S.pitchAnalysis.tips.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #232634">
-          ${S.pitchAnalysis.tips.map(t=>`<div style="font-size:12px;color:#c8cad6;margin-top:3px">・${esc(t)}</div>`).join("")}
+        ${S.pitchAnalysis.tips.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          ${S.pitchAnalysis.tips.map(t=>`<div style="font-size:12px;color:var(--text-sec);margin-top:3px">・${esc(t)}</div>`).join("")}
         </div>`:`<div style="font-size:12px;color:#16a34a;margin-top:6px">✅ 声調のパターンは概ね一致しています</div>`}
       </div>`;
     }
@@ -2224,9 +2261,9 @@ function render(){
     if(S.topic&&!S.customMode){
       const nq=encodeURIComponent(S.topic);
       html+=`<div style="text-align:center;margin:10px 0">
-        <div style="font-size:10px;color:#6b7086;margin-bottom:6px">📰 似たトピックのニュースを読んでみる</div>
-        <a href="https://news.google.com/search?q=${nq}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans" target="_blank" rel="noopener" style="display:inline-block;background:#171a24;border:1px solid #232634;color:#4FD1C5;padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">Google ニュース</a>
-        <a href="https://www.baidu.com/s?tn=news&word=${nq}" target="_blank" rel="noopener" style="display:inline-block;background:#171a24;border:1px solid #232634;color:#4FD1C5;padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">百度新闻</a>
+        <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">📰 似たトピックのニュースを読んでみる</div>
+        <a href="https://news.google.com/search?q=${nq}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans" target="_blank" rel="noopener" style="display:inline-block;background:var(--card);border:1px solid var(--border);color:var(--accent-text);padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">Google ニュース</a>
+        <a href="https://www.baidu.com/s?tn=news&word=${nq}" target="_blank" rel="noopener" style="display:inline-block;background:var(--card);border:1px solid var(--border);color:var(--accent-text);padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">百度新闻</a>
       </div>`;
     }
     html+=`<div class="btn-row">
@@ -2346,6 +2383,7 @@ async function loadUserData() {
         if (sv.practiceMode)  { S.practiceMode = sv.practiceMode; setMode(sv.practiceMode); }
         if (sv.shortcutsEnabled !== undefined) { S.shortcutsEnabled = sv.shortcutsEnabled; renderShortcutToggle(); }
         if (sv.voiceURI) { S.voiceURI = sv.voiceURI; populateVoiceSelect(); }
+        if (sv.theme) setTheme(sv.theme);
         document.getElementById("speed-slider").value = S.speed;
         document.getElementById("speed-val").textContent = Math.round(S.speed*100)+"%";
         setReps(S.reps);
@@ -2439,7 +2477,7 @@ async function saveSettingsToCloud() {
   if (!currentUser) return;
   try {
     await db.collection("users").doc(currentUser.uid).set({
-      settings: { levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode, shortcutsEnabled:S.shortcutsEnabled, voiceURI:S.voiceURI }
+      settings: { theme:S.theme, levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode, shortcutsEnabled:S.shortcutsEnabled, voiceURI:S.voiceURI }
     }, { merge: true });
   } catch(e) { console.warn("設定の保存失敗:", e.message); }
 }
