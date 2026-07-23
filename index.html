@@ -146,10 +146,10 @@
   <!-- AI Coach tab -->
   <div id="stab-coach" class="setup-body hidden">
     <div class="sec-label">🤖 今日の学習</div>
-    <div id="coach-greeting" style="background:#171a2e;border:1px solid #2f3550;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px">コーチが今日のひとことを考えています…</div>
-    <div id="coach-comment" class="hidden" style="background:#241f10;border:1px solid #e8c46855;border-radius:12px;padding:12px 14px;font-size:13px;color:#f0e6c8;line-height:1.6;margin-bottom:12px"></div>
+    <div id="coach-greeting" style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text);line-height:1.7;margin-bottom:12px">コーチが今日のひとことを考えています…</div>
+    <div id="coach-comment" class="hidden" style="background:#241f10;border:1px solid #e8c46855;border-radius:12px;padding:12px 14px;font-size:14px;color:#f0e6c8;line-height:1.7;margin-bottom:12px"></div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 15px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-      <div id="coach-menu" style="font-size:13px;color:var(--text-sec)"></div>
+      <div id="coach-menu" style="font-size:14px;color:var(--text-sec);line-height:1.7"></div>
       <button class="start-btn" style="margin-top:14px;background:#7c3aed" onclick="startCoachSession()">開始する →</button>
     </div>
     <div id="coach-streak" style="font-size:12px;color:var(--text-faint);margin-top:8px;text-align:center"></div>
@@ -194,7 +194,7 @@
   <!-- Vocabulary/Grammar Dex tab -->
   <div id="stab-dex" class="setup-body hidden">
     <div class="sec-label">📖 単語図鑑 <span id="vocab-dex-count" style="font-size:11px;color:var(--text-faint);font-weight:normal"></span></div>
-    <div id="vocab-dex-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px"></div>
+    <div id="vocab-dex-grid" class="dex-grid" style="margin-bottom:18px"></div>
 
     <div class="sec-label">📜 文法図鑑 <span id="grammar-dex-count" style="font-size:11px;color:var(--text-faint);font-weight:normal"></span></div>
     <div id="grammar-dex-list" style="display:flex;flex-direction:column;gap:8px"></div>
