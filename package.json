@@ -1,0 +1,12 @@
+{
+  "name": "chinese-shadowing-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "听写跟读アプリのUIスモークテスト（認証・録音は対象外）",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
