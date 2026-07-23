@@ -323,6 +323,13 @@ AIコーチモードは上記フローを流用し、次に出す文の選択元
 
 **採点**：JS完結。カテゴリ別正答率をFirestoreに蓄積し弱点表示
 
+**実装状況**：実装済み
+- 出題形式は「2択（今聞こえたのはどちらだったか）」のみを実装（「同じ？違う？」判定は未実装）。まずAとBの参照音を再生し、続けてどちらか一方をランダムに再度再生して「今の音はどちらか」を2択ボタンで回答させる方式
+- `S.practiceMode==="minimal"` のとき `render()` は既存のシャドーイング/ディクテーション用ステップフローを使わず `renderMinimalPairs()` に分岐し、ステップバーは非表示にする（`renderStepBar()`側で早期return）
+- セッション状態は `S.mp = {questions, index, correctCount, answered, lastCorrect, choice, finished}` で保持し、練習開始のたびに10問をシャッフル生成
+- カテゴリ別正答率の累積値は `S.minimalPairStats`（Firestore `minimalPairStats` フィールド、`saveMinimalPairStatsToCloud()`）に保存。結果画面ではセッション内の正解数と、この累積カテゴリ別正答率の両方を表示
+- ミニマルペア中はキーボードショートカット（Space/矢印キー等）を全て無効化（`S.practiceMode==="minimal"` で早期return）。既存の`nextStep()`の`orderMap`に"minimal"が無いため、無効化しないと矢印キーで誤って`loadSentence()`（AI呼び出し）に入ってしまう不具合があったため対応
+
 ## 8-4. バックワードビルドアップ
 
 **目的**：長文の音の塊（チャンク）を作り、息継ぎ位置を体得する

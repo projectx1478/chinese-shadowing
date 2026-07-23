@@ -174,3 +174,83 @@ test.describe('声調ピッチグラフ（始点ズレバグの再発防止）',
     expect(result[2].semi - result[1].semi).toBeCloseTo(1, 5);
   });
 });
+
+test.describe('ミニマルペア聞き分け（8-3、mode-minimal）', () => {
+  test('練習モードで選択でき、開始するとstep-barが空になりS.mpがセットされる', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('minimal'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-minimal').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+
+    const state = await page.evaluate(() => ({
+      practiceMode: S.practiceMode,
+      phase: S.phase,
+      mpQuestionCount: S.mp?.questions?.length,
+      stepBarEmpty: document.getElementById('step-bar').innerHTML.trim() === '',
+    }));
+    expect(state.practiceMode).toBe('minimal');
+    expect(state.phase).toBe('minimal');
+    expect(state.mpQuestionCount).toBe(10);
+    expect(state.stepBarEmpty).toBe(true);
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('正解/不正解の判定とカテゴリ別統計の集計が正しく行われる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('minimal'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    // 実機TTSの再生完了を待たず、テスト用に再生完了状態へ直接遷移させる
+    await page.evaluate(() => { S.isSpeaking = false; render(); });
+
+    const targetSide = await page.evaluate(() => S.mp.questions[S.mp.index].targetSide);
+    const category = await page.evaluate(() => S.mp.questions[S.mp.index].pair.category);
+    await page.evaluate((side) => answerMinimalPair(side), targetSide);
+    await page.waitForTimeout(100);
+
+    const afterCorrect = await page.evaluate((cat) => ({
+      lastCorrect: S.mp.lastCorrect,
+      correctCount: S.mp.correctCount,
+      statTotal: S.minimalPairStats[cat]?.total,
+      statCorrect: S.minimalPairStats[cat]?.correct,
+    }), category);
+    expect(afterCorrect.lastCorrect).toBe(true);
+    expect(afterCorrect.correctCount).toBe(1);
+    expect(afterCorrect.statTotal).toBe(1);
+    expect(afterCorrect.statCorrect).toBe(1);
+
+    // 1.1秒後に次の問題へ自動的に進む
+    await page.waitForTimeout(1200);
+    const afterAdvance = await page.evaluate(() => ({ index: S.mp.index, answered: S.mp.answered }));
+    expect(afterAdvance.index).toBe(1);
+    expect(afterAdvance.answered).toBe(false);
+  });
+
+  test('ミニマルペア中はArrowRightショートカットがgenerateSentence()を呼ばない（誤って通常フローに進まない）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('minimal'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+
+    await page.exposeFunction('__markCalled', () => {});
+    let called = false;
+    page.on('console', (msg) => { if (msg.text() === '__generateSentenceCalled__') called = true; });
+    await page.evaluate(() => {
+      window.__origGenerateSentence = generateSentence;
+      generateSentence = async function (...args) {
+        console.log('__generateSentenceCalled__');
+        return window.__origGenerateSentence.apply(this, args);
+      };
+    });
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
+
+    expect(called).toBe(false);
+    const state = await page.evaluate(() => ({ practiceMode: S.practiceMode, phase: S.phase }));
+    expect(state).toEqual({ practiceMode: 'minimal', phase: 'minimal' });
+  });
+});

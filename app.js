@@ -16,6 +16,39 @@ const STEPS = [
 ];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
+// 8-3 ミニマルペア聞き分け：声調・紛らわしい子音母音の弁別ペア（静的データ、API不使用）
+const MINIMAL_PAIRS = [
+  // 声調
+  {category:"声調", type:"1声-2声", a:{zh:"妈",py:"mā"}, b:{zh:"麻",py:"má"}},
+  {category:"声調", type:"1声-3声", a:{zh:"妈",py:"mā"}, b:{zh:"马",py:"mǎ"}},
+  {category:"声調", type:"1声-4声", a:{zh:"妈",py:"mā"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"2声-3声", a:{zh:"麻",py:"má"}, b:{zh:"马",py:"mǎ"}},
+  {category:"声調", type:"2声-4声", a:{zh:"麻",py:"má"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"3声-4声", a:{zh:"马",py:"mǎ"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"3声-4声", a:{zh:"买",py:"mǎi"}, b:{zh:"卖",py:"mài"}},
+  {category:"声調", type:"1声-2声", a:{zh:"汤",py:"tāng"}, b:{zh:"糖",py:"táng"}},
+  {category:"声調", type:"2声-3声", a:{zh:"糖",py:"táng"}, b:{zh:"躺",py:"tǎng"}},
+  {category:"声調", type:"3声-4声", a:{zh:"躺",py:"tǎng"}, b:{zh:"烫",py:"tàng"}},
+  {category:"声調", type:"1声-3声", a:{zh:"鸡",py:"jī"}, b:{zh:"几",py:"jǐ"}},
+  {category:"声調", type:"1声-4声", a:{zh:"鸡",py:"jī"}, b:{zh:"记",py:"jì"}},
+  {category:"声調", type:"1声-4声", a:{zh:"书",py:"shū"}, b:{zh:"树",py:"shù"}},
+  {category:"声調", type:"1声-3声", a:{zh:"书",py:"shū"}, b:{zh:"暑",py:"shǔ"}},
+  {category:"声調", type:"3声-4声", a:{zh:"暑",py:"shǔ"}, b:{zh:"树",py:"shù"}},
+  // 子音
+  {category:"子音", type:"sh-s", a:{zh:"山",py:"shān"}, b:{zh:"三",py:"sān"}},
+  {category:"子音", type:"j-q", a:{zh:"鸡",py:"jī"}, b:{zh:"七",py:"qī"}},
+  {category:"子音", type:"n-l", a:{zh:"你",py:"nǐ"}, b:{zh:"里",py:"lǐ"}},
+  {category:"子音", type:"n-l", a:{zh:"南",py:"nán"}, b:{zh:"蓝",py:"lán"}},
+  {category:"子音", type:"ch-c", a:{zh:"长",py:"cháng"}, b:{zh:"藏",py:"cáng"}},
+  {category:"子音", type:"zh-z", a:{zh:"猪",py:"zhū"}, b:{zh:"租",py:"zū"}},
+  {category:"子音", type:"zh-z", a:{zh:"知",py:"zhī"}, b:{zh:"资",py:"zī"}},
+  // 母音
+  {category:"母音", type:"an-ang", a:{zh:"班",py:"bān"}, b:{zh:"帮",py:"bāng"}},
+  {category:"母音", type:"en-eng", a:{zh:"分",py:"fēn"}, b:{zh:"风",py:"fēng"}},
+  {category:"母音", type:"in-ing", a:{zh:"心",py:"xīn"}, b:{zh:"星",py:"xīng"}},
+  {category:"母音", type:"ü-u", a:{zh:"女",py:"nǚ"}, b:{zh:"努",py:"nǔ"}},
+];
+
 // ══ Persistence helpers（localStorageはUI設定のみ）══════
 const LS = {
   get: k => { try{return JSON.parse(localStorage.getItem(k))}catch{return null} },
@@ -43,6 +76,7 @@ const S = {
   conversationHistory: [],
   reviewQueue: [],
   vocabDex: [], grammarDex: [],
+  minimalPairStats: {}, // {"声調":{correct,total}, "子音":{...}, "母音":{...}}
   coach: {lastSessionDate:null, streak:0},
   coachQueue: [], coachIndex: 0, coachActive: false, coachStats: [],
   // 練習中の一時状態
@@ -61,6 +95,8 @@ const S = {
   customMode:false, customSentence:null,
   // ディクテーション
   dictInput:"", dictResult:null, dictSpeed:0.75,
+  // 8-3 ミニマルペア聞き分け
+  mp: null,
 };
 
 // ══ Setup UI ══════════════════════════════════════════════
@@ -119,7 +155,7 @@ setStyle(S.practiceStyle);
 
 function setMode(v){
   S.practiceMode=v;
-  ["full","dictation","shadow"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
+  ["full","dictation","shadow","minimal"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
   saveSettings();
 }
 setMode(S.practiceMode);
@@ -1032,6 +1068,79 @@ async function submitDictation(){
   setPhase("dictation");render();
 }
 
+// ══ 8-3 ミニマルペア聞き分け（API不使用・JS完結）══════════════
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function startMinimalPairSession(){
+  const pool=shuffleArray(MINIMAL_PAIRS);
+  const questions=[];
+  for(let i=0;i<10;i++){
+    const pair=pool[i%pool.length];
+    questions.push({pair, targetSide: Math.random()<0.5?"a":"b"});
+  }
+  S.mp={questions, index:0, correctCount:0, answered:false, lastCorrect:null, finished:false};
+  setPhase("minimal");
+  render();
+  playMinimalPairRound();
+}
+function currentMpQuestion(){ return S.mp?.questions?.[S.mp.index]||null; }
+function playMinimalPairRound(){
+  const q=currentMpQuestion();
+  if(!q)return;
+  const target=q.pair[q.targetSide];
+  S.isSpeaking=true;render();
+  speak(q.pair.a.zh, S.speed, ()=>{
+    setTimeout(()=>{
+      speak(q.pair.b.zh, S.speed, ()=>{
+        setTimeout(()=>{
+          speak(target.zh, S.speed, ()=>{ S.isSpeaking=false; render(); });
+        }, 350);
+      });
+    }, 350);
+  });
+}
+function replayMinimalPairRound(){
+  if(S.isSpeaking||!S.mp||S.mp.answered)return;
+  playMinimalPairRound();
+}
+function answerMinimalPair(choice){
+  if(!S.mp||S.mp.answered||S.isSpeaking)return;
+  const q=currentMpQuestion();
+  if(!q)return;
+  const correct=choice===q.targetSide;
+  S.mp.answered=true;
+  S.mp.lastCorrect=correct;
+  S.mp.choice=choice;
+  if(correct)S.mp.correctCount++;
+  const cat=q.pair.category;
+  const st=S.minimalPairStats[cat]||{correct:0,total:0};
+  st.total++; if(correct)st.correct++;
+  S.minimalPairStats[cat]=st;
+  render();
+  setTimeout(()=>{ nextMinimalPairQuestion(); }, 1100);
+}
+function nextMinimalPairQuestion(){
+  if(!S.mp)return;
+  S.mp.index++;
+  if(S.mp.index>=S.mp.questions.length){
+    S.mp.finished=true;
+    saveMinimalPairStatsToCloud();
+    render();
+    return;
+  }
+  S.mp.answered=false;S.mp.lastCorrect=null;S.mp.choice=null;
+  render();
+  playMinimalPairRound();
+}
+async function saveMinimalPairStatsToCloud(){
+  if(!currentUser)return;
+  try{await db.collection("users").doc(currentUser.uid).set({minimalPairStats:S.minimalPairStats},{merge:true});}
+  catch(e){console.warn("ミニマルペア成績保存失敗:",e.message);}
+}
+
 // ══ Recording ════════════════════════════════════════════
 async function startRecording(){
   try{
@@ -1135,8 +1244,9 @@ function startPractice(){
   saveSettings();
   document.getElementById("top-badge").textContent=S.level.label;
   document.getElementById("top-badge").style.background=S.level.color;
-  document.getElementById("top-topic").textContent=S.customMode?"カスタム文":S.topic;
+  document.getElementById("top-topic").textContent=S.practiceMode==="minimal"?"ミニマルペア聞き分け":(S.customMode?"カスタム文":S.topic);
   show("practice");
+  if(S.practiceMode==="minimal"){ startMinimalPairSession(); return; }
   loadSentence();
 }
 
@@ -1501,7 +1611,7 @@ function retryRecord(){
 function goHome(){
   stopAll();
   if(S.coachActive){S.coachActive=false;if(S._preCoachMode)S.practiceMode=S._preCoachMode;}
-  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;
+  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;S.mp=null;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   show("setup");updateSetupStats();renderWeakList();renderSavedSets();
 }
@@ -1553,13 +1663,14 @@ function updateStats(){
 }
 
 function renderStepBar(){
+  const bar=document.getElementById("step-bar");if(!bar)return;
+  if(S.practiceMode==="minimal"){bar.innerHTML="";return;}
   const stepsMap={
     full:      [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
     dictation: [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],
     shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
   };
   const steps=stepsMap[S.practiceMode]||stepsMap.full;
-  const bar=document.getElementById("step-bar");if(!bar)return;
   const cur=stepIndex();let h="";
   steps.forEach((st,i)=>{
     const done=i<cur,active=i===cur;
@@ -1577,6 +1688,7 @@ const PHASE_MODE_INFO={
   shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   result:      {icon:"✅",label:"採点結果",bg:"#0f2318",color:"#6ee7a8"},
+  minimal:     {icon:"👂",label:"ミニマルペア聞き分け",bg:"#123a38",color:"var(--accent-text)"},
 };
 function renderModeIndicator(){
   const el=document.getElementById("mode-indicator");
@@ -1585,6 +1697,67 @@ function renderModeIndicator(){
   if(!info){el.innerHTML="";return;}
   const coachTag=S.coachActive?`<span style="background:#2a1e3d;color:#c4a6f5;padding:4px 10px;border-radius:20px;margin-right:6px">🤖 AIコーチ</span>`:"";
   el.innerHTML=`${coachTag}<span style="background:${info.bg};color:${info.color};padding:4px 12px;border-radius:20px">${info.icon} ${info.label}</span>`;
+}
+
+function renderMinimalPairs(body){
+  const mp=S.mp;
+  if(!mp){body.innerHTML="";return;}
+  if(mp.finished){
+    const cats=["声調","子音","母音"];
+    const rows=cats.map(cat=>{
+      const st=S.minimalPairStats[cat]||{correct:0,total:0};
+      const pct=st.total?Math.round(st.correct/st.total*100):0;
+      const color=pct>=80?"#16a34a":pct>=50?"#d97706":"#dc2626";
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:44px;font-size:12px;color:var(--text-sec)">${cat}</div>
+        <div style="flex:1;background:var(--card-alt);border-radius:4px;height:16px;overflow:hidden">
+          <div style="width:${pct}%;background:${color};height:100%;border-radius:4px"></div>
+        </div>
+        <div style="width:70px;font-size:11px;color:var(--text-faint);text-align:right">${st.correct}/${st.total}（${pct}%）</div>
+      </div>`;
+    }).join("");
+    body.innerHTML=`<div class="card">
+      <div class="card-title">結果</div>
+      <div style="text-align:center;padding:6px 0 14px">
+        <div style="font-size:34px;font-weight:800;color:${mp.correctCount>=8?"#16a34a":mp.correctCount>=5?"#d97706":"#dc2626"}">${mp.correctCount}<span style="font-size:16px;color:var(--text-faint)">/${mp.questions.length}</span></div>
+        <div style="font-size:12px;color:var(--text-faint)">正解数</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-faint);letter-spacing:.5px;margin-bottom:8px">カテゴリ別正答率（これまでの累計）</div>
+      ${rows}
+      <button class="btn" style="margin-top:14px;background:${S.level.color}" onclick="startMinimalPairSession()">🔄 もう一度</button>
+      <button class="btn btn-gray" onclick="goHome()">🏠 ホームへ</button>
+    </div>`;
+    return;
+  }
+  const q=mp.questions[mp.index];
+  const statusText=S.isSpeaking?"🔊 音声を再生中…":mp.answered?"":"どちらの音を聞きましたか？";
+  const aCls=mp.answered?(q.targetSide==="a"?"correct":(mp.choice==="a"?"wrong":"")):"";
+  const bCls=mp.answered?(q.targetSide==="b"?"correct":(mp.choice==="b"?"wrong":"")):"";
+  const feedback=mp.answered
+    ? (mp.lastCorrect
+        ? `<div style="text-align:center;color:#16a34a;font-weight:700;font-size:14px;margin-top:10px">✅ 正解！</div>`
+        : `<div style="text-align:center;color:#dc2626;font-weight:700;font-size:14px;margin-top:10px">❌ 残念、正解は「${esc(q.pair[q.targetSide].zh)}（${esc(q.pair[q.targetSide].py)}）」でした</div>`)
+    : "";
+  const disabled=(S.isSpeaking||mp.answered)?"disabled":"";
+  body.innerHTML=`<div class="card">
+    <div class="card-title">ミニマルペア聞き分け（${mp.index+1}/${mp.questions.length}）　${q.pair.category}・${esc(q.pair.type)}</div>
+    <div style="text-align:center;font-size:13px;color:var(--text-faint);padding:6px 0 4px">${statusText}</div>
+    <button class="reveal-btn" style="margin:0 auto 12px;display:block" onclick="replayMinimalPairRound()" ${(S.isSpeaking||mp.answered)?"disabled":""}>🔊 もう一度再生</button>
+    <div style="display:flex;gap:10px">
+      <button class="mp-choice ${aCls}" ${disabled} onclick="answerMinimalPair('a')">
+        <div style="font-size:26px;font-weight:700;color:var(--text)">${esc(q.pair.a.zh)}</div>
+        <div style="font-size:13px;color:var(--accent-text)">${esc(q.pair.a.py)}</div>
+      </button>
+      <button class="mp-choice ${bCls}" ${disabled} onclick="answerMinimalPair('b')">
+        <div style="font-size:26px;font-weight:700;color:var(--text)">${esc(q.pair.b.zh)}</div>
+        <div style="font-size:13px;color:var(--accent-text)">${esc(q.pair.b.py)}</div>
+      </button>
+    </div>
+    ${feedback}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn btn-gray" style="flex:1;font-size:13px;opacity:.7" onclick="goHome()">🏠 ホームへ</button>
+  </div>`;
 }
 
 // XSSエスケープ（Gemini返答・生成文をinnerHTMLに埋め込む前に必ず通す）
@@ -1611,6 +1784,7 @@ function formatAiText(s){
 function render(){
   updateStats();renderStepBar();renderModeIndicator();
   const body=document.getElementById("practice-body");if(!body)return;
+  if(S.practiceMode==="minimal"){renderMinimalPairs(body);return;}
   const ph=S.phase,s=S.sentence;
   let html="";
 
@@ -1927,6 +2101,7 @@ function render(){
 document.addEventListener("keydown",e=>{
   if(!S.shortcutsEnabled)return;
   if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
+  if(S.practiceMode==="minimal")return; // ミニマルペアは専用の選択ボタンで進行するためショートカット対象外
   const ph=S.phase;
   if(e.code==="Space"){
     e.preventDefault();
@@ -2000,6 +2175,7 @@ async function loadUserData() {
       if (Array.isArray(data.reviewQueue)) S.reviewQueue = data.reviewQueue;
       if (Array.isArray(data.vocabDex)) S.vocabDex = data.vocabDex;
       if (Array.isArray(data.grammarDex)) S.grammarDex = data.grammarDex;
+      if (data.minimalPairStats && typeof data.minimalPairStats==="object") S.minimalPairStats = data.minimalPairStats;
       if (data.coach) S.coach = { lastSessionDate:null, streak:0, ...data.coach };
       if (data.settings) {
         const sv = data.settings;
