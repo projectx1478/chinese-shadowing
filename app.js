@@ -16,6 +16,39 @@ const STEPS = [
 ];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
+// 8-3 ミニマルペア聞き分け：声調・紛らわしい子音母音の弁別ペア（静的データ、API不使用）
+const MINIMAL_PAIRS = [
+  // 声調
+  {category:"声調", type:"1声-2声", a:{zh:"妈",py:"mā"}, b:{zh:"麻",py:"má"}},
+  {category:"声調", type:"1声-3声", a:{zh:"妈",py:"mā"}, b:{zh:"马",py:"mǎ"}},
+  {category:"声調", type:"1声-4声", a:{zh:"妈",py:"mā"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"2声-3声", a:{zh:"麻",py:"má"}, b:{zh:"马",py:"mǎ"}},
+  {category:"声調", type:"2声-4声", a:{zh:"麻",py:"má"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"3声-4声", a:{zh:"马",py:"mǎ"}, b:{zh:"骂",py:"mà"}},
+  {category:"声調", type:"3声-4声", a:{zh:"买",py:"mǎi"}, b:{zh:"卖",py:"mài"}},
+  {category:"声調", type:"1声-2声", a:{zh:"汤",py:"tāng"}, b:{zh:"糖",py:"táng"}},
+  {category:"声調", type:"2声-3声", a:{zh:"糖",py:"táng"}, b:{zh:"躺",py:"tǎng"}},
+  {category:"声調", type:"3声-4声", a:{zh:"躺",py:"tǎng"}, b:{zh:"烫",py:"tàng"}},
+  {category:"声調", type:"1声-3声", a:{zh:"鸡",py:"jī"}, b:{zh:"几",py:"jǐ"}},
+  {category:"声調", type:"1声-4声", a:{zh:"鸡",py:"jī"}, b:{zh:"记",py:"jì"}},
+  {category:"声調", type:"1声-4声", a:{zh:"书",py:"shū"}, b:{zh:"树",py:"shù"}},
+  {category:"声調", type:"1声-3声", a:{zh:"书",py:"shū"}, b:{zh:"暑",py:"shǔ"}},
+  {category:"声調", type:"3声-4声", a:{zh:"暑",py:"shǔ"}, b:{zh:"树",py:"shù"}},
+  // 子音
+  {category:"子音", type:"sh-s", a:{zh:"山",py:"shān"}, b:{zh:"三",py:"sān"}},
+  {category:"子音", type:"j-q", a:{zh:"鸡",py:"jī"}, b:{zh:"七",py:"qī"}},
+  {category:"子音", type:"n-l", a:{zh:"你",py:"nǐ"}, b:{zh:"里",py:"lǐ"}},
+  {category:"子音", type:"n-l", a:{zh:"南",py:"nán"}, b:{zh:"蓝",py:"lán"}},
+  {category:"子音", type:"ch-c", a:{zh:"长",py:"cháng"}, b:{zh:"藏",py:"cáng"}},
+  {category:"子音", type:"zh-z", a:{zh:"猪",py:"zhū"}, b:{zh:"租",py:"zū"}},
+  {category:"子音", type:"zh-z", a:{zh:"知",py:"zhī"}, b:{zh:"资",py:"zī"}},
+  // 母音
+  {category:"母音", type:"an-ang", a:{zh:"班",py:"bān"}, b:{zh:"帮",py:"bāng"}},
+  {category:"母音", type:"en-eng", a:{zh:"分",py:"fēn"}, b:{zh:"风",py:"fēng"}},
+  {category:"母音", type:"in-ing", a:{zh:"心",py:"xīn"}, b:{zh:"星",py:"xīng"}},
+  {category:"母音", type:"ü-u", a:{zh:"女",py:"nǚ"}, b:{zh:"努",py:"nǔ"}},
+];
+
 // ══ Persistence helpers（localStorageはUI設定のみ）══════
 const LS = {
   get: k => { try{return JSON.parse(localStorage.getItem(k))}catch{return null} },
@@ -43,6 +76,7 @@ const S = {
   conversationHistory: [],
   reviewQueue: [],
   vocabDex: [], grammarDex: [],
+  minimalPairStats: {}, // {"声調":{correct,total}, "子音":{...}, "母音":{...}}
   coach: {lastSessionDate:null, streak:0},
   coachQueue: [], coachIndex: 0, coachActive: false, coachStats: [],
   // 練習中の一時状態
@@ -61,6 +95,16 @@ const S = {
   customMode:false, customSentence:null,
   // ディクテーション
   dictInput:"", dictResult:null, dictSpeed:0.75,
+  // 8-1 穴埋めディクテーション
+  fillBlankDifficulty: LS.get("sh_settings")?.fillBlankDifficulty || "hard",
+  fillInputs: [], fillResult: null,
+  // 8-2 音声のみ内容理解クイズ
+  quizLang: LS.get("sh_settings")?.quizLang || "ja",
+  quizPlayCount: 0, quizAnswers: [], quizResult: null,
+  // 8-3 ミニマルペア聞き分け
+  mp: null,
+  // 8-4 バックワードビルドアップ
+  bbuIndex: 0,
 };
 
 // ══ Setup UI ══════════════════════════════════════════════
@@ -119,10 +163,26 @@ setStyle(S.practiceStyle);
 
 function setMode(v){
   S.practiceMode=v;
-  ["full","dictation","shadow"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
+  ["full","dictation","shadow","minimal","fillblank","quiz","bbu"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
   saveSettings();
 }
 setMode(S.practiceMode);
+
+function setFillDifficulty(v){
+  S.fillBlankDifficulty=v;
+  document.getElementById("fb-easy")?.classList.toggle("active",v==="easy");
+  document.getElementById("fb-hard")?.classList.toggle("active",v==="hard");
+  saveSettings();
+}
+setFillDifficulty(S.fillBlankDifficulty);
+
+function setQuizLang(v){
+  S.quizLang=v;
+  document.getElementById("quiz-lang-ja")?.classList.toggle("active",v==="ja");
+  document.getElementById("quiz-lang-zh")?.classList.toggle("active",v==="zh");
+  saveSettings();
+}
+setQuizLang(S.quizLang);
 
 function populateVoiceSelect(){
   const sel=document.getElementById("voice-select");
@@ -322,6 +382,8 @@ function renderHistoryTab(){
   }
   list.innerHTML=h.map((item,i)=>{
     const isDictation=item.type==="dictation";
+    const isFillBlank=item.type==="fillblank";
+    const isQuiz=item.type==="quiz";
     const r=item.result||{};
     const s=item.sentence||{};
     const dr=item.dictResult||null;
@@ -331,6 +393,8 @@ function renderHistoryTab(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           ${isDictation?`<span style="background:#14293a;color:#7ec8f0;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">書取</span>`:""}
+          ${isFillBlank?`<span style="background:#332b10;color:#f0a860;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">穴埋め</span>`:""}
+          ${isQuiz?`<span style="background:#332b10;color:#f0a860;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px">クイズ</span>`:""}
           <span style="font-size:15px;font-weight:600;color:var(--text);word-break:break-all">${esc(s.zh||"")}</span>
           ${s.py?`<div style="font-size:12px;color:var(--accent-text);margin-top:2px">${esc(s.py)}</div>`:""}
           ${s.ja?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(s.ja)}</div>`:""}
@@ -724,6 +788,21 @@ async function generateSentence(){
   // 新しい会話の起点となる場面をランダムに1つ提示し、マンネリ化を防ぐ
   const angleSeed=Math.floor(Math.random()*10000);
   const randomHint=histLines?"":`\n\nランダムシード：${angleSeed}（この数字を使い、トピック内でも普段選ばれにくい切り口・状況設定・語彙を選ぶこと）`;
+  // 8-1 穴埋めディクテーション用：fillblankモードの時だけ穴埋めタグを追加要求（他モードでは不要なため付けない）
+  const fillBlankRule = S.practiceMode==="fillblank"
+    ? `\n穴埋め：<返答文中に実際に現れる${S.fillBlankDifficulty==="easy"?"内容語（名詞・動詞・形容詞など意味の中心となる語）":"機能語・弱化音節（了・的・把・被・就・才・地・得 などの助詞・虚詞、軽声になりやすい語）"}を1〜3個選び、「単語|ピンイン|聞き取りにくい理由を15字程度で」の形式で；区切り。例：了|le|軽声で聞き取りにくい；的|de|弱化しやすい虚詞>`
+    : "";
+  // 8-2 音声のみ内容理解クイズ用：quizモードの時だけクイズタグを追加要求（他モードでは不要なため付けない）
+  const quizExample = S.quizLang==="zh"
+    ? "她昨天做了什么？|看书|看电影|做饭|睡觉|2|回答提到了看了一部电影"
+    : "相手は昨日何をしましたか？|本を読んだ|映画を見た|料理をした|寝た|2|返答に映画を見たとある";
+  const quizRule = S.practiceMode==="quiz"
+    ? `\nクイズ：<相手のセリフ＋返答の会話全体について、「誰が何をしたか」「いつ・どこで」「話者の感情・意図」「次に起こること」のいずれかを問う4択質問を1〜2問作成。各質問は「質問文|選択肢1|選択肢2|選択肢3|選択肢4|正解の選択肢番号(1〜4の数字)|20字程度の解説」の形式（質問文・選択肢は${S.quizLang==="zh"?"中国語":"日本語"}）で；区切り。2問目は1問目と異なる観点にすること。例：${quizExample}>`
+    : "";
+  // 8-4 バックワードビルドアップ用：bbuモードの時だけチャンクタグを追加要求（他モードでは不要なため付けない）
+  const bbuRule = S.practiceMode==="bbu"
+    ? `\nチャンク：<返答文を文末から意味のまとまりで区切り、短い方から長い方へ累積させた表現を|区切りで3〜5段階。最後の段階は返答文全文と完全に一致させること。例：吃饭|一起吃饭|我们一起吃饭|今天我们一起吃饭>`
+    : "";
   const raw=await gemini([{role:"user",content:
     `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
@@ -744,7 +823,7 @@ ${styleRule}
 拼音：<返答文の声調記号付きピンイン>
 訳：<返答文の日本語訳>
 語彙：<返答文中の重要単語2〜4個を「単語|ピンイン|日本語訳|HSK級」の形式で；区切り。HSK級は1〜6の数字のみ、判断できなければ「?」。例：工作|gōngzuò|仕事|3；已经|yǐjīng|すでに|2>
-文法：<返答文で使われている文法パターン1個を「名称|簡潔な説明」の形式で。無ければ「なし」>`}], undefined, 1.05);
+文法：<返答文で使われている文法パターン1個を「名称|簡潔な説明」の形式で。無ければ「なし」>${fillBlankRule}${quizRule}${bbuRule}`}], undefined, 1.05);
   const partner    = raw.match(/^相手[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerPy  = raw.match(/^相手拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerJa  = raw.match(/^相手訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
@@ -753,6 +832,9 @@ ${styleRule}
   const ja         = raw.match(/^訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const vocabRaw   = raw.match(/^語彙[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const grammarRaw = raw.match(/^文法[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const blankRaw   = raw.match(/^穴埋め[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const quizRaw    = raw.match(/^クイズ[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const chunkRaw   = raw.match(/^チャンク[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const vocab = vocabRaw.split(/[；;]/).map(s=>s.trim()).filter(Boolean).map(s=>{
     const [word,py2,meaning,hsk]=s.split("|").map(x=>x?.trim());
     return word?{word,py:py2||"",meaning:meaning||"",level:/^[1-6]$/.test(hsk)?hsk:"?"}:null;
@@ -761,8 +843,55 @@ ${styleRule}
     const [name,desc]=grammarRaw.split("|").map(x=>x?.trim());
     return name?[{name,desc:desc||""}]:[];
   })() : [];
+  const blanks = (()=>{
+    if(!zh || !blankRaw) return [];
+    const candidates = blankRaw.split(/[；;]/).map(s=>s.trim()).filter(Boolean).map(s=>{
+      const [word,py2,note]=s.split("|").map(x=>x?.trim());
+      if(!word) return null;
+      const index = zh.indexOf(word);
+      if(index<0) return null;
+      return {index, answer:word, hint:py2||"", note:note||""};
+    }).filter(Boolean).sort((a,b)=>a.index-b.index);
+    // 範囲が重なる候補は先に見つかったものを優先して除外（AIが入れ子/重複する語を返す場合の防御）
+    return candidates.reduce((acc,b)=>{
+      const end=b.index+b.answer.length;
+      const overlap=acc.some(x=>!(end<=x.index || b.index>=x.index+x.answer.length));
+      if(!overlap) acc.push(b);
+      return acc;
+    },[]).slice(0,3);
+  })();
+  const quiz = quizRaw.split(/[；;]/).map(s=>s.trim()).filter(Boolean).map(s=>{
+    const [question,o1,o2,o3,o4,ansNum,explanation]=s.split("|").map(x=>x?.trim());
+    if(!question||!o1||!o2||!o3||!o4)return null;
+    const answerIndex=parseInt(ansNum,10)-1;
+    if(!(answerIndex>=0&&answerIndex<=3))return null;
+    return {question, options:[o1,o2,o3,o4], answerIndex, explanation:explanation||""};
+  }).filter(Boolean).slice(0,2);
+  const chunks = (()=>{
+    if(!zh || S.practiceMode!=="bbu") return [];
+    const parsed = chunkRaw.split("|").map(s=>s.trim()).filter(Boolean);
+    // AIの出力が無効（空、または最後の段階が全文と不一致）な場合はJS側フォールバックで機械的に分割する
+    if(parsed.length>=2 && parsed[parsed.length-1]===zh) return parsed;
+    return buildBackwardChunksFallback(zh);
+  })();
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
-  return { zh, py, ja, partner, partnerPy, partnerJa, vocab, grammar };
+  return { zh, py, ja, partner, partnerPy, partnerJa, vocab, grammar, blanks, quiz, chunks };
+}
+
+// 8-4 バックワードビルドアップ用フォールバック：句読点を除いた文字数を目安に、文末から段階的に伸ばした配列を作る
+function buildBackwardChunksFallback(zh){
+  const stripped = zh.replace(/[，。！？、]+$/, "");
+  const chars = [...stripped];
+  const n = chars.length;
+  if(n<=2) return [zh];
+  const numStages = Math.min(4, Math.max(2, Math.ceil(n/4)));
+  const chunks=[];
+  for(let i=1;i<=numStages;i++){
+    const len = Math.round(n*i/numStages);
+    chunks.push(chars.slice(n-len).join(""));
+  }
+  chunks[chunks.length-1] = zh; // 最終段階は元の文（句読点含む）と完全一致させる
+  return [...new Set(chunks)];
 }
 
 // ══ 単語・文法図鑑 ════════════════════════════════════════
@@ -1032,6 +1161,160 @@ async function submitDictation(){
   setPhase("dictation");render();
 }
 
+// ══ 8-1 穴埋めディクテーション（既存generateSentence()に相乗り・追加API呼び出しなし）══
+function submitFillBlank(){
+  const blanks=S.sentence?.blanks||[];
+  if(!blanks.length)return;
+  blanks.forEach((b,i)=>{
+    const el=document.getElementById("fill-input-"+i);
+    if(el)S.fillInputs[i]=el.value;
+  });
+  // 声調記号を除いたローマ字比較用（漢字ではなく拼音で回答した場合の部分点判定）
+  const stripTones=str=>str.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g,"");
+  const results=blanks.map((b,i)=>{
+    const input=(S.fillInputs[i]||"").trim();
+    const correct=input===b.answer;
+    const partial=!correct && input!=="" && !!b.hint && stripTones(input)===stripTones(b.hint);
+    return {index:b.index, answer:b.answer, hint:b.hint, note:b.note, input, correct, partial};
+  });
+  const correctCount=results.reduce((sum,r)=>sum+(r.correct?1:r.partial?0.5:0),0);
+  const total=blanks.length;
+  S.fillResult={results, correctCount, total};
+  const matchPct=total?Math.round(correctCount/total*100):0;
+  const target=S.sentence.zh;
+  // weakList に不正解があった文を登録
+  if(results.some(r=>!r.correct&&!r.partial)){
+    const already=S.weakList.some(w=>w.zh===target);
+    if(!already){
+      S.weakList.push({zh:target,py:S.sentence.py||"",ja:S.sentence.ja||"",score:0,type:"fillblank"});
+      saveWeakListToCloud();
+    }
+  }
+  // history に保存
+  const histItem={
+    type:"fillblank",
+    sentence:{zh:target,py:S.sentence.py||"",ja:S.sentence.ja||"",topic:S.topic},
+    result:{match:matchPct,score:Math.round(matchPct/20),recognized:results.map(r=>r.input||"（未入力）").join("／")},
+    fillResult:{results,correctCount,total},
+    date:new Date().toISOString()
+  };
+  S.history.push(histItem);
+  saveHistoryToCloud(histItem);
+  registerCollection(S.sentence, null, matchPct);
+  render();
+}
+
+// ══ 8-2 音声のみ内容理解クイズ（既存generateSentence()に相乗り・追加API呼び出しなし）══
+function submitQuiz(){
+  const quiz=S.sentence?.quiz||[];
+  if(!quiz.length)return;
+  const results=quiz.map((q,qi)=>{
+    const selected=S.quizAnswers[qi];
+    const correct=selected===q.answerIndex;
+    return {
+      question:q.question, answerIndex:q.answerIndex, selected,
+      selectedText:selected!=null?q.options[selected]:"（未回答）",
+      answerText:q.options[q.answerIndex], explanation:q.explanation, correct
+    };
+  });
+  const correctCount=results.filter(r=>r.correct).length;
+  const total=quiz.length;
+  S.quizResult={results, correctCount, total};
+  const matchPct=total?Math.round(correctCount/total*100):0;
+  const target=S.sentence.zh;
+  if(results.some(r=>!r.correct)){
+    const already=S.weakList.some(w=>w.zh===target);
+    if(!already){
+      S.weakList.push({zh:target,py:S.sentence.py||"",ja:S.sentence.ja||"",score:0,type:"quiz"});
+      saveWeakListToCloud();
+    }
+  }
+  const histItem={
+    type:"quiz",
+    sentence:{zh:target,py:S.sentence.py||"",ja:S.sentence.ja||"",topic:S.topic},
+    result:{match:matchPct,score:Math.round(matchPct/20),recognized:results.map(r=>r.selectedText).join("／")},
+    quizResult:{results,correctCount,total},
+    date:new Date().toISOString()
+  };
+  S.history.push(histItem);
+  saveHistoryToCloud(histItem);
+  registerCollection(S.sentence, null, matchPct);
+  render();
+}
+
+// ══ 8-3 ミニマルペア聞き分け（API不使用・JS完結）══════════════
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function startMinimalPairSession(){
+  const pool=shuffleArray(MINIMAL_PAIRS);
+  const questions=[];
+  for(let i=0;i<10;i++){
+    const pair=pool[i%pool.length];
+    questions.push({pair, targetSide: Math.random()<0.5?"a":"b"});
+  }
+  S.mp={questions, index:0, correctCount:0, answered:false, lastCorrect:null, finished:false};
+  setPhase("minimal");
+  render();
+  playMinimalPairRound();
+}
+function currentMpQuestion(){ return S.mp?.questions?.[S.mp.index]||null; }
+function playMinimalPairRound(){
+  const q=currentMpQuestion();
+  if(!q)return;
+  const target=q.pair[q.targetSide];
+  S.isSpeaking=true;render();
+  speak(q.pair.a.zh, S.speed, ()=>{
+    setTimeout(()=>{
+      speak(q.pair.b.zh, S.speed, ()=>{
+        setTimeout(()=>{
+          speak(target.zh, S.speed, ()=>{ S.isSpeaking=false; render(); });
+        }, 350);
+      });
+    }, 350);
+  });
+}
+function replayMinimalPairRound(){
+  if(S.isSpeaking||!S.mp||S.mp.answered)return;
+  playMinimalPairRound();
+}
+function answerMinimalPair(choice){
+  if(!S.mp||S.mp.answered||S.isSpeaking)return;
+  const q=currentMpQuestion();
+  if(!q)return;
+  const correct=choice===q.targetSide;
+  S.mp.answered=true;
+  S.mp.lastCorrect=correct;
+  S.mp.choice=choice;
+  if(correct)S.mp.correctCount++;
+  const cat=q.pair.category;
+  const st=S.minimalPairStats[cat]||{correct:0,total:0};
+  st.total++; if(correct)st.correct++;
+  S.minimalPairStats[cat]=st;
+  render();
+  setTimeout(()=>{ nextMinimalPairQuestion(); }, 1100);
+}
+function nextMinimalPairQuestion(){
+  if(!S.mp)return;
+  S.mp.index++;
+  if(S.mp.index>=S.mp.questions.length){
+    S.mp.finished=true;
+    saveMinimalPairStatsToCloud();
+    render();
+    return;
+  }
+  S.mp.answered=false;S.mp.lastCorrect=null;S.mp.choice=null;
+  render();
+  playMinimalPairRound();
+}
+async function saveMinimalPairStatsToCloud(){
+  if(!currentUser)return;
+  try{await db.collection("users").doc(currentUser.uid).set({minimalPairStats:S.minimalPairStats},{merge:true});}
+  catch(e){console.warn("ミニマルペア成績保存失敗:",e.message);}
+}
+
 // ══ Recording ════════════════════════════════════════════
 async function startRecording(){
   try{
@@ -1096,6 +1379,15 @@ function stepIndex(){
   if(S.practiceMode==="dictation"){
     const m={listen:0,dictation:1,dictreviewing:1,result:2};return m[S.phase]??0;
   }
+  if(S.practiceMode==="fillblank"){
+    const m={listen:0,fillblank:1,result:2};return m[S.phase]??0;
+  }
+  if(S.practiceMode==="quiz"){
+    const m={quiz:0,result:1};return m[S.phase]??0;
+  }
+  if(S.practiceMode==="bbu"){
+    const m={bbu:0,record:1,recording:1,reviewing:2,result:2};return m[S.phase]??0;
+  }
   if(S.practiceMode==="shadow"){
     const m={listen:0,check:1,shadow:2,record:3,recording:3,reviewing:4,result:4};return m[S.phase]??0;
   }
@@ -1107,6 +1399,9 @@ async function loadSentence(resetConversation=false){
   if(resetConversation) S.conversationHistory=[];
   S.sentence=null;S.result=null;S.showPinyin=false;S.showTrans=false;S.hideHanzi=false;S.repCount=0;
   S.dictInput="";S.dictResult=null;
+  S.fillInputs=[];S.fillResult=null;
+  S.quizPlayCount=0;S.quizAnswers=[];S.quizResult=null;
+  S.bbuIndex=0;
   S.recordedBlob=null;
   S.pitchAnalysis=null;S.pitchAnalyzing=false;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
@@ -1117,11 +1412,13 @@ async function loadSentence(resetConversation=false){
     } else {
       S.sentence=await generateSentence();
     }
-    setPhase("listen");
-  }catch(e){setPhase("listen");setTimeout(()=>showErr(e.message),50);}
+    setPhase(S.practiceMode==="quiz"?"quiz":S.practiceMode==="bbu"?"bbu":"listen");
+  }catch(e){setPhase(S.practiceMode==="quiz"?"quiz":S.practiceMode==="bbu"?"bbu":"listen");setTimeout(()=>showErr(e.message),50);}
   render();
-  if(S.sentence){
+  // バックワードビルドアップは最初の（最も短い）段階から始めるため、全文の自動再生は行わない
+  if(S.sentence && S.practiceMode!=="bbu"){
     S.isSpeaking=true;render();
+    if(S.practiceMode==="quiz") S.quizPlayCount=Math.min(2,S.quizPlayCount+1);
     if(S.sentence.partner){
       speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{});
     } else {
@@ -1135,8 +1432,9 @@ function startPractice(){
   saveSettings();
   document.getElementById("top-badge").textContent=S.level.label;
   document.getElementById("top-badge").style.background=S.level.color;
-  document.getElementById("top-topic").textContent=S.customMode?"カスタム文":S.topic;
+  document.getElementById("top-topic").textContent=S.practiceMode==="minimal"?"ミニマルペア聞き分け":(S.customMode?"カスタム文":S.topic);
   show("practice");
+  if(S.practiceMode==="minimal"){ startMinimalPairSession(); return; }
   loadSentence();
 }
 
@@ -1501,7 +1799,7 @@ function retryRecord(){
 function goHome(){
   stopAll();
   if(S.coachActive){S.coachActive=false;if(S._preCoachMode)S.practiceMode=S._preCoachMode;}
-  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;
+  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;S.mp=null;S.fillInputs=[];S.fillResult=null;S.quizAnswers=[];S.quizResult=null;S.bbuIndex=0;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   show("setup");updateSetupStats();renderWeakList();renderSavedSets();
 }
@@ -1511,6 +1809,9 @@ function nextStep(){
     full:      ["listen","dictation","check","shadow","record"],
     dictation: ["listen","dictation"],
     shadow:    ["listen","check","shadow","record"],
+    fillblank: ["listen","fillblank"],
+    quiz:      ["quiz"],
+    bbu:       ["bbu","record"],
   };
   const order=orderMap[S.practiceMode]||orderMap.full;
   const i=order.indexOf(S.phase);
@@ -1553,13 +1854,17 @@ function updateStats(){
 }
 
 function renderStepBar(){
+  const bar=document.getElementById("step-bar");if(!bar)return;
+  if(S.practiceMode==="minimal"){bar.innerHTML="";return;}
   const stepsMap={
     full:      [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
     dictation: [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],
     shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
+    fillblank: [{id:"listen",name:"初聴"},{id:"fillblank",name:"穴埋め"},{id:"result",name:"採点"}],
+    quiz:      [{id:"quiz",name:"内容理解"},{id:"result",name:"採点"}],
+    bbu:       [{id:"bbu",name:"ビルドアップ"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
   };
   const steps=stepsMap[S.practiceMode]||stepsMap.full;
-  const bar=document.getElementById("step-bar");if(!bar)return;
   const cur=stepIndex();let h="";
   steps.forEach((st,i)=>{
     const done=i<cur,active=i===cur;
@@ -1577,6 +1882,10 @@ const PHASE_MODE_INFO={
   shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   result:      {icon:"✅",label:"採点結果",bg:"#0f2318",color:"#6ee7a8"},
+  minimal:     {icon:"👂",label:"ミニマルペア聞き分け",bg:"#123a38",color:"var(--accent-text)"},
+  fillblank:   {icon:"🕳",label:"穴埋めディクテーション",bg:"#332b10",color:"#f0a860"},
+  quiz:        {icon:"🎧",label:"内容理解クイズ",bg:"#332b10",color:"#f0a860"},
+  bbu:         {icon:"🧩",label:"ビルドアップ",bg:"#123a38",color:"var(--accent-text)"},
 };
 function renderModeIndicator(){
   const el=document.getElementById("mode-indicator");
@@ -1585,6 +1894,67 @@ function renderModeIndicator(){
   if(!info){el.innerHTML="";return;}
   const coachTag=S.coachActive?`<span style="background:#2a1e3d;color:#c4a6f5;padding:4px 10px;border-radius:20px;margin-right:6px">🤖 AIコーチ</span>`:"";
   el.innerHTML=`${coachTag}<span style="background:${info.bg};color:${info.color};padding:4px 12px;border-radius:20px">${info.icon} ${info.label}</span>`;
+}
+
+function renderMinimalPairs(body){
+  const mp=S.mp;
+  if(!mp){body.innerHTML="";return;}
+  if(mp.finished){
+    const cats=["声調","子音","母音"];
+    const rows=cats.map(cat=>{
+      const st=S.minimalPairStats[cat]||{correct:0,total:0};
+      const pct=st.total?Math.round(st.correct/st.total*100):0;
+      const color=pct>=80?"#16a34a":pct>=50?"#d97706":"#dc2626";
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:44px;font-size:12px;color:var(--text-sec)">${cat}</div>
+        <div style="flex:1;background:var(--card-alt);border-radius:4px;height:16px;overflow:hidden">
+          <div style="width:${pct}%;background:${color};height:100%;border-radius:4px"></div>
+        </div>
+        <div style="width:70px;font-size:11px;color:var(--text-faint);text-align:right">${st.correct}/${st.total}（${pct}%）</div>
+      </div>`;
+    }).join("");
+    body.innerHTML=`<div class="card">
+      <div class="card-title">結果</div>
+      <div style="text-align:center;padding:6px 0 14px">
+        <div style="font-size:34px;font-weight:800;color:${mp.correctCount>=8?"#16a34a":mp.correctCount>=5?"#d97706":"#dc2626"}">${mp.correctCount}<span style="font-size:16px;color:var(--text-faint)">/${mp.questions.length}</span></div>
+        <div style="font-size:12px;color:var(--text-faint)">正解数</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-faint);letter-spacing:.5px;margin-bottom:8px">カテゴリ別正答率（これまでの累計）</div>
+      ${rows}
+      <button class="btn" style="margin-top:14px;background:${S.level.color}" onclick="startMinimalPairSession()">🔄 もう一度</button>
+      <button class="btn btn-gray" onclick="goHome()">🏠 ホームへ</button>
+    </div>`;
+    return;
+  }
+  const q=mp.questions[mp.index];
+  const statusText=S.isSpeaking?"🔊 音声を再生中…":mp.answered?"":"どちらの音を聞きましたか？";
+  const aCls=mp.answered?(q.targetSide==="a"?"correct":(mp.choice==="a"?"wrong":"")):"";
+  const bCls=mp.answered?(q.targetSide==="b"?"correct":(mp.choice==="b"?"wrong":"")):"";
+  const feedback=mp.answered
+    ? (mp.lastCorrect
+        ? `<div style="text-align:center;color:#16a34a;font-weight:700;font-size:14px;margin-top:10px">✅ 正解！</div>`
+        : `<div style="text-align:center;color:#dc2626;font-weight:700;font-size:14px;margin-top:10px">❌ 残念、正解は「${esc(q.pair[q.targetSide].zh)}（${esc(q.pair[q.targetSide].py)}）」でした</div>`)
+    : "";
+  const disabled=(S.isSpeaking||mp.answered)?"disabled":"";
+  body.innerHTML=`<div class="card">
+    <div class="card-title">ミニマルペア聞き分け（${mp.index+1}/${mp.questions.length}）　${q.pair.category}・${esc(q.pair.type)}</div>
+    <div style="text-align:center;font-size:13px;color:var(--text-faint);padding:6px 0 4px">${statusText}</div>
+    <button class="reveal-btn" style="margin:0 auto 12px;display:block" onclick="replayMinimalPairRound()" ${(S.isSpeaking||mp.answered)?"disabled":""}>🔊 もう一度再生</button>
+    <div style="display:flex;gap:10px">
+      <button class="mp-choice ${aCls}" ${disabled} onclick="answerMinimalPair('a')">
+        <div style="font-size:26px;font-weight:700;color:var(--text)">${esc(q.pair.a.zh)}</div>
+        <div style="font-size:13px;color:var(--accent-text)">${esc(q.pair.a.py)}</div>
+      </button>
+      <button class="mp-choice ${bCls}" ${disabled} onclick="answerMinimalPair('b')">
+        <div style="font-size:26px;font-weight:700;color:var(--text)">${esc(q.pair.b.zh)}</div>
+        <div style="font-size:13px;color:var(--accent-text)">${esc(q.pair.b.py)}</div>
+      </button>
+    </div>
+    ${feedback}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn btn-gray" style="flex:1;font-size:13px;opacity:.7" onclick="goHome()">🏠 ホームへ</button>
+  </div>`;
 }
 
 // XSSエスケープ（Gemini返答・生成文をinnerHTMLに埋め込む前に必ず通す）
@@ -1611,16 +1981,17 @@ function formatAiText(s){
 function render(){
   updateStats();renderStepBar();renderModeIndicator();
   const body=document.getElementById("practice-body");if(!body)return;
+  if(S.practiceMode==="minimal"){renderMinimalPairs(body);return;}
   const ph=S.phase,s=S.sentence;
   let html="";
 
-  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
+  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],fillblank:[{id:"listen",name:"初聴"},{id:"fillblank",name:"穴埋め"},{id:"result",name:"採点"}],quiz:[{id:"quiz",name:"内容理解"},{id:"result",name:"採点"}],bbu:[{id:"bbu",name:"ビルドアップ"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
   const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
   html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:var(--text-faint);font-size:13px">文を生成中…</span></div>`;
   } else if(s){
-    if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing") {
+    if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing" && ph !== "fillblank" && ph !== "quiz") {
       html += `<div style="background:var(--card-alt);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
         <div style="font-size:18px;color:var(--text);font-weight:600">${esc(s.partner)}</div>
@@ -1636,6 +2007,12 @@ function render(){
       html+=`<div style="text-align:center;font-size:14px;color:var(--text-faint);padding:14px 0">🎧 まず返答の音だけ聞いてください</div>`;
     } else if(ph==="dictation"||ph==="dictreviewing"){
       html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 音声を聞いて書き取ってください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">正解は採点後に表示されます</div></div>`;
+    } else if(ph==="fillblank"){
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 音声を聞いて空欄を埋めてください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">全文は下に表示されます（空欄部分のみ隠れています）</div></div>`;
+    } else if(ph==="quiz"){
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 テキストを見ずに会話を聞いて、内容の質問に答えてください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">全文は採点後に表示されます</div></div>`;
+    } else if(ph==="bbu"){
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🧩 下に表示される部分から少しずつ伸ばして音読します</div></div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${esc(s.zh)}</div>`;
       if(s.py){
@@ -1680,7 +2057,11 @@ function render(){
         html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 手本を聞く [Space]</button>`;
       }
     }
-    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="${S.practiceMode==='shadow'?"setPhase('check');render()":"S.dictInput='';S.dictResult=null;setPhase('dictation');render()"}">次へ：${S.practiceMode==='shadow'?"テキスト確認":"書き取り"} → [→]</button>`;
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="${
+      S.practiceMode==='shadow' ? "setPhase('check');render()"
+      : S.practiceMode==='fillblank' ? "S.fillInputs=[];S.fillResult=null;setPhase('fillblank');render()"
+      : "S.dictInput='';S.dictResult=null;setPhase('dictation');render()"
+    }">次へ：${S.practiceMode==='shadow'?"テキスト確認":S.practiceMode==='fillblank'?"穴埋め":"書き取り"} → [→]</button>`;
   }
   if((ph==="dictation"||ph==="dictreviewing")&&s){
     const dr=S.dictResult;
@@ -1793,6 +2174,151 @@ function render(){
       </div>`;
     }
   }
+  if(ph==="fillblank"&&s){
+    const blanks=s.blanks||[];
+    const fr=S.fillResult;
+    html+=`<div class="step-instruction"><span class="step-num">②穴埋め</span>　音声を聞いて、空欄に当てはまる語を入力してください。</div>`;
+    if(S.isSpeaking){
+      html+=`<div class="btn-row">
+        <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
+        <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
+      </div>`;
+    } else {
+      html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();${s.partner?`speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})`:`speak(S.sentence.zh,S.speed,()=>{S.isSpeaking=false;render();})`}">🔊 音声を再生 [Space]</button>`;
+    }
+    if(!blanks.length){
+      html+=`<div class="info-text" style="margin-top:10px">この文には空欄が生成されませんでした。次の文へ進んでください。</div>
+      <button class="btn" style="margin-top:8px;background:${S.level.color}" onclick="loadSentence()">🔄 別の文を生成</button>`;
+    } else if(!fr){
+      const chars=[...s.zh];
+      let displayHtml="",i=0;
+      while(i<chars.length){
+        const b=blanks.find(bl=>bl.index===i);
+        if(b){
+          const len=[...b.answer].length;
+          displayHtml+=`<span style="color:var(--accent-text);font-weight:700">${"＿".repeat(len)}</span>`;
+          i+=len;
+        } else {
+          displayHtml+=esc(chars[i]);
+          i++;
+        }
+      }
+      html+=`<div class="hanzi" style="margin-top:10px;font-size:24px">${displayHtml}</div>`;
+      html+=blanks.map((b,idx)=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <span style="font-size:12px;color:var(--text-faint);width:56px;flex-shrink:0">空欄${idx+1}</span>
+          <input id="fill-input-${idx}" type="text" placeholder="聞き取った語を入力（漢字・拼音どちらでも可）"
+            style="flex:1;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:16px;background:var(--card);color:var(--text);font-family:inherit"
+            oninput="S.fillInputs[${idx}]=this.value">
+        </div>`).join("");
+      html+=`<div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-dark" style="flex:1" onclick="submitFillBlank()">✅ 採点する</button>
+        <button class="btn btn-gray" style="flex:1" onclick="S.fillInputs=[];S.fillResult=null;render()">🔄 リセット</button>
+      </div>`;
+    }
+    if(fr){
+      const pct=fr.total?Math.round(fr.correctCount/fr.total*100):0;
+      const scoreColor=pct>=80?"#16a34a":pct>=50?"#d97706":"#dc2626";
+      html+=`<div style="text-align:center;margin:10px 0 6px">
+        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${pct}<span style="font-size:14px;color:var(--text-faint)">%</span></div>
+        <div style="font-size:12px;color:var(--text-faint)">正答率（${fr.correctCount}/${fr.total}）</div>
+      </div>`;
+      html+=fr.results.map((r,idx)=>{
+        const badge=r.correct?`<span style="color:#16a34a;font-weight:700">✅ 正解</span>`:r.partial?`<span style="color:#d97706;font-weight:700">🟡 拼音一致（惜しい）</span>`:`<span style="color:#dc2626;font-weight:700">❌ 不正解</span>`;
+        return `<div style="background:var(--card-alt);border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span style="color:var(--text-sec)">空欄${idx+1}：「${esc(r.input||"（未入力）")}」</span>
+            ${badge}
+          </div>
+          <div style="color:var(--text-faint);margin-top:2px">正解：${esc(r.answer)}（${esc(r.hint)}）${r.note?`　${esc(r.note)}`:""}</div>
+        </div>`;
+      }).join("");
+      html+=`<div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-gray" style="flex:1" onclick="S.fillInputs=[];S.fillResult=null;render()">🔄 もう一度</button>
+        <button class="btn" style="flex:1;background:${S.level.color}" onclick="nextStep()">次の文へ → [N]</button>
+      </div>`;
+    }
+  }
+  if(ph==="quiz"&&s){
+    const quiz=s.quiz||[];
+    const qr=S.quizResult;
+    const playsLeft=Math.max(0,2-S.quizPlayCount);
+    html+=`<div class="step-instruction"><span class="step-num">①内容理解</span>　会話を聞いて、内容に関する質問に答えてください（再生残り${playsLeft}回）。</div>`;
+    if(S.isSpeaking){
+      html+=`<div class="btn-row">
+        <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
+        <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
+      </div>`;
+    } else {
+      html+=`<button class="btn btn-dark" ${playsLeft<=0?"disabled":""} onclick="
+        S.quizPlayCount=Math.min(2,S.quizPlayCount+1);S.isSpeaking=true;render();
+        ${s.partner?`speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{S.isSpeaking=false;render();})`:`speak(S.sentence.zh,S.speed,()=>{S.isSpeaking=false;render();})`}
+      ">🔊 音声を再生（残り${playsLeft}回）</button>`;
+    }
+    if(!quiz.length){
+      html+=`<div class="info-text" style="margin-top:10px">この文にはクイズが生成されませんでした。次の文へ進んでください。</div>
+      <button class="btn" style="margin-top:8px;background:${S.level.color}" onclick="loadSentence()">🔄 別の文を生成</button>`;
+    } else if(!qr){
+      html+=quiz.map((q,qi)=>`
+        <div style="margin-top:14px">
+          <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px">Q${qi+1}. ${esc(q.question)}</div>
+          ${q.options.map((opt,oi)=>`<button class="topic-btn${S.quizAnswers[qi]===oi?" active":""}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:9px 12px;white-space:normal" onclick="S.quizAnswers[${qi}]=${oi};render()">${String.fromCharCode(65+oi)}. ${esc(opt)}</button>`).join("")}
+        </div>`).join("");
+      const allAnswered=quiz.every((q,qi)=>S.quizAnswers[qi]!=null);
+      html+=`<button class="btn btn-dark" style="margin-top:10px" ${allAnswered?"":"disabled"} onclick="submitQuiz()">✅ 採点する</button>`;
+    }
+    if(qr){
+      const pct=qr.total?Math.round(qr.correctCount/qr.total*100):0;
+      const scoreColor=pct>=80?"#16a34a":pct>=50?"#d97706":"#dc2626";
+      html+=`<div style="text-align:center;margin:10px 0 6px">
+        <div style="font-size:28px;font-weight:800;color:${scoreColor}">${pct}<span style="font-size:14px;color:var(--text-faint)">%</span></div>
+        <div style="font-size:12px;color:var(--text-faint)">正答率（${qr.correctCount}/${qr.total}）</div>
+      </div>`;
+      html+=qr.results.map((r,qi)=>{
+        const badge=r.correct?`<span style="color:#16a34a;font-weight:700">✅ 正解</span>`:`<span style="color:#dc2626;font-weight:700">❌ 不正解</span>`;
+        return `<div style="background:var(--card-alt);border-radius:8px;padding:8px 11px;margin-bottom:6px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <span style="color:var(--text-sec)">Q${qi+1}. ${esc(r.question)}</span>
+            ${badge}
+          </div>
+          <div style="color:var(--text-faint);margin-top:2px">あなたの回答：${esc(r.selectedText)}　正解：${esc(r.answerText)}</div>
+          ${r.explanation?`<div style="color:var(--text-faint);margin-top:2px">${esc(r.explanation)}</div>`:""}
+        </div>`;
+      }).join("");
+      html+=`<div class="diff-box" style="margin-top:10px">
+        <div class="diff-label">全文</div>
+        <div class="diff-text" style="font-size:20px">${esc(s.zh)}</div>
+        ${s.py?`<div style="font-size:14px;color:var(--accent-text);margin-top:4px">${esc(s.py)}</div>`:""}
+        ${s.ja?`<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(s.ja)}</div>`:""}
+        ${s.partner?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <div class="diff-label">相手のセリフ</div>
+          <div style="font-size:15px;color:var(--text);font-weight:600">${esc(s.partner)}</div>
+          ${s.partnerJa?`<div style="font-size:12px;color:var(--text-faint);margin-top:2px">${esc(s.partnerJa)}</div>`:""}
+        </div>`:""}
+      </div>`;
+      html+=`<div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-gray" style="flex:1" onclick="S.quizAnswers=[];S.quizResult=null;render()">🔄 もう一度</button>
+        <button class="btn" style="flex:1;background:${S.level.color}" onclick="nextStep()">次の文へ → [N]</button>
+      </div>`;
+    }
+  }
+  if(ph==="bbu"&&s){
+    const chunks=s.chunks&&s.chunks.length?s.chunks:[s.zh];
+    const idx=Math.min(S.bbuIndex,chunks.length-1);
+    const isLast=idx>=chunks.length-1;
+    const current=chunks[idx];
+    html+=`<div class="step-instruction"><span class="step-num">①ビルドアップ</span>　短い部分から少しずつ伸ばして音読します（${idx+1}/${chunks.length}）。</div>`;
+    html+=`<div class="hanzi" style="margin:10px 0">${esc(current)}</div>`;
+    if(S.isSpeaking){
+      html+=`<div class="btn-row">
+        <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
+        <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
+      </div>`;
+    } else {
+      html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak('${current.replace(/'/g,"\\'")}',S.speed,()=>{S.isSpeaking=false;render();})">🔊 この部分を再生 [Space]</button>`;
+    }
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="${isLast?"setPhase('record');render()":`S.bbuIndex=Math.min((S.sentence.chunks&&S.sentence.chunks.length?S.sentence.chunks.length:1)-1,S.bbuIndex+1);render()`}">${isLast?"次へ：録音へ → [→]":"次へ：もう少し伸ばす → [→]"}</button>`;
+  }
   if(ph==="check"&&s){
     html+=`<div class="step-instruction"><span class="step-num">③確認・音読</span>　相手のセリフと返答の意味・発音を確認し、テキストを見ながら手本と一緒に声に出して読みましょう。</div>`;
     if(S.isSpeaking){
@@ -1903,7 +2429,7 @@ function render(){
   }
 
   if(ph!=="result"&&ph!=="reviewing"&&ph!=="loading"&&s){
-    const prevMap={dictation:"listen",check:"dictation",shadow:"check",record:"shadow",recording:"record"};
+    const prevMap={dictation:"listen",fillblank:"listen",check:"dictation",shadow:"check",record:(S.practiceMode==="bbu"?"bbu":"shadow"),recording:"record"};
     const prev=prevMap[ph];
     html+=`<div style="display:flex;gap:8px;margin-top:12px">`;
     if(prev)html+=`<button class="btn btn-gray" style="flex:1;font-size:13px" onclick="setPhase('${prev}');render()">← 前へ戻る</button>`;
@@ -1919,6 +2445,13 @@ function render(){
     const ta=document.getElementById("dict-input");
     if(ta){ta.value=S.dictInput;ta.setSelectionRange(ta.value.length,ta.value.length);}
   }
+  // fillblank フェーズ：再描画後に入力途中の内容を復元
+  if(S.phase==="fillblank"&&!S.fillResult){
+    (S.sentence?.blanks||[]).forEach((b,i)=>{
+      const el=document.getElementById("fill-input-"+i);
+      if(el&&S.fillInputs[i])el.value=S.fillInputs[i];
+    });
+  }
   if(ph==="result")body.scrollTop=body.scrollHeight;
   if(ph==="result"&&S.pitchAnalysis&&!S.pitchAnalysis.error) drawPitchChart(S.pitchAnalysis);
 }
@@ -1927,15 +2460,20 @@ function render(){
 document.addEventListener("keydown",e=>{
   if(!S.shortcutsEnabled)return;
   if(["INPUT","TEXTAREA"].includes(e.target.tagName))return;
+  if(S.practiceMode==="minimal")return; // ミニマルペアは専用の選択ボタンで進行するためショートカット対象外
   const ph=S.phase;
   if(e.code==="Space"){
     e.preventDefault();
-    if(!S.isSpeaking&&S.sentence&&["listen","dictation","check","shadow"].includes(ph)){
+    if(!S.isSpeaking&&S.sentence&&["listen","dictation","fillblank","check","shadow","bbu"].includes(ph)){
       S.isSpeaking=true;
       if(ph==="shadow") S.repCount=Math.min(S.reps,S.repCount+1);
       render();
       if(ph==="dictation"){
         speak(S.sentence.zh, S.dictSpeed, ()=>{S.isSpeaking=false;render();});
+      } else if(ph==="bbu"){
+        const chunks=S.sentence.chunks&&S.sentence.chunks.length?S.sentence.chunks:[S.sentence.zh];
+        const cur=chunks[Math.min(S.bbuIndex,chunks.length-1)];
+        speak(cur, S.speed, ()=>{S.isSpeaking=false;render();});
       } else if(S.sentence.partner&&ph!=="shadow"){
         speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{});
       } else {
@@ -2000,6 +2538,7 @@ async function loadUserData() {
       if (Array.isArray(data.reviewQueue)) S.reviewQueue = data.reviewQueue;
       if (Array.isArray(data.vocabDex)) S.vocabDex = data.vocabDex;
       if (Array.isArray(data.grammarDex)) S.grammarDex = data.grammarDex;
+      if (data.minimalPairStats && typeof data.minimalPairStats==="object") S.minimalPairStats = data.minimalPairStats;
       if (data.coach) S.coach = { lastSessionDate:null, streak:0, ...data.coach };
       if (data.settings) {
         const sv = data.settings;
@@ -2010,6 +2549,8 @@ async function loadUserData() {
         if (sv.hskPrio !== undefined) S.hskPrio = sv.hskPrio;
         if (sv.practiceStyle) S.practiceStyle = sv.practiceStyle;
         if (sv.practiceMode)  { S.practiceMode = sv.practiceMode; setMode(sv.practiceMode); }
+        if (sv.fillBlankDifficulty) { S.fillBlankDifficulty = sv.fillBlankDifficulty; setFillDifficulty(sv.fillBlankDifficulty); }
+        if (sv.quizLang) { S.quizLang = sv.quizLang; setQuizLang(sv.quizLang); }
         if (sv.shortcutsEnabled !== undefined) { S.shortcutsEnabled = sv.shortcutsEnabled; renderShortcutToggle(); }
         if (sv.voiceURI) { S.voiceURI = sv.voiceURI; populateVoiceSelect(); }
         if (sv.theme) setTheme(sv.theme);
@@ -2106,7 +2647,7 @@ async function saveSettingsToCloud() {
   if (!currentUser) return;
   try {
     await db.collection("users").doc(currentUser.uid).set({
-      settings: { theme:S.theme, levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode, shortcutsEnabled:S.shortcutsEnabled, voiceURI:S.voiceURI }
+      settings: { theme:S.theme, levelId:S.level.id, topic:S.topic, speed:S.speed, reps:S.reps, hskPrio:S.hskPrio, practiceStyle:S.practiceStyle, practiceMode:S.practiceMode, shortcutsEnabled:S.shortcutsEnabled, voiceURI:S.voiceURI, fillBlankDifficulty:S.fillBlankDifficulty, quizLang:S.quizLang }
     }, { merge: true });
   } catch(e) { console.warn("設定の保存失敗:", e.message); }
 }

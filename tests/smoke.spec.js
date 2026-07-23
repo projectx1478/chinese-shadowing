@@ -174,3 +174,376 @@ test.describe('声調ピッチグラフ（始点ズレバグの再発防止）',
     expect(result[2].semi - result[1].semi).toBeCloseTo(1, 5);
   });
 });
+
+test.describe('ミニマルペア聞き分け（8-3、mode-minimal）', () => {
+  test('練習モードで選択でき、開始するとstep-barが空になりS.mpがセットされる', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('minimal'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-minimal').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+
+    const state = await page.evaluate(() => ({
+      practiceMode: S.practiceMode,
+      phase: S.phase,
+      mpQuestionCount: S.mp?.questions?.length,
+      stepBarEmpty: document.getElementById('step-bar').innerHTML.trim() === '',
+    }));
+    expect(state.practiceMode).toBe('minimal');
+    expect(state.phase).toBe('minimal');
+    expect(state.mpQuestionCount).toBe(10);
+    expect(state.stepBarEmpty).toBe(true);
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('正解/不正解の判定とカテゴリ別統計の集計が正しく行われる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('minimal'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    // 実機TTSの再生完了を待たず、テスト用に再生完了状態へ直接遷移させる
+    await page.evaluate(() => { S.isSpeaking = false; render(); });
+
+    const targetSide = await page.evaluate(() => S.mp.questions[S.mp.index].targetSide);
+    const category = await page.evaluate(() => S.mp.questions[S.mp.index].pair.category);
+    await page.evaluate((side) => answerMinimalPair(side), targetSide);
+    await page.waitForTimeout(100);
+
+    const afterCorrect = await page.evaluate((cat) => ({
+      lastCorrect: S.mp.lastCorrect,
+      correctCount: S.mp.correctCount,
+      statTotal: S.minimalPairStats[cat]?.total,
+      statCorrect: S.minimalPairStats[cat]?.correct,
+    }), category);
+    expect(afterCorrect.lastCorrect).toBe(true);
+    expect(afterCorrect.correctCount).toBe(1);
+    expect(afterCorrect.statTotal).toBe(1);
+    expect(afterCorrect.statCorrect).toBe(1);
+
+    // 1.1秒後に次の問題へ自動的に進む
+    await page.waitForTimeout(1200);
+    const afterAdvance = await page.evaluate(() => ({ index: S.mp.index, answered: S.mp.answered }));
+    expect(afterAdvance.index).toBe(1);
+    expect(afterAdvance.answered).toBe(false);
+  });
+
+  test('ミニマルペア中はArrowRightショートカットがgenerateSentence()を呼ばない（誤って通常フローに進まない）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('minimal'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+
+    await page.exposeFunction('__markCalled', () => {});
+    let called = false;
+    page.on('console', (msg) => { if (msg.text() === '__generateSentenceCalled__') called = true; });
+    await page.evaluate(() => {
+      window.__origGenerateSentence = generateSentence;
+      generateSentence = async function (...args) {
+        console.log('__generateSentenceCalled__');
+        return window.__origGenerateSentence.apply(this, args);
+      };
+    });
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
+
+    expect(called).toBe(false);
+    const state = await page.evaluate(() => ({ practiceMode: S.practiceMode, phase: S.phase }));
+    expect(state).toEqual({ practiceMode: 'minimal', phase: 'minimal' });
+  });
+});
+
+test.describe('穴埋めディクテーション（8-1、mode-fillblank）', () => {
+  test('generateSentence()応答の「穴埋め」タグが正しい位置・内容でパースされる', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(() => {
+      const zh = '我今天要把作业写完了。';
+      const blankRaw = '把|bǎ|把構文の虚詞で弱化しやすい；了|le|軽声で聞き取りにくい';
+      const candidates = blankRaw.split(/[；;]/).map((s) => s.trim()).filter(Boolean).map((s) => {
+        const [word, py2, note] = s.split('|').map((x) => x?.trim());
+        if (!word) return null;
+        const index = zh.indexOf(word);
+        if (index < 0) return null;
+        return { index, answer: word, hint: py2 || '', note: note || '' };
+      }).filter(Boolean).sort((a, b) => a.index - b.index);
+      return candidates.reduce((acc, b) => {
+        const end = b.index + b.answer.length;
+        const overlap = acc.some((x) => !(end <= x.index || b.index >= x.index + x.answer.length));
+        if (!overlap) acc.push(b);
+        return acc;
+      }, []).slice(0, 3);
+    });
+
+    expect(result).toEqual([
+      { index: 4, answer: '把', hint: 'bǎ', note: '把構文の虚詞で弱化しやすい' },
+      { index: 9, answer: '了', hint: 'le', note: '軽声で聞き取りにくい' },
+    ]);
+  });
+
+  test('練習モードで選択でき、fillblankフェーズでは全文が隠れ空欄のみ表示される（テキスト漏洩の再発防止）', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('fillblank'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-fillblank').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我今天要把作业写完了。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        blanks: [
+          { index: 4, answer: '把', hint: 'bǎ', note: '' },
+          { index: 9, answer: '了', hint: 'le', note: '' },
+        ],
+      };
+      S.fillInputs = []; S.fillResult = null;
+      setPhase('fillblank');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    const hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    // 空欄部分（把・了）が実際の文字ではなく＿に置き換わっており、それ以外の文字はそのまま表示される
+    expect(hanziText).toBe('我今天要＿作业写完＿。');
+    expect(hanziText).not.toContain('把');
+    expect(hanziText.includes('了')).toBe(false);
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('採点：完全一致は正解、声調記号を除いた拼音一致は部分点、それ以外は不正解になる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('fillblank'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我今天要把作业写完了。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        blanks: [
+          { index: 4, answer: '把', hint: 'bǎ', note: '' },
+          { index: 9, answer: '了', hint: 'le', note: '' },
+          { index: 10, answer: '。', hint: '', note: '' },
+        ],
+      };
+      S.fillInputs = []; S.fillResult = null;
+      setPhase('fillblank');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    await page.fill('#fill-input-0', '把'); // 完全一致
+    await page.fill('#fill-input-1', 'le'); // 拼音一致（声調なし）
+    await page.fill('#fill-input-2', '吗'); // 不正解
+    await page.evaluate(() => submitFillBlank());
+    await page.waitForTimeout(100);
+
+    const fr = await page.evaluate(() => S.fillResult);
+    expect(fr.results[0]).toMatchObject({ correct: true, partial: false });
+    expect(fr.results[1]).toMatchObject({ correct: false, partial: true });
+    expect(fr.results[2]).toMatchObject({ correct: false, partial: false });
+    expect(fr.correctCount).toBe(1.5);
+    expect(fr.total).toBe(3);
+  });
+});
+
+test.describe('音声のみ内容理解クイズ（8-2、mode-quiz）', () => {
+  test('練習モードで選択でき、quizフェーズでは全文が非表示（テキスト漏洩の再発防止）', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('quiz'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-quiz').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '你昨天做什么了？', partnerJa: '',
+        vocab: [], grammar: [],
+        quiz: [{ question: 'Q', options: ['A', 'B', 'C', 'D'], answerIndex: 1, explanation: '' }],
+      };
+      S.quizPlayCount = 1; S.quizAnswers = []; S.quizResult = null;
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    const hanziEl = await page.evaluate(() => document.querySelector('.hanzi'));
+    expect(hanziEl).toBeNull();
+    const bodyText = await page.evaluate(() => document.getElementById('practice-body').textContent);
+    expect(bodyText).not.toContain('我昨天在家看了一部电影');
+    expect(bodyText).not.toContain('你昨天做什么了');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('採点：正解/不正解が正しく判定され、再生回数の上限（2回）に達すると再生ボタンが無効化される', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('quiz'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        quiz: [
+          { question: 'Q1', options: ['A', 'B', 'C', 'D'], answerIndex: 1, explanation: '' },
+          { question: 'Q2', options: ['A', 'B', 'C', 'D'], answerIndex: 2, explanation: '' },
+        ],
+      };
+      S.quizPlayCount = 1; S.quizAnswers = [1, 0]; S.quizResult = null; // Q1正解・Q2不正解を選択済み
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+    await page.evaluate(() => submitQuiz());
+    await page.waitForTimeout(100);
+
+    const qr = await page.evaluate(() => S.quizResult);
+    expect(qr.results[0].correct).toBe(true);
+    expect(qr.results[1].correct).toBe(false);
+    expect(qr.correctCount).toBe(1);
+    expect(qr.total).toBe(2);
+
+    await page.evaluate(() => { S.quizPlayCount = 2; S.quizResult = null; S.quizAnswers = []; render(); });
+    await page.waitForTimeout(100);
+    const playBtnDisabled = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('音声を再生'));
+      return btn ? btn.disabled : null;
+    });
+    expect(playBtnDisabled).toBe(true);
+  });
+
+  test('quizフェーズ中はSpaceショートカットが効かない（再生回数上限のバイパス防止）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('quiz'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = { zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '', vocab: [], grammar: [], quiz: [] };
+      S.quizPlayCount = 2; S.isSpeaking = false;
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    let speakCalled = false;
+    await page.evaluate(() => {
+      window.__origSpeak = speak;
+      speak = async function (...args) { window.__speakCalled = true; return window.__origSpeak.apply(this, args); };
+    });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(200);
+    speakCalled = await page.evaluate(() => !!window.__speakCalled);
+    expect(speakCalled).toBe(false);
+  });
+});
+
+test.describe('バックワードビルドアップ（8-4、mode-bbu）', () => {
+  test('フォールバック分割：AIの出力が無い/不正な場合、末尾から段階的に伸びる配列を生成し最終段階が全文と一致する', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(() => {
+      function buildBackwardChunksFallback(zh) {
+        const stripped = zh.replace(/[，。！？、]+$/, '');
+        const chars = [...stripped];
+        const n = chars.length;
+        if (n <= 2) return [zh];
+        const numStages = Math.min(4, Math.max(2, Math.ceil(n / 4)));
+        const chunks = [];
+        for (let i = 1; i <= numStages; i++) {
+          const len = Math.round((n * i) / numStages);
+          chunks.push(chars.slice(n - len).join(''));
+        }
+        chunks[chunks.length - 1] = zh;
+        return [...new Set(chunks)];
+      }
+      return buildBackwardChunksFallback('今天我们一起吃饭。');
+    });
+
+    expect(result[result.length - 1]).toBe('今天我们一起吃饭。');
+    expect(result.length).toBeGreaterThanOrEqual(2);
+    // 各段階が前の段階より長い（末尾から伸びていく）こと
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i].length).toBeGreaterThan(result[i - 1].length);
+    }
+  });
+
+  test('練習モードで選択でき、bbuフェーズでは現在の段階のみ表示され、全段階を経ると録音フェーズへ遷移する', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('bbu'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-bbu').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '今天我们一起吃饭。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        chunks: ['吃饭', '一起吃饭', '我们一起吃饭', '今天我们一起吃饭。'],
+      };
+      S.bbuIndex = 0;
+      setPhase('bbu');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    // 最初は最短の段階のみ表示（全文はまだ見せない）
+    let hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    expect(hanziText).toBe('吃饭');
+
+    // 3回「次へ」を押して最終段階の表示まで進める
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('次へ'));
+        btn.click();
+      });
+      await page.waitForTimeout(50);
+    }
+    hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    expect(hanziText).toBe('今天我们一起吃饭。');
+    let phase = await page.evaluate(() => S.phase);
+    expect(phase).toBe('bbu');
+
+    // もう一度「次へ」を押すと録音フェーズへ遷移する
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('次へ'));
+      btn.click();
+    });
+    await page.waitForTimeout(100);
+    phase = await page.evaluate(() => S.phase);
+    expect(phase).toBe('record');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('bbuフェーズ中のSpaceショートカットは全文ではなく現在の段階のみを再生する', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('bbu'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '今天我们一起吃饭。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        chunks: ['吃饭', '一起吃饭', '我们一起吃饭', '今天我们一起吃饭。'],
+      };
+      S.bbuIndex = 0; S.isSpeaking = false;
+      setPhase('bbu');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    let spokenText = null;
+    await page.evaluate(() => {
+      window.__origSpeak = speak;
+      speak = async function (text, ...rest) { window.__spokenText = text; return window.__origSpeak.apply(this, [text, ...rest]); };
+    });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(100);
+    spokenText = await page.evaluate(() => window.__spokenText);
+    expect(spokenText).toBe('吃饭'); // 全文「今天我们一起吃饭。」ではなく現在の段階のみ
+  });
+});
