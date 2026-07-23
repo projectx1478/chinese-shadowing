@@ -254,3 +254,98 @@ test.describe('ミニマルペア聞き分け（8-3、mode-minimal）', () => {
     expect(state).toEqual({ practiceMode: 'minimal', phase: 'minimal' });
   });
 });
+
+test.describe('穴埋めディクテーション（8-1、mode-fillblank）', () => {
+  test('generateSentence()応答の「穴埋め」タグが正しい位置・内容でパースされる', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(() => {
+      const zh = '我今天要把作业写完了。';
+      const blankRaw = '把|bǎ|把構文の虚詞で弱化しやすい；了|le|軽声で聞き取りにくい';
+      const candidates = blankRaw.split(/[；;]/).map((s) => s.trim()).filter(Boolean).map((s) => {
+        const [word, py2, note] = s.split('|').map((x) => x?.trim());
+        if (!word) return null;
+        const index = zh.indexOf(word);
+        if (index < 0) return null;
+        return { index, answer: word, hint: py2 || '', note: note || '' };
+      }).filter(Boolean).sort((a, b) => a.index - b.index);
+      return candidates.reduce((acc, b) => {
+        const end = b.index + b.answer.length;
+        const overlap = acc.some((x) => !(end <= x.index || b.index >= x.index + x.answer.length));
+        if (!overlap) acc.push(b);
+        return acc;
+      }, []).slice(0, 3);
+    });
+
+    expect(result).toEqual([
+      { index: 4, answer: '把', hint: 'bǎ', note: '把構文の虚詞で弱化しやすい' },
+      { index: 9, answer: '了', hint: 'le', note: '軽声で聞き取りにくい' },
+    ]);
+  });
+
+  test('練習モードで選択でき、fillblankフェーズでは全文が隠れ空欄のみ表示される（テキスト漏洩の再発防止）', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('fillblank'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-fillblank').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我今天要把作业写完了。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        blanks: [
+          { index: 4, answer: '把', hint: 'bǎ', note: '' },
+          { index: 9, answer: '了', hint: 'le', note: '' },
+        ],
+      };
+      S.fillInputs = []; S.fillResult = null;
+      setPhase('fillblank');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    const hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    // 空欄部分（把・了）が実際の文字ではなく＿に置き換わっており、それ以外の文字はそのまま表示される
+    expect(hanziText).toBe('我今天要＿作业写完＿。');
+    expect(hanziText).not.toContain('把');
+    expect(hanziText.includes('了')).toBe(false);
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('採点：完全一致は正解、声調記号を除いた拼音一致は部分点、それ以外は不正解になる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('fillblank'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我今天要把作业写完了。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        blanks: [
+          { index: 4, answer: '把', hint: 'bǎ', note: '' },
+          { index: 9, answer: '了', hint: 'le', note: '' },
+          { index: 10, answer: '。', hint: '', note: '' },
+        ],
+      };
+      S.fillInputs = []; S.fillResult = null;
+      setPhase('fillblank');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    await page.fill('#fill-input-0', '把'); // 完全一致
+    await page.fill('#fill-input-1', 'le'); // 拼音一致（声調なし）
+    await page.fill('#fill-input-2', '吗'); // 不正解
+    await page.evaluate(() => submitFillBlank());
+    await page.waitForTimeout(100);
+
+    const fr = await page.evaluate(() => S.fillResult);
+    expect(fr.results[0]).toMatchObject({ correct: true, partial: false });
+    expect(fr.results[1]).toMatchObject({ correct: false, partial: true });
+    expect(fr.results[2]).toMatchObject({ correct: false, partial: false });
+    expect(fr.correctCount).toBe(1.5);
+    expect(fr.total).toBe(3);
+  });
+});

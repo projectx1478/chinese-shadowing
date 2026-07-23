@@ -117,6 +117,15 @@
       <button class="topic-btn" id="mode-minimal" onclick="setMode('minimal')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
         👂 ミニマルペア聞き分け <span style="font-size:11px;color:var(--text-faint)">声調・紛らわしい音の2択クイズ（10問）</span>
       </button>
+      <button class="topic-btn" id="mode-fillblank" onclick="setMode('fillblank')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
+        🕳 穴埋めディクテーション <span style="font-size:11px;color:var(--text-faint)">初聴→空欄に聞き取った語を入力→採点</span>
+      </button>
+    </div>
+
+    <div class="sec-label">穴埋めディクテーションの難易度</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="topic-btn" id="fb-easy" onclick="setFillDifficulty('easy')">易（内容語）</button>
+      <button class="topic-btn active" id="fb-hard" onclick="setFillDifficulty('hard')">難（機能語・弱化音節）</button>
     </div>
 
     <div class="sec-label">練習ステップ</div>
