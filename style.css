@@ -127,6 +127,11 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 .pronun-box { background:#171a2e; border:1.5px solid var(--accent-text); border-radius:10px; padding:10px 12px; margin:7px 0; }
 .pronun-title { font-size:10px; font-weight:700; color:var(--accent-text); margin-bottom:5px; }
 .pronun-text { font-size:15px; color:var(--text); line-height:1.8; white-space:pre-wrap; }
+.pronun-text div + .ai-bullet-list, .pronun-text .ai-bullet-list { margin-top:2px; }
+.ai-bullet-list { list-style:none; padding:0; margin:4px 0 0; }
+.ai-bullet-list li { position:relative; padding-left:1.1em; margin-bottom:4px; }
+.ai-bullet-list li::before { content:"・"; position:absolute; left:0; color:var(--accent-text); font-weight:700; }
+.ai-bullet-list li:last-child { margin-bottom:0; }
 .feedback-box { background:#241f10; border:1.5px solid var(--accent-text); border-radius:10px; padding:10px 12px; margin:7px 0; }
 .feedback-title { font-size:10px; font-weight:700; color:#e8c468; margin-bottom:5px; }
 .feedback-text { font-size:15px; color:#f0e6c8; line-height:1.8; white-space:pre-wrap; }

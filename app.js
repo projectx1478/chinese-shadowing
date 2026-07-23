@@ -859,11 +859,13 @@ async function reviewRecording(blob, prevRec){
 音声1（前回の録音）と音声2（今回の録音）を比較し、発音・声調の変化を分析してください。
 ・音声1が環境音のみ・無音・意味のある発話でない場合は「改善」に「前回音声なし」と記載してください。
 
-出力形式（厳守）：
+出力形式（厳守。発音詳細は指摘事項ごとに改行し「・」から始める箇条書きで1〜3項目）：
 改善：<前回から改善できた点（発話でなければ「前回音声なし」）>
 未修正：<まだ残っている課題（発話でなければ「-」）>
 新課題：<今回新たに出たミス（なければ「なし」）>
-発音詳細：<今回の声調・発音のズレを具体的に日本語で>
+発音詳細：
+・<今回の声調・発音のズレ①を具体的に日本語で>
+・<ズレ②（あれば）>
 総評：<前回との比較を踏まえた日本語2文程度の総評>`},
       {type:"audio",mime:mime2,data:b642},
       {type:"audio",mime,data:b64}
@@ -886,8 +888,10 @@ async function reviewRecording(blob, prevRec){
 
 上記の認識結果を踏まえ、声調・発音のズレを具体的に指摘し、改善アドバイスを提示してください。
 
-出力形式（厳守）：
-発音詳細：<声調ミス・発音のズレを具体的に日本語で>
+出力形式（厳守。発音詳細は指摘事項ごとに改行し「・」から始める箇条書きで1〜3項目）：
+発音詳細：
+・<声調ミス・発音のズレ①を具体的に日本語で>
+・<ズレ②（あれば）>
 総評：<日本語で2文程度>`},
     {type:"audio",mime,data:b64}
   ]}]);
@@ -991,10 +995,11 @@ async function getDictationExplain(target,input,miss,extra){
 抜けた文字：${miss.length?miss.join("、"):"なし"}
 余分な文字：${extra.length?extra.join("、"):"なし"}
 
-以下の観点で100〜150字程度の日本語で解説してください：
-・間違えた箇所とその理由
-・日本人が間違えやすいポイント
-・覚え方のヒント`}])).trim();
+出力形式（厳守。「間違えた箇所」は1項目ずつ改行し「・」から始める箇条書きで、それぞれ理由や日本人が間違えやすいポイントも簡潔に含める）：
+間違えた箇所：
+・<誤り①とその理由・間違えやすいポイント>
+・<誤り②（あれば）>
+ヒント：<覚え方のコツを日本語1文で>`}])).trim();
   }catch(e){return "";}
 }
 
@@ -1562,6 +1567,24 @@ function renderModeIndicator(){
 // XSSエスケープ（Gemini返答・生成文をinnerHTMLに埋め込む前に必ず通す）
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
+// AI生成テキストの「・」始まりの行を<ul><li>に変換して一覧しやすくする（他の行はそのまま段落表示）
+function formatAiText(s){
+  const lines=String(s||"").split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  let html="",inList=false;
+  for(const line of lines){
+    const bullet=line.match(/^[・･\-*]\s*(.+)/);
+    if(bullet){
+      if(!inList){html+="<ul class=\"ai-bullet-list\">";inList=true;}
+      html+=`<li>${esc(bullet[1])}</li>`;
+    }else{
+      if(inList){html+="</ul>";inList=false;}
+      html+=`<div>${esc(line)}</div>`;
+    }
+  }
+  if(inList)html+="</ul>";
+  return html;
+}
+
 function render(){
   updateStats();renderStepBar();renderModeIndicator();
   const body=document.getElementById("practice-body");if(!body)return;
@@ -1735,7 +1758,7 @@ function render(){
       if(dr.explain){
         html+=`<div class="pronun-box" style="margin-top:6px">
           <div class="pronun-title">📖 AI解説</div>
-          <div class="pronun-text">${esc(dr.explain)}</div>
+          <div class="pronun-text">${formatAiText(dr.explain)}</div>
         </div>`;
       }
       html+=`<div class="btn-row" style="margin-top:10px">
@@ -1833,7 +1856,7 @@ function render(){
       <div class="diff-label" style="margin-top:8px">お手本</div>
       <div class="diff-text diff-target">${esc(s?.zh||"")}</div>
     </div>`;
-    if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${esc(r.pronun)}</div></div>`;
+    if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${formatAiText(r.pronun)}</div></div>`;
     html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${esc(r.feedback)}</div></div>`;
     // 声調（ピッチ）グラフ
     if(S.pitchAnalyzing){
