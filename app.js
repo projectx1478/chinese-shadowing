@@ -10,7 +10,6 @@ const STEPS = [
   {id:"listen",name:"初聴"},
   {id:"dictation",name:"書取"},
   {id:"check",name:"確認"},
-  {id:"read",name:"音読"},
   {id:"shadow",name:"追読"},
   {id:"record",name:"録音"},
   {id:"result",name:"採点"},
@@ -1098,9 +1097,9 @@ function stepIndex(){
     const m={listen:0,dictation:1,dictreviewing:1,result:2};return m[S.phase]??0;
   }
   if(S.practiceMode==="shadow"){
-    const m={listen:0,check:1,read:2,shadow:3,record:4,recording:4,reviewing:5,result:5};return m[S.phase]??0;
+    const m={listen:0,check:1,shadow:2,record:3,recording:3,reviewing:4,result:4};return m[S.phase]??0;
   }
-  const m={listen:0,dictation:1,dictreviewing:1,check:2,read:3,shadow:4,record:5,recording:5,reviewing:6,result:6};return m[S.phase]??0;
+  const m={listen:0,dictation:1,dictreviewing:1,check:2,shadow:3,record:4,recording:4,reviewing:5,result:5};return m[S.phase]??0;
 }
 
 async function loadSentence(resetConversation=false){
@@ -1359,7 +1358,7 @@ function toneDirection(shape){
   return "flat";
 }
 
-async function analyzePitch(blob, pyStr){
+async function analyzePitch(blob, pyStr, zhStr){
   const AC=window.AudioContext||window.webkitAudioContext;
   if(!AC) return {error:true};
   const actx=new AC();
@@ -1398,6 +1397,9 @@ async function analyzePitch(blob, pyStr){
     const tones=parsePinyinTones(pyStr);
     const n=tones.length||1;
     const segDur=duration/n;
+    // 音節数と文字数が一致する場合のみ、グラフの各区間に対応する文字ラベルを付与する（記号・句読点は除く）
+    const zhChars=[...String(zhStr||"").replace(/[\s，。！？、「」『』【】〔〕…—～·,.!?;:""'']/g,"")];
+    const chars=zhChars.length===tones.length?zhChars:null;
     const expected=[];
     tones.forEach((tone,i)=>{
       const shape=TONE_SHAPE[tone]||TONE_SHAPE[0];
@@ -1430,7 +1432,7 @@ async function analyzePitch(blob, pyStr){
     const startOffset = firstActualPt ? startExpected - firstActualPt.semi : 0;
     const actualAligned = actual.map(p=>({t:p.t, semi:p.semi!=null?p.semi+startOffset:null}));
 
-    return {actual:actualAligned, expected, duration, tips:tips.slice(0,5)};
+    return {actual:actualAligned, expected, duration, tips:tips.slice(0,5), chars, segDur};
   } finally {
     actx.close?.();
   }
@@ -1440,21 +1442,43 @@ function drawPitchChart(analysis){
   const canvas=document.getElementById("pitch-chart");
   if(!canvas)return;
   const ctx=canvas.getContext("2d");
-  const W=canvas.width,H=canvas.height,padL=6,padR=6,padT=10,padB=6;
+  // canvasのfillStyle/strokeStyleはvar(...)を解決できず無視される（前の値を維持してしまう）ため、
+  // 実際のCSS変数値をgetComputedStyleで解決してから使う
+  const cs=getComputedStyle(canvas);
+  const accentColor=cs.getPropertyValue("--accent-text").trim()||"#4FD1C5";
+  const labelColor=cs.getPropertyValue("--text-faint").trim()||"#6b7086";
+  const gridColor=cs.getPropertyValue("--border").trim()||"rgba(255,255,255,0.1)";
+  const hasChars=!!(analysis.chars&&analysis.chars.length);
+  const W=canvas.width,H=canvas.height,padL=8,padR=8,padT=10,padB=hasChars?24:6;
   ctx.clearRect(0,0,W,H);
-  const {actual,expected,duration}=analysis;
+  const {actual,expected,duration,chars}=analysis;
   if(!duration)return;
   const semis=[...actual,...expected].map(p=>p.semi).filter(v=>v!=null);
   const maxAbs=Math.max(6,...semis.map(Math.abs));
   const xOf=t=>padL+(W-padL-padR)*(t/duration);
   const yOf=sm=>padT+(H-padT-padB)*(1-(sm+maxAbs)/(2*maxAbs));
+  // 文字ラベルに対応する区間の境界線（グラフの箇所と文字の対応を見やすくする）
+  if(hasChars){
+    const segDur=analysis.segDur||duration/chars.length;
+    ctx.strokeStyle=gridColor;ctx.lineWidth=1;ctx.setLineDash([2,3]);
+    for(let i=1;i<chars.length;i++){
+      const x=xOf(i*segDur);
+      ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.fillStyle=labelColor;ctx.font="12px sans-serif";ctx.textAlign="center";ctx.textBaseline="top";
+    chars.forEach((ch,i)=>{
+      const x=xOf(i*segDur+segDur/2);
+      ctx.fillText(ch,x,H-padB+6);
+    });
+  }
   ctx.strokeStyle="rgba(255,255,255,0.1)";ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(padL,yOf(0));ctx.lineTo(W-padR,yOf(0));ctx.stroke();
   ctx.strokeStyle="#c7c7c7";ctx.lineWidth=2;ctx.setLineDash([4,3]);
   ctx.beginPath();
   expected.forEach((p,i)=>{const x=xOf(p.t),y=yOf(p.semi);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
   ctx.stroke();ctx.setLineDash([]);
-  ctx.strokeStyle="var(--accent-text)";ctx.lineWidth=2.5;
+  ctx.strokeStyle=accentColor;ctx.lineWidth=2.5;
   ctx.beginPath();
   let started=false;
   actual.forEach(p=>{
@@ -1484,9 +1508,9 @@ function goHome(){
 
 function nextStep(){
   const orderMap={
-    full:      ["listen","dictation","check","read","shadow","record"],
+    full:      ["listen","dictation","check","shadow","record"],
     dictation: ["listen","dictation"],
-    shadow:    ["listen","check","read","shadow","record"],
+    shadow:    ["listen","check","shadow","record"],
   };
   const order=orderMap[S.practiceMode]||orderMap.full;
   const i=order.indexOf(S.phase);
@@ -1530,9 +1554,9 @@ function updateStats(){
 
 function renderStepBar(){
   const stepsMap={
-    full:      [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
+    full:      [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
     dictation: [{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],
-    shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
+    shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
   };
   const steps=stepsMap[S.practiceMode]||stepsMap.full;
   const bar=document.getElementById("step-bar");if(!bar)return;
@@ -1550,7 +1574,6 @@ const PHASE_MODE_INFO={
   dictation:   {icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
   dictreviewing:{icon:"📝",label:"ディクテーション",bg:"#332b10",color:"#f0a860"},
   check:       {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
-  read:        {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   shadow:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   record:      {icon:"🎤",label:"シャドーイング",bg:"#123a38",color:"var(--accent-text)"},
   result:      {icon:"✅",label:"採点結果",bg:"#0f2318",color:"#6ee7a8"},
@@ -1591,7 +1614,7 @@ function render(){
   const ph=S.phase,s=S.sentence;
   let html="";
 
-  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"read",name:"音読"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
+  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
   const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
   html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
@@ -1771,24 +1794,7 @@ function render(){
     }
   }
   if(ph==="check"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">③確認</span>　相手のセリフと返答の意味・発音を確認します。</div>`;
-    if(S.isSpeaking){
-      html+=`<div class="btn-row">
-        <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
-        <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
-      </div>`;
-    } else {
-      if(s.partner){
-        html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{})">🔊 会話を通して聞く [Space]</button>`;
-        html+=`<button class="btn" style="background:var(--accent);color:var(--accent-fg);margin-top:6px" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 返答だけ聞く</button>`;
-      } else {
-        html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak(S.sentence.zh,S.speed,()=>{})">🔊 もう一度聞く [Space]</button>`;
-      }
-    }
-    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="setPhase('read');render()">次へ：音読練習 → [→]</button>`;
-  }
-  if(ph==="read"&&s){
-    html+=`<div class="step-instruction"><span class="step-num">④音読</span>　テキストを見ながら、手本と一緒に声に出して読みましょう。</div>`;
+    html+=`<div class="step-instruction"><span class="step-num">③確認・音読</span>　相手のセリフと返答の意味・発音を確認し、テキストを見ながら手本と一緒に声に出して読みましょう。</div>`;
     if(S.isSpeaking){
       html+=`<div class="btn-row">
         <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
@@ -1838,7 +1844,7 @@ function render(){
     const r=S.result;
     if(!S.pitchAnalysis&&!S.pitchAnalyzing&&S.recordedBlob){
       S.pitchAnalyzing=true;
-      analyzePitch(S.recordedBlob,s?.py||"").then(res=>{
+      analyzePitch(S.recordedBlob,s?.py||"",s?.zh||"").then(res=>{
         S.pitchAnalysis=res;S.pitchAnalyzing=false;render();
       }).catch(e=>{console.warn("声調解析失敗:",e.message);S.pitchAnalyzing=false;S.pitchAnalysis={error:true};render();});
     }
@@ -1867,7 +1873,7 @@ function render(){
     } else if(S.pitchAnalysis&&!S.pitchAnalysis.error){
       html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:7px 0">
         <div style="font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:.5px;margin-bottom:6px">声調（ピッチ）グラフ</div>
-        <canvas id="pitch-chart" width="300" height="120" style="width:100%"></canvas>
+        <canvas id="pitch-chart" width="300" height="144" style="width:100%"></canvas>
         <div style="display:flex;gap:14px;font-size:10px;color:var(--text-muted);margin-top:4px">
           <span><span style="color:var(--accent-text)">●</span> あなたの声</span>
           <span><span style="color:#c7c7c7">┄</span> 期待される概形</span>
@@ -1878,10 +1884,13 @@ function render(){
       </div>`;
     }
     // 関連ニュース検索リンク（追加API不要・検索エンジンへのリンク方式）
+    // 文中の重要単語（generateSentence()が抽出したvocab）で検索し、トピック名だけの検索より内容に即した結果にする
     if(S.topic&&!S.customMode){
-      const nq=encodeURIComponent(S.topic);
+      const vocabWords=(s?.vocab||[]).map(v=>v.word).filter(Boolean);
+      const queryText=vocabWords.length?vocabWords.join(" "):(s?.zh||S.topic);
+      const nq=encodeURIComponent(queryText);
       html+=`<div style="text-align:center;margin:10px 0">
-        <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">📰 似たトピックのニュースを読んでみる</div>
+        <div style="font-size:10px;color:var(--text-faint);margin-bottom:6px">📰 この文の単語に関連するニュースを読んでみる</div>
         <a href="https://news.google.com/search?q=${nq}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans" target="_blank" rel="noopener" style="display:inline-block;background:var(--card);border:1px solid var(--border);color:var(--accent-text);padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">Google ニュース</a>
         <a href="https://www.baidu.com/s?tn=news&word=${nq}" target="_blank" rel="noopener" style="display:inline-block;background:var(--card);border:1px solid var(--border);color:var(--accent-text);padding:8px 14px;border-radius:20px;font-size:12px;text-decoration:none;margin:3px">百度新闻</a>
       </div>`;
@@ -1894,7 +1903,7 @@ function render(){
   }
 
   if(ph!=="result"&&ph!=="reviewing"&&ph!=="loading"&&s){
-    const prevMap={dictation:"listen",check:"dictation",read:"check",shadow:"read",record:"shadow",recording:"record"};
+    const prevMap={dictation:"listen",check:"dictation",shadow:"check",record:"shadow",recording:"record"};
     const prev=prevMap[ph];
     html+=`<div style="display:flex;gap:8px;margin-top:12px">`;
     if(prev)html+=`<button class="btn btn-gray" style="flex:1;font-size:13px" onclick="setPhase('${prev}');render()">← 前へ戻る</button>`;
@@ -1921,7 +1930,7 @@ document.addEventListener("keydown",e=>{
   const ph=S.phase;
   if(e.code==="Space"){
     e.preventDefault();
-    if(!S.isSpeaking&&S.sentence&&["listen","dictation","check","read","shadow"].includes(ph)){
+    if(!S.isSpeaking&&S.sentence&&["listen","dictation","check","shadow"].includes(ph)){
       S.isSpeaking=true;
       if(ph==="shadow") S.repCount=Math.min(S.reps,S.repCount+1);
       render();
