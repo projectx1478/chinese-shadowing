@@ -17,7 +17,7 @@
 
 ## 使用技術
 
-- フロントエンド：Vanilla JavaScript / HTML / CSS（単一 `index.html`、ビルドツール不使用）
+- フロントエンド：Vanilla JavaScript / HTML / CSS（ビルドツール不使用）
 - バックエンド：Firebase Authentication（Google認証）、Firestore（データ永続化）
 - AIプロキシ：Cloudflare Workers（Gemini APIキーをクライアントから隠蔽、Firebase IDトークンをJWKS方式で検証）
 - AI：Google Gemini API（会話文生成・発音採点解説・AIコーチのメッセージ生成）
@@ -37,7 +37,9 @@
 ├── README.md         人向けプロジェクト説明（本ファイル）
 ├── PROJECT.md         要件定義・設計・開発ルール
 ├── SESSION.md         現在の開発状況・引き継ぎ情報
-└── index.html         アプリ本体（単一ファイル構成）
+├── index.html         HTML骨格
+├── style.css          全CSS
+└── app.js             全JS（旧index.html内スクリプトをそのまま移設、実行順序維持）
 ```
 
 Cloudflare Worker（`gemini-proxy`）はセキュリティ上の理由からこのリポジトリには含めず、`wrangler` で別途デプロイ・管理しています。
