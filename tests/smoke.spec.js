@@ -349,3 +349,94 @@ test.describe('穴埋めディクテーション（8-1、mode-fillblank）', () 
     expect(fr.total).toBe(3);
   });
 });
+
+test.describe('音声のみ内容理解クイズ（8-2、mode-quiz）', () => {
+  test('練習モードで選択でき、quizフェーズでは全文が非表示（テキスト漏洩の再発防止）', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('quiz'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-quiz').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '你昨天做什么了？', partnerJa: '',
+        vocab: [], grammar: [],
+        quiz: [{ question: 'Q', options: ['A', 'B', 'C', 'D'], answerIndex: 1, explanation: '' }],
+      };
+      S.quizPlayCount = 1; S.quizAnswers = []; S.quizResult = null;
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    const hanziEl = await page.evaluate(() => document.querySelector('.hanzi'));
+    expect(hanziEl).toBeNull();
+    const bodyText = await page.evaluate(() => document.getElementById('practice-body').textContent);
+    expect(bodyText).not.toContain('我昨天在家看了一部电影');
+    expect(bodyText).not.toContain('你昨天做什么了');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('採点：正解/不正解が正しく判定され、再生回数の上限（2回）に達すると再生ボタンが無効化される', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('quiz'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        quiz: [
+          { question: 'Q1', options: ['A', 'B', 'C', 'D'], answerIndex: 1, explanation: '' },
+          { question: 'Q2', options: ['A', 'B', 'C', 'D'], answerIndex: 2, explanation: '' },
+        ],
+      };
+      S.quizPlayCount = 1; S.quizAnswers = [1, 0]; S.quizResult = null; // Q1正解・Q2不正解を選択済み
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+    await page.evaluate(() => submitQuiz());
+    await page.waitForTimeout(100);
+
+    const qr = await page.evaluate(() => S.quizResult);
+    expect(qr.results[0].correct).toBe(true);
+    expect(qr.results[1].correct).toBe(false);
+    expect(qr.correctCount).toBe(1);
+    expect(qr.total).toBe(2);
+
+    await page.evaluate(() => { S.quizPlayCount = 2; S.quizResult = null; S.quizAnswers = []; render(); });
+    await page.waitForTimeout(100);
+    const playBtnDisabled = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('音声を再生'));
+      return btn ? btn.disabled : null;
+    });
+    expect(playBtnDisabled).toBe(true);
+  });
+
+  test('quizフェーズ中はSpaceショートカットが効かない（再生回数上限のバイパス防止）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('quiz'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = { zh: '我昨天在家看了一部电影。', py: '', ja: '', partner: '', vocab: [], grammar: [], quiz: [] };
+      S.quizPlayCount = 2; S.isSpeaking = false;
+      setPhase('quiz');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    let speakCalled = false;
+    await page.evaluate(() => {
+      window.__origSpeak = speak;
+      speak = async function (...args) { window.__speakCalled = true; return window.__origSpeak.apply(this, args); };
+    });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(200);
+    speakCalled = await page.evaluate(() => !!window.__speakCalled);
+    expect(speakCalled).toBe(false);
+  });
+});
