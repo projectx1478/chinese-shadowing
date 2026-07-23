@@ -440,3 +440,110 @@ test.describe('音声のみ内容理解クイズ（8-2、mode-quiz）', () => {
     expect(speakCalled).toBe(false);
   });
 });
+
+test.describe('バックワードビルドアップ（8-4、mode-bbu）', () => {
+  test('フォールバック分割：AIの出力が無い/不正な場合、末尾から段階的に伸びる配列を生成し最終段階が全文と一致する', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(() => {
+      function buildBackwardChunksFallback(zh) {
+        const stripped = zh.replace(/[，。！？、]+$/, '');
+        const chars = [...stripped];
+        const n = chars.length;
+        if (n <= 2) return [zh];
+        const numStages = Math.min(4, Math.max(2, Math.ceil(n / 4)));
+        const chunks = [];
+        for (let i = 1; i <= numStages; i++) {
+          const len = Math.round((n * i) / numStages);
+          chunks.push(chars.slice(n - len).join(''));
+        }
+        chunks[chunks.length - 1] = zh;
+        return [...new Set(chunks)];
+      }
+      return buildBackwardChunksFallback('今天我们一起吃饭。');
+    });
+
+    expect(result[result.length - 1]).toBe('今天我们一起吃饭。');
+    expect(result.length).toBeGreaterThanOrEqual(2);
+    // 各段階が前の段階より長い（末尾から伸びていく）こと
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i].length).toBeGreaterThan(result[i - 1].length);
+    }
+  });
+
+  test('練習モードで選択でき、bbuフェーズでは現在の段階のみ表示され、全段階を経ると録音フェーズへ遷移する', async ({ page }) => {
+    const errors = await openSetup(page, 'light');
+    await page.evaluate(() => setMode('bbu'));
+    const modeActive = await page.evaluate(() => document.getElementById('mode-bbu').classList.contains('active'));
+    expect(modeActive).toBe(true);
+
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '今天我们一起吃饭。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        chunks: ['吃饭', '一起吃饭', '我们一起吃饭', '今天我们一起吃饭。'],
+      };
+      S.bbuIndex = 0;
+      setPhase('bbu');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    // 最初は最短の段階のみ表示（全文はまだ見せない）
+    let hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    expect(hanziText).toBe('吃饭');
+
+    // 3回「次へ」を押して最終段階の表示まで進める
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('次へ'));
+        btn.click();
+      });
+      await page.waitForTimeout(50);
+    }
+    hanziText = await page.evaluate(() => document.querySelector('.hanzi')?.textContent);
+    expect(hanziText).toBe('今天我们一起吃饭。');
+    let phase = await page.evaluate(() => S.phase);
+    expect(phase).toBe('bbu');
+
+    // もう一度「次へ」を押すと録音フェーズへ遷移する
+    await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.includes('次へ'));
+      btn.click();
+    });
+    await page.waitForTimeout(100);
+    phase = await page.evaluate(() => S.phase);
+    expect(phase).toBe('record');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('bbuフェーズ中のSpaceショートカットは全文ではなく現在の段階のみを再生する', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => setMode('bbu'));
+    await page.evaluate(() => { document.getElementById('start-btn').onclick(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      S.sentence = {
+        zh: '今天我们一起吃饭。', py: '', ja: '', partner: '', vocab: [], grammar: [],
+        chunks: ['吃饭', '一起吃饭', '我们一起吃饭', '今天我们一起吃饭。'],
+      };
+      S.bbuIndex = 0; S.isSpeaking = false;
+      setPhase('bbu');
+      render();
+    });
+    await page.waitForTimeout(100);
+
+    let spokenText = null;
+    await page.evaluate(() => {
+      window.__origSpeak = speak;
+      speak = async function (text, ...rest) { window.__spokenText = text; return window.__origSpeak.apply(this, [text, ...rest]); };
+    });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(100);
+    spokenText = await page.evaluate(() => window.__spokenText);
+    expect(spokenText).toBe('吃饭'); // 全文「今天我们一起吃饭。」ではなく現在の段階のみ
+  });
+});

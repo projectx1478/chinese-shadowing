@@ -103,6 +103,8 @@ const S = {
   quizPlayCount: 0, quizAnswers: [], quizResult: null,
   // 8-3 ミニマルペア聞き分け
   mp: null,
+  // 8-4 バックワードビルドアップ
+  bbuIndex: 0,
 };
 
 // ══ Setup UI ══════════════════════════════════════════════
@@ -161,7 +163,7 @@ setStyle(S.practiceStyle);
 
 function setMode(v){
   S.practiceMode=v;
-  ["full","dictation","shadow","minimal","fillblank","quiz"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
+  ["full","dictation","shadow","minimal","fillblank","quiz","bbu"].forEach(m=>document.getElementById("mode-"+m)?.classList.toggle("active",m===v));
   saveSettings();
 }
 setMode(S.practiceMode);
@@ -797,6 +799,10 @@ async function generateSentence(){
   const quizRule = S.practiceMode==="quiz"
     ? `\nクイズ：<相手のセリフ＋返答の会話全体について、「誰が何をしたか」「いつ・どこで」「話者の感情・意図」「次に起こること」のいずれかを問う4択質問を1〜2問作成。各質問は「質問文|選択肢1|選択肢2|選択肢3|選択肢4|正解の選択肢番号(1〜4の数字)|20字程度の解説」の形式（質問文・選択肢は${S.quizLang==="zh"?"中国語":"日本語"}）で；区切り。2問目は1問目と異なる観点にすること。例：${quizExample}>`
     : "";
+  // 8-4 バックワードビルドアップ用：bbuモードの時だけチャンクタグを追加要求（他モードでは不要なため付けない）
+  const bbuRule = S.practiceMode==="bbu"
+    ? `\nチャンク：<返答文を文末から意味のまとまりで区切り、短い方から長い方へ累積させた表現を|区切りで3〜5段階。最後の段階は返答文全文と完全に一致させること。例：吃饭|一起吃饭|我们一起吃饭|今天我们一起吃饭>`
+    : "";
   const raw=await gemini([{role:"user",content:
     `中国語シャドーイング練習用の「会話セット」を生成してください。
 レベル：${lvMap[S.level.id]}
@@ -817,7 +823,7 @@ ${styleRule}
 拼音：<返答文の声調記号付きピンイン>
 訳：<返答文の日本語訳>
 語彙：<返答文中の重要単語2〜4個を「単語|ピンイン|日本語訳|HSK級」の形式で；区切り。HSK級は1〜6の数字のみ、判断できなければ「?」。例：工作|gōngzuò|仕事|3；已经|yǐjīng|すでに|2>
-文法：<返答文で使われている文法パターン1個を「名称|簡潔な説明」の形式で。無ければ「なし」>${fillBlankRule}${quizRule}`}], undefined, 1.05);
+文法：<返答文で使われている文法パターン1個を「名称|簡潔な説明」の形式で。無ければ「なし」>${fillBlankRule}${quizRule}${bbuRule}`}], undefined, 1.05);
   const partner    = raw.match(/^相手[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerPy  = raw.match(/^相手拼音[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const partnerJa  = raw.match(/^相手訳[：:]\s*(.+)/m)?.[1]?.trim() || "";
@@ -828,6 +834,7 @@ ${styleRule}
   const grammarRaw = raw.match(/^文法[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const blankRaw   = raw.match(/^穴埋め[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const quizRaw    = raw.match(/^クイズ[：:]\s*(.+)/m)?.[1]?.trim() || "";
+  const chunkRaw   = raw.match(/^チャンク[：:]\s*(.+)/m)?.[1]?.trim() || "";
   const vocab = vocabRaw.split(/[；;]/).map(s=>s.trim()).filter(Boolean).map(s=>{
     const [word,py2,meaning,hsk]=s.split("|").map(x=>x?.trim());
     return word?{word,py:py2||"",meaning:meaning||"",level:/^[1-6]$/.test(hsk)?hsk:"?"}:null;
@@ -860,8 +867,31 @@ ${styleRule}
     if(!(answerIndex>=0&&answerIndex<=3))return null;
     return {question, options:[o1,o2,o3,o4], answerIndex, explanation:explanation||""};
   }).filter(Boolean).slice(0,2);
+  const chunks = (()=>{
+    if(!zh || S.practiceMode!=="bbu") return [];
+    const parsed = chunkRaw.split("|").map(s=>s.trim()).filter(Boolean);
+    // AIの出力が無効（空、または最後の段階が全文と不一致）な場合はJS側フォールバックで機械的に分割する
+    if(parsed.length>=2 && parsed[parsed.length-1]===zh) return parsed;
+    return buildBackwardChunksFallback(zh);
+  })();
   if(!zh) throw new Error("生成失敗: "+raw.slice(0,80));
-  return { zh, py, ja, partner, partnerPy, partnerJa, vocab, grammar, blanks, quiz };
+  return { zh, py, ja, partner, partnerPy, partnerJa, vocab, grammar, blanks, quiz, chunks };
+}
+
+// 8-4 バックワードビルドアップ用フォールバック：句読点を除いた文字数を目安に、文末から段階的に伸ばした配列を作る
+function buildBackwardChunksFallback(zh){
+  const stripped = zh.replace(/[，。！？、]+$/, "");
+  const chars = [...stripped];
+  const n = chars.length;
+  if(n<=2) return [zh];
+  const numStages = Math.min(4, Math.max(2, Math.ceil(n/4)));
+  const chunks=[];
+  for(let i=1;i<=numStages;i++){
+    const len = Math.round(n*i/numStages);
+    chunks.push(chars.slice(n-len).join(""));
+  }
+  chunks[chunks.length-1] = zh; // 最終段階は元の文（句読点含む）と完全一致させる
+  return [...new Set(chunks)];
 }
 
 // ══ 単語・文法図鑑 ════════════════════════════════════════
@@ -1355,6 +1385,9 @@ function stepIndex(){
   if(S.practiceMode==="quiz"){
     const m={quiz:0,result:1};return m[S.phase]??0;
   }
+  if(S.practiceMode==="bbu"){
+    const m={bbu:0,record:1,recording:1,reviewing:2,result:2};return m[S.phase]??0;
+  }
   if(S.practiceMode==="shadow"){
     const m={listen:0,check:1,shadow:2,record:3,recording:3,reviewing:4,result:4};return m[S.phase]??0;
   }
@@ -1368,6 +1401,7 @@ async function loadSentence(resetConversation=false){
   S.dictInput="";S.dictResult=null;
   S.fillInputs=[];S.fillResult=null;
   S.quizPlayCount=0;S.quizAnswers=[];S.quizResult=null;
+  S.bbuIndex=0;
   S.recordedBlob=null;
   S.pitchAnalysis=null;S.pitchAnalyzing=false;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
@@ -1378,10 +1412,11 @@ async function loadSentence(resetConversation=false){
     } else {
       S.sentence=await generateSentence();
     }
-    setPhase(S.practiceMode==="quiz"?"quiz":"listen");
-  }catch(e){setPhase(S.practiceMode==="quiz"?"quiz":"listen");setTimeout(()=>showErr(e.message),50);}
+    setPhase(S.practiceMode==="quiz"?"quiz":S.practiceMode==="bbu"?"bbu":"listen");
+  }catch(e){setPhase(S.practiceMode==="quiz"?"quiz":S.practiceMode==="bbu"?"bbu":"listen");setTimeout(()=>showErr(e.message),50);}
   render();
-  if(S.sentence){
+  // バックワードビルドアップは最初の（最も短い）段階から始めるため、全文の自動再生は行わない
+  if(S.sentence && S.practiceMode!=="bbu"){
     S.isSpeaking=true;render();
     if(S.practiceMode==="quiz") S.quizPlayCount=Math.min(2,S.quizPlayCount+1);
     if(S.sentence.partner){
@@ -1764,7 +1799,7 @@ function retryRecord(){
 function goHome(){
   stopAll();
   if(S.coachActive){S.coachActive=false;if(S._preCoachMode)S.practiceMode=S._preCoachMode;}
-  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;S.mp=null;S.fillInputs=[];S.fillResult=null;S.quizAnswers=[];S.quizResult=null;
+  S.sentence=null;S.result=null;S.recordedBlob=null;S.hideHanzi=false;S.mp=null;S.fillInputs=[];S.fillResult=null;S.quizAnswers=[];S.quizResult=null;S.bbuIndex=0;
   if(S.recordedUrl){URL.revokeObjectURL(S.recordedUrl);S.recordedUrl=null;}
   show("setup");updateSetupStats();renderWeakList();renderSavedSets();
 }
@@ -1776,6 +1811,7 @@ function nextStep(){
     shadow:    ["listen","check","shadow","record"],
     fillblank: ["listen","fillblank"],
     quiz:      ["quiz"],
+    bbu:       ["bbu","record"],
   };
   const order=orderMap[S.practiceMode]||orderMap.full;
   const i=order.indexOf(S.phase);
@@ -1826,6 +1862,7 @@ function renderStepBar(){
     shadow:    [{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
     fillblank: [{id:"listen",name:"初聴"},{id:"fillblank",name:"穴埋め"},{id:"result",name:"採点"}],
     quiz:      [{id:"quiz",name:"内容理解"},{id:"result",name:"採点"}],
+    bbu:       [{id:"bbu",name:"ビルドアップ"},{id:"record",name:"録音"},{id:"result",name:"採点"}],
   };
   const steps=stepsMap[S.practiceMode]||stepsMap.full;
   const cur=stepIndex();let h="";
@@ -1848,6 +1885,7 @@ const PHASE_MODE_INFO={
   minimal:     {icon:"👂",label:"ミニマルペア聞き分け",bg:"#123a38",color:"var(--accent-text)"},
   fillblank:   {icon:"🕳",label:"穴埋めディクテーション",bg:"#332b10",color:"#f0a860"},
   quiz:        {icon:"🎧",label:"内容理解クイズ",bg:"#332b10",color:"#f0a860"},
+  bbu:         {icon:"🧩",label:"ビルドアップ",bg:"#123a38",color:"var(--accent-text)"},
 };
 function renderModeIndicator(){
   const el=document.getElementById("mode-indicator");
@@ -1947,7 +1985,7 @@ function render(){
   const ph=S.phase,s=S.sentence;
   let html="";
 
-  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],fillblank:[{id:"listen",name:"初聴"},{id:"fillblank",name:"穴埋め"},{id:"result",name:"採点"}],quiz:[{id:"quiz",name:"内容理解"},{id:"result",name:"採点"}]};
+  const _stepsMap={full:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],dictation:[{id:"listen",name:"初聴"},{id:"dictation",name:"書取"},{id:"result",name:"採点"}],shadow:[{id:"listen",name:"初聴"},{id:"check",name:"確認"},{id:"shadow",name:"追読"},{id:"record",name:"録音"},{id:"result",name:"採点"}],fillblank:[{id:"listen",name:"初聴"},{id:"fillblank",name:"穴埋め"},{id:"result",name:"採点"}],quiz:[{id:"quiz",name:"内容理解"},{id:"result",name:"採点"}],bbu:[{id:"bbu",name:"ビルドアップ"},{id:"record",name:"録音"},{id:"result",name:"採点"}]};
   const _steps=_stepsMap[S.practiceMode]||_stepsMap.full;
   html+=`<div class="card"><div class="card-title">${_steps[Math.min(stepIndex(),_steps.length-1)]?.name||""}</div>`;
   if(ph==="loading"){
@@ -1973,6 +2011,8 @@ function render(){
       html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 音声を聞いて空欄を埋めてください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">全文は下に表示されます（空欄部分のみ隠れています）</div></div>`;
     } else if(ph==="quiz"){
       html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🎧 テキストを見ずに会話を聞いて、内容の質問に答えてください</div><div style="font-size:11px;color:var(--text-faint);margin-top:4px">全文は採点後に表示されます</div></div>`;
+    } else if(ph==="bbu"){
+      html+=`<div style="text-align:center;padding:14px 0"><div style="font-size:13px;color:var(--text-faint)">🧩 下に表示される部分から少しずつ伸ばして音読します</div></div>`;
     } else if(ph==="result"){
       html+=`<div class="hanzi">${esc(s.zh)}</div>`;
       if(s.py){
@@ -2262,6 +2302,23 @@ function render(){
       </div>`;
     }
   }
+  if(ph==="bbu"&&s){
+    const chunks=s.chunks&&s.chunks.length?s.chunks:[s.zh];
+    const idx=Math.min(S.bbuIndex,chunks.length-1);
+    const isLast=idx>=chunks.length-1;
+    const current=chunks[idx];
+    html+=`<div class="step-instruction"><span class="step-num">①ビルドアップ</span>　短い部分から少しずつ伸ばして音読します（${idx+1}/${chunks.length}）。</div>`;
+    html+=`<div class="hanzi" style="margin:10px 0">${esc(current)}</div>`;
+    if(S.isSpeaking){
+      html+=`<div class="btn-row">
+        <button class="btn btn-stop" style="flex:2" onclick="pauseSpeak()">${S.isPaused?"▶ 再開":"⏸ 一時停止"}</button>
+        <button class="btn btn-gray" style="flex:1" onclick="stopSpeak()">⏹ 停止</button>
+      </div>`;
+    } else {
+      html+=`<button class="btn btn-dark" onclick="S.isSpeaking=true;render();speak('${current.replace(/'/g,"\\'")}',S.speed,()=>{S.isSpeaking=false;render();})">🔊 この部分を再生 [Space]</button>`;
+    }
+    html+=`<button class="btn" style="background:${S.level.color};margin-top:8px" onclick="${isLast?"setPhase('record');render()":`S.bbuIndex=Math.min((S.sentence.chunks&&S.sentence.chunks.length?S.sentence.chunks.length:1)-1,S.bbuIndex+1);render()`}">${isLast?"次へ：録音へ → [→]":"次へ：もう少し伸ばす → [→]"}</button>`;
+  }
   if(ph==="check"&&s){
     html+=`<div class="step-instruction"><span class="step-num">③確認・音読</span>　相手のセリフと返答の意味・発音を確認し、テキストを見ながら手本と一緒に声に出して読みましょう。</div>`;
     if(S.isSpeaking){
@@ -2372,7 +2429,7 @@ function render(){
   }
 
   if(ph!=="result"&&ph!=="reviewing"&&ph!=="loading"&&s){
-    const prevMap={dictation:"listen",fillblank:"listen",check:"dictation",shadow:"check",record:"shadow",recording:"record"};
+    const prevMap={dictation:"listen",fillblank:"listen",check:"dictation",shadow:"check",record:(S.practiceMode==="bbu"?"bbu":"shadow"),recording:"record"};
     const prev=prevMap[ph];
     html+=`<div style="display:flex;gap:8px;margin-top:12px">`;
     if(prev)html+=`<button class="btn btn-gray" style="flex:1;font-size:13px" onclick="setPhase('${prev}');render()">← 前へ戻る</button>`;
@@ -2407,12 +2464,16 @@ document.addEventListener("keydown",e=>{
   const ph=S.phase;
   if(e.code==="Space"){
     e.preventDefault();
-    if(!S.isSpeaking&&S.sentence&&["listen","dictation","fillblank","check","shadow"].includes(ph)){
+    if(!S.isSpeaking&&S.sentence&&["listen","dictation","fillblank","check","shadow","bbu"].includes(ph)){
       S.isSpeaking=true;
       if(ph==="shadow") S.repCount=Math.min(S.reps,S.repCount+1);
       render();
       if(ph==="dictation"){
         speak(S.sentence.zh, S.dictSpeed, ()=>{S.isSpeaking=false;render();});
+      } else if(ph==="bbu"){
+        const chunks=S.sentence.chunks&&S.sentence.chunks.length?S.sentence.chunks:[S.sentence.zh];
+        const cur=chunks[Math.min(S.bbuIndex,chunks.length-1)];
+        speak(cur, S.speed, ()=>{S.isSpeaking=false;render();});
       } else if(S.sentence.partner&&ph!=="shadow"){
         speakDialog(S.sentence.partner,S.sentence.zh,S.speed,()=>{});
       } else {
