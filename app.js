@@ -157,10 +157,10 @@ function vocabCardHtml(v){
   return `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center">
       <div style="font-size:18px;font-weight:700;color:var(--text)">${esc(v.word)}</div>
-      <div style="font-size:10px;color:var(--accent-text);margin-top:2px">${esc(v.py)}</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${esc(v.meaning)}</div>
-      <div style="font-size:9px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
-      <div style="font-size:9px;color:var(--text-faint);margin-top:1px">出現${v.count}回${avgMatch!=null?`・平均${avgMatch}%`:""}</div>
+      <div style="font-size:11px;color:var(--accent-text);margin-top:2px">${esc(v.py)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(v.meaning)}</div>
+      <div style="font-size:10px;color:${rateColor};margin-top:4px;font-weight:700">正答率${correctRate}%</div>
+      <div style="font-size:10px;color:var(--text-faint);margin-top:1px">出現${v.count}回${avgMatch!=null?`・平均${avgMatch}%`:""}</div>
     </div>`;
 }
 function renderDexTab(){
@@ -182,7 +182,7 @@ function renderDexTab(){
       const items=[...groups[lv]].sort((a,b)=>(b.count||0)-(a.count||0));
       const label=lv==="?"?"級不明":`HSK ${lv}`;
       return `<div style="grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:.5px;margin:10px 0 4px">${label} <span style="color:var(--text-faint);font-weight:normal">(${items.length})</span></div>
-        <div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${items.map(vocabCardHtml).join("")}</div>`;
+        <div class="dex-grid" style="grid-column:1/-1">${items.map(vocabCardHtml).join("")}</div>`;
     }).join("");
   }
 
@@ -347,14 +347,14 @@ function renderHistoryTab(){
         }
         <span style="font-size:11px;color:var(--text-faint)">${d}</span>
       </div>
-      ${isDictation&&dr?`<div style="font-size:12px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:#14293a;border-radius:7px">
+      ${isDictation&&dr?`<div style="font-size:13px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:var(--card-alt);border-radius:7px;line-height:1.6">
         入力：${esc(dr.input||"")}
         ${dr.miss?.length?`　🟨抜け：${esc(dr.miss.join(""))}`:""}
         ${dr.extra?.length?`　🟥余分：${esc(dr.extra.join(""))}`:""}
       </div>`:""}
-      ${!isDictation&&r.recognized?`<div style="font-size:12px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:var(--card-alt);border-radius:7px">認識：${esc(r.recognized)}</div>`:""}
-      ${r.pronun?`<div style="font-size:12px;color:var(--text-sec);margin-top:5px">📝 ${esc(r.pronun)}</div>`:""}
-      ${r.feedback?`<div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
+      ${!isDictation&&r.recognized?`<div style="font-size:13px;color:var(--text-sec);margin-top:6px;padding:6px 8px;background:var(--card-alt);border-radius:7px;line-height:1.6">認識：${esc(r.recognized)}</div>`:""}
+      ${r.pronun?`<div style="font-size:13px;color:var(--text-sec);margin-top:5px;line-height:1.6">📝 ${esc(r.pronun)}</div>`:""}
+      ${r.feedback?`<div style="font-size:13px;color:var(--text);margin-top:4px;line-height:1.6">💬 ${esc(r.feedback)}</div>`:""}
     </div>`;
   }).join("");
   drawTrendChart(S.history);
@@ -468,12 +468,12 @@ ${pronunList.slice(-20).join("\n")}
         <div style="width:28px;font-size:11px;color:var(--text-faint);flex-shrink:0">${d.val>0?Math.round(d.val/total*100)+"%":"-"}</div>
       </div>`).join("");
     const confBadges=(json.confusions||[]).map(c=>
-      `<span style="background:#171a2e;color:var(--accent-text);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${c}</span>`
+      `<span style="background:var(--card-alt);border:1px solid var(--border);color:var(--accent-text);border-radius:20px;padding:3px 10px;font-size:13px;font-weight:600">${c}</span>`
     ).join(" ");
     const tipCards=(json.tips||[]).map((tip,i)=>
       `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--card-alt)">
         <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.6">${tip}</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.7">${tip}</div>
       </div>`
     ).join("");
     result.innerHTML=`
@@ -485,7 +485,7 @@ ${pronunList.slice(-20).join("\n")}
         <div style="font-size:11px;font-weight:700;color:var(--accent-text);margin-bottom:6px;letter-spacing:.5px">混同しやすい音</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${confBadges}</div>
       </div>`:""}
-      ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#0f2318;border-radius:8px;font-size:13px;color:#6ee7a8">
+      ${json.strength?`<div style="margin-bottom:14px;padding:8px 12px;background:#0f2318;border-radius:8px;font-size:14px;color:#6ee7a8;line-height:1.6">
         ✅ 得意：${json.strength}
       </div>`:""}
       <div>
@@ -1575,12 +1575,12 @@ function render(){
     html+=`<div class="loading-box"><div class="spinner"></div><span style="color:var(--text-faint);font-size:13px">文を生成中…</span></div>`;
   } else if(s){
     if(s.partner && ph !== "listen" && ph !== "dictation" && ph !== "dictreviewing") {
-      html += `<div style="background:#171a2e;border-radius:10px;padding:10px 13px;margin-bottom:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
-        <div style="font-size:17px;color:var(--text);font-weight:600">${esc(s.partner)}</div>
-        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:13px;color:var(--accent-text);margin-top:2px">${esc(s.partnerPy)}</div>`:""}
-        ${s.partnerJa?`<div style="font-size:12px;color:var(--accent-text);margin-top:3px">${esc(s.partnerJa)}</div>`:""}
-        <button style="margin-top:4px;background:none;border:1px solid #2f3550;border-radius:12px;padding:2px 10px;font-size:11px;color:var(--accent-text);cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
+      html += `<div style="background:var(--card-alt);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">相手のセリフ</div>
+        <div style="font-size:18px;color:var(--text);font-weight:600">${esc(s.partner)}</div>
+        ${S.showPartnerPinyin&&s.partnerPy?`<div style="font-size:14px;color:var(--accent-text);margin-top:2px">${esc(s.partnerPy)}</div>`:""}
+        ${s.partnerJa?`<div style="font-size:13px;color:var(--accent-text);margin-top:3px">${esc(s.partnerJa)}</div>`:""}
+        <button style="margin-top:4px;background:none;border:1px solid var(--border-strong);border-radius:12px;padding:2px 10px;font-size:12px;color:var(--accent-text);cursor:pointer;font-family:inherit" onclick="S.showPartnerPinyin=!S.showPartnerPinyin;render()">
           ${S.showPartnerPinyin?"拼音を隠す":"相手の拼音を表示"}
         </button>
       </div>
