@@ -45,6 +45,7 @@
     <button class="tab active" onclick="showSetupTab('main')">設定</button>
     <button class="tab" onclick="showSetupTab('coach')">🤖 AIコーチ</button>
     <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
+    <button class="tab" onclick="showSetupTab('compose')">✍️ 作文</button>
     <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
     <button class="tab" onclick="showSetupTab('history')">履歴・分析</button>
     <button class="tab" onclick="showSetupTab('dex')">📖 図鑑</button>
@@ -165,6 +166,27 @@
 
     <div class="sec-label">保存済みセット</div>
     <div id="saved-sets-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+
+  <!-- Compose tab (SNS message writing practice) -->
+  <div id="stab-compose" class="setup-body hidden">
+    <div class="info-text" style="margin-bottom:14px">中国人の友達にSNSで送りたいメッセージを、練習しながら実際に使える形に仕上げます。</div>
+
+    <div class="sec-label">① 日本語で伝えたいこと</div>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <textarea class="custom-textarea" id="compose-ja-input" placeholder="例：週末一緒に映画見に行かない？と誘いたい" style="flex:1"></textarea>
+      <button class="topic-btn" id="compose-ja-mic" onclick="toggleComposeVoiceInput('ja')" style="white-space:nowrap;padding:9px 12px">🎤</button>
+    </div>
+
+    <div class="sec-label" style="margin-top:16px">② 中国語で書いてみる</div>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <textarea class="custom-textarea" id="compose-zh-input" placeholder="自分なりに中国語で入力してみましょう（例：这周末要不要一起看电影？）" style="flex:1"></textarea>
+      <button class="topic-btn" id="compose-zh-mic" onclick="toggleComposeVoiceInput('zh')" style="white-space:nowrap;padding:9px 12px">🎤</button>
+    </div>
+
+    <button class="start-btn" id="compose-submit-btn" onclick="submitCompose()" style="margin-top:14px">✍️ 添削してもらう →</button>
+
+    <div id="compose-result" class="hidden" style="margin-top:16px"></div>
   </div>
 
   <!-- AI Coach tab -->
