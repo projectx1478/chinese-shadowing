@@ -105,27 +105,51 @@
     </div>
 
     <div class="sec-label">練習モード</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <button class="topic-btn active" id="mode-full" onclick="setMode('full')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        📚 フルモード <span style="font-size:11px;color:var(--text-faint)">初聴→書取→確認→音読→追読→録音→採点</span>
+
+    <div class="mode-group-label">基礎</div>
+    <div class="mode-grid">
+      <button class="mode-card active" id="mode-full" onclick="setMode('full')">
+        <div class="mode-icon">📚</div>
+        <div class="mode-name">フルモード</div>
+        <div class="mode-desc">初聴→書取→確認→音読→追読→録音→採点</div>
       </button>
-      <button class="topic-btn" id="mode-dictation" onclick="setMode('dictation')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        ✏️ 書取のみ <span style="font-size:11px;color:var(--text-faint)">初聴→書取→採点</span>
+      <button class="mode-card" id="mode-dictation" onclick="setMode('dictation')">
+        <div class="mode-icon">✏️</div>
+        <div class="mode-name">書取のみ</div>
+        <div class="mode-desc">初聴→書取→採点</div>
       </button>
-      <button class="topic-btn" id="mode-shadow" onclick="setMode('shadow')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🎙 シャドーイングのみ <span style="font-size:11px;color:var(--text-faint)">初聴→確認→音読→追読→録音→採点</span>
+      <button class="mode-card" id="mode-shadow" onclick="setMode('shadow')">
+        <div class="mode-icon">🎙</div>
+        <div class="mode-name">シャドーイングのみ</div>
+        <div class="mode-desc">初聴→確認→音読→追読→録音→採点</div>
       </button>
-      <button class="topic-btn" id="mode-minimal" onclick="setMode('minimal')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        👂 ミニマルペア聞き分け <span style="font-size:11px;color:var(--text-faint)">声調・紛らわしい音の2択クイズ（10問）</span>
+    </div>
+
+    <div class="mode-group-label">聞き取り強化</div>
+    <div class="mode-grid">
+      <button class="mode-card" id="mode-minimal" onclick="setMode('minimal')">
+        <div class="mode-icon">👂</div>
+        <div class="mode-name">ミニマルペア聞き分け</div>
+        <div class="mode-desc">声調・紛らわしい音の2択クイズ（10問）</div>
       </button>
-      <button class="topic-btn" id="mode-fillblank" onclick="setMode('fillblank')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🕳 穴埋めディクテーション <span style="font-size:11px;color:var(--text-faint)">初聴→空欄に聞き取った語を入力→採点</span>
+      <button class="mode-card" id="mode-fillblank" onclick="setMode('fillblank')">
+        <div class="mode-icon">🕳</div>
+        <div class="mode-name">穴埋めディクテーション</div>
+        <div class="mode-desc">初聴→空欄に聞き取った語を入力→採点</div>
       </button>
-      <button class="topic-btn" id="mode-quiz" onclick="setMode('quiz')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🎧 音声のみ内容理解クイズ <span style="font-size:11px;color:var(--text-faint)">テキスト非表示で聞く→4択クイズ→全文開示</span>
+      <button class="mode-card" id="mode-quiz" onclick="setMode('quiz')">
+        <div class="mode-icon">🎧</div>
+        <div class="mode-name">音声のみ内容理解クイズ</div>
+        <div class="mode-desc">テキスト非表示で聞く→4択クイズ→全文開示</div>
       </button>
-      <button class="topic-btn" id="mode-bbu" onclick="setMode('bbu')" style="text-align:left;border-radius:10px;padding:9px 13px;width:100%">
-        🧩 バックワードビルドアップ <span style="font-size:11px;color:var(--text-faint)">短い部分から段階的に伸ばして音読→録音→採点</span>
+    </div>
+
+    <div class="mode-group-label">応用</div>
+    <div class="mode-grid">
+      <button class="mode-card" id="mode-bbu" onclick="setMode('bbu')">
+        <div class="mode-icon">🧩</div>
+        <div class="mode-name">バックワードビルドアップ</div>
+        <div class="mode-desc">短い部分から段階的に伸ばして音読→録音→採点</div>
       </button>
     </div>
 
