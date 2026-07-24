@@ -16,6 +16,24 @@ const STEPS = [
 ];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
+// 設定タブ（8個）が大分類タブ4個の下に整理される構成。カテゴリ内にタブが2個以上ある場合はカードメニューを経由する
+const SETUP_CATEGORIES = [
+  {id:"settings", label:"練習設定"},
+  {id:"support",  label:"学習支援"},
+  {id:"records",  label:"記録"},
+  {id:"other",    label:"その他"},
+];
+const SETUP_TABS = [
+  {id:"main",       label:"設定",           icon:"⚙️", cat:"settings"},
+  {id:"coach",      label:"AIコーチ",       icon:"🤖", cat:"support"},
+  {id:"compose",    label:"作文",           icon:"✍️", cat:"support"},
+  {id:"weak",       label:"苦手リスト",     icon:"⚠️", cat:"support"},
+  {id:"history",    label:"履歴・分析",     icon:"📊", cat:"records"},
+  {id:"dex",        label:"図鑑",           icon:"📖", cat:"records"},
+  {id:"custom",     label:"カスタム文",     icon:"📝", cat:"other"},
+  {id:"shortcuts",  label:"ショートカット", icon:"⌨️", cat:"other"},
+];
+
 // 8-3 ミニマルペア聞き分け：声調・紛らわしい子音母音の弁別ペア（静的データ、API不使用）
 const MINIMAL_PAIRS = [
   // 声調
@@ -287,19 +305,75 @@ document.getElementById("start-btn").onclick=()=>{
   startPractice();
 };
 
+function catTabs(catId){ return SETUP_TABS.filter(t=>t.cat===catId); }
+
+function showCategory(catId){
+  S.setupCategory=catId;
+  const tabs=catTabs(catId);
+  S.setupTab = tabs.length===1 ? tabs[0].id : null;
+  renderSetupNav();
+  if(S.setupTab) fireSetupTabSideEffects(S.setupTab);
+}
+
 function showSetupTab(name){
-  ["main","coach","custom","compose","weak","history","dex","shortcuts"].forEach(t=>{
-    document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
-  });
-  document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","coach","custom","compose","weak","history","dex","shortcuts"][i]===name);
-  });
+  const tab=SETUP_TABS.find(t=>t.id===name);
+  if(!tab)return;
+  S.setupCategory=tab.cat;
+  S.setupTab=name;
+  renderSetupNav();
+  fireSetupTabSideEffects(name);
+}
+
+function fireSetupTabSideEffects(name){
   if(name==="coach") renderCoachTab();
   if(name==="weak") renderWeakList();
   if(name==="custom") renderSavedSets();
   if(name==="history") renderHistoryTab();
   if(name==="dex") renderDexTab();
 }
+
+function renderSetupNav(){
+  const catBar=document.getElementById("cat-bar");
+  if(catBar){
+    catBar.innerHTML=SETUP_CATEGORIES.map(c=>
+      `<button class="tab${c.id===S.setupCategory?" active":""}" onclick="showCategory('${c.id}')">${esc(c.label)}</button>`
+    ).join("");
+  }
+
+  SETUP_TABS.forEach(t=>{
+    document.getElementById("stab-"+t.id)?.classList.toggle("hidden", t.id!==S.setupTab);
+  });
+
+  const tabs=catTabs(S.setupCategory);
+  const menu=document.getElementById("setup-cat-menu");
+  if(menu){
+    if(!S.setupTab && tabs.length>1){
+      menu.classList.remove("hidden");
+      menu.innerHTML=`<div class="mode-grid">`+tabs.map(t=>
+        `<button class="mode-card" onclick="showSetupTab('${t.id}')">
+          <div class="mode-icon">${t.icon}</div>
+          <div class="mode-name">${esc(t.label)}</div>
+        </button>`
+      ).join("")+`</div>`;
+    } else {
+      menu.classList.add("hidden");
+      menu.innerHTML="";
+    }
+  }
+
+  const back=document.getElementById("setup-back-link");
+  if(back){
+    if(S.setupTab && tabs.length>1){
+      back.classList.remove("hidden");
+      const catLabel=SETUP_CATEGORIES.find(c=>c.id===S.setupCategory)?.label||"";
+      back.innerHTML=`<button class="back-link-btn" onclick="showCategory('${S.setupCategory}')">← ${esc(catLabel)}に戻る</button>`;
+    } else {
+      back.classList.add("hidden");
+      back.innerHTML="";
+    }
+  }
+}
+showCategory("settings");
 
 function startWithCustom(){
   const text=document.getElementById("custom-input").value.trim();
@@ -340,6 +414,121 @@ function toggleComposeVoiceInput(which){
   rec.onerror=e=>console.warn("音声入力エラー:",e.error);
   rec.onend=()=>{composeRecognition=null;btn.textContent="🎤";btn.style.color="";};
   rec.start();
+}
+
+// 8-6b ステップガイド：①の内容をAIが2〜4個の意味のまとまりに分解し、1つずつ順番に中国語を組み立てさせる。
+// ステップごとのAIチェックは行わず（追加API呼び出しを避けるため）、完成した文を②に流し込んで既存のsubmitCompose()にそのままつなぐ。
+let composeGuide={mode:"free",status:"idle",steps:null,index:0,current:"",answers:[]};
+
+function setComposeMode(mode){
+  composeGuide.mode=mode;
+  if(mode==="guide"&&composeGuide.status==="done"){
+    composeGuide.status="idle";composeGuide.steps=null;composeGuide.index=0;composeGuide.answers=[];composeGuide.current="";
+  }
+  document.getElementById("compose-mode-free")?.classList.toggle("active",mode==="free");
+  document.getElementById("compose-mode-guide")?.classList.toggle("active",mode==="guide");
+  renderComposeGuidePanel();
+}
+
+function renderComposeGuidePanel(){
+  const panel=document.getElementById("compose-guide-panel");
+  const freeRow=document.getElementById("compose-zh-free-row");
+  if(!panel||!freeRow)return;
+
+  if(composeGuide.mode!=="guide"||composeGuide.status==="done"){
+    panel.classList.add("hidden");panel.innerHTML="";
+    freeRow.classList.remove("hidden");
+    return;
+  }
+  freeRow.classList.add("hidden");
+  panel.classList.remove("hidden");
+
+  if(composeGuide.status==="idle"){
+    panel.innerHTML=`<div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text-sec);line-height:1.7">①の内容をもとに、AIが文を2〜4個の意味のまとまりに分解します。1つずつ順番に中国語を組み立てていきましょう。</div>
+      <button class="topic-btn" style="margin-top:8px" onclick="startComposeGuide()">🧭 ステップを作成</button>`;
+  } else if(composeGuide.status==="loading"){
+    panel.innerHTML=`<div style="color:var(--text-faint);font-size:13px;padding:10px 0">AIがステップを考えています…</div>`;
+  } else if(composeGuide.status==="active"){
+    const total=composeGuide.steps.length;
+    const step=composeGuide.steps[composeGuide.index];
+    panel.innerHTML=`
+      <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">ステップ ${composeGuide.index+1} / ${total}</div>
+      <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+        <div style="font-size:15px;color:var(--text);font-weight:600">${esc(step.ja)}</div>
+        ${step.hint?`<div style="font-size:12px;color:var(--accent-text);margin-top:4px">💡 ${esc(step.hint)}</div>`:""}
+      </div>
+      <textarea class="custom-textarea" id="compose-guide-input" placeholder="このまとまりを中国語で" style="min-height:56px">${esc(composeGuide.current)}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        ${composeGuide.index>0?`<button class="topic-btn" onclick="composeGuidePrev()">← 戻る</button>`:""}
+        <button class="topic-btn" style="background:var(--accent);color:var(--accent-fg)" onclick="composeGuideNext()">${composeGuide.index+1<total?"次へ →":"完了"}</button>
+      </div>`;
+  }
+}
+
+async function startComposeGuide(){
+  const ja=document.getElementById("compose-ja-input").value.trim();
+  if(!ja){alert("① 日本語で伝えたいことを入力してください");return;}
+  composeGuide.status="loading";
+  renderComposeGuidePanel();
+  try{
+    const raw=await gemini([{role:"user",content:
+`日本人が中国語学習のために次の内容を中国語で書こうとしています。作文が苦手な人でも迷わず進められるよう、2〜4個の意味のまとまりに分解してください。
+
+【伝えたいこと（日本語）】
+${ja}
+
+各ステップは「そのステップで表す内容（日本語の短いフレーズ）」と「使えそうな単語・文法のヒント（日本語で15字程度）」をセットにしてください。ステップを順番につなげると元の内容全体を表せるようにしてください。
+
+以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
+
+{
+  "steps": [
+    {"ja": "<ステップ1の内容>", "hint": "<ヒント>"},
+    {"ja": "<ステップ2の内容>", "hint": "<ヒント>"}
+  ]
+}`
+    }]);
+    const json=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    const steps=(json.steps||[]).filter(s=>s?.ja);
+    if(!steps.length)throw new Error("ステップを生成できませんでした");
+    composeGuide.steps=steps;
+    composeGuide.index=0;
+    composeGuide.current="";
+    composeGuide.answers=new Array(steps.length).fill("");
+    composeGuide.status="active";
+  }catch(e){
+    console.warn("ステップ生成エラー:",e);
+    composeGuide.status="idle";
+    alert("ステップの生成に失敗しました："+(e.message||"エラー"));
+  }
+  renderComposeGuidePanel();
+}
+
+function composeGuideNext(){
+  const input=document.getElementById("compose-guide-input");
+  composeGuide.answers[composeGuide.index]=input.value.trim();
+  if(composeGuide.index+1<composeGuide.steps.length){
+    composeGuide.index++;
+    composeGuide.current=composeGuide.answers[composeGuide.index]||"";
+    renderComposeGuidePanel();
+  } else {
+    finishComposeGuide();
+  }
+}
+
+function composeGuidePrev(){
+  const input=document.getElementById("compose-guide-input");
+  composeGuide.answers[composeGuide.index]=input.value.trim();
+  composeGuide.index--;
+  composeGuide.current=composeGuide.answers[composeGuide.index]||"";
+  renderComposeGuidePanel();
+}
+
+function finishComposeGuide(){
+  const assembled=composeGuide.answers.filter(Boolean).join("");
+  document.getElementById("compose-zh-input").value=assembled;
+  composeGuide.status="done";
+  renderComposeGuidePanel();
 }
 
 async function submitCompose(){
