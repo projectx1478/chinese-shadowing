@@ -2679,12 +2679,6 @@ function render(){
   }
   if(ph==="result"&&S.result){
     const r=S.result;
-    if(!S.pitchAnalysis&&!S.pitchAnalyzing&&S.recordedBlob){
-      S.pitchAnalyzing=true;
-      analyzePitch(S.recordedBlob,s?.py||"",s?.zh||"").then(res=>{
-        S.pitchAnalysis=res;S.pitchAnalyzing=false;render();
-      }).catch(e=>{console.warn("声調解析失敗:",e.message);S.pitchAnalyzing=false;S.pitchAnalysis={error:true};render();});
-    }
     const turnCount=S.conversationHistory.length;
     if(turnCount>0)html+=`<div style="text-align:center;font-size:11px;color:var(--accent-text);margin-bottom:4px">💬 会話 ${turnCount+1}ターン目</div>`;
     html+=`<div class="score-row"><div style="font-size:22px">${starsHtml(r.score)} <span style="font-size:14px;color:var(--text-muted)">${r.score}/5</span></div>
@@ -2701,25 +2695,6 @@ function render(){
     </div>`;
     if(r.pronun)html+=`<div class="pronun-box"><div class="pronun-title">🎵 発音・声調の詳細</div><div class="pronun-text">${formatAiText(r.pronun)}</div></div>`;
     html+=`<div class="feedback-box"><div class="feedback-title">💬 総評・アドバイス</div><div class="feedback-text">${esc(r.feedback)}</div></div>`;
-    // 声調（ピッチ）グラフ
-    if(S.pitchAnalyzing){
-      html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:7px 0;text-align:center">
-        <div class="spinner" style="width:18px;height:18px;margin:0 auto"></div>
-        <div style="font-size:11px;color:var(--text-faint);margin-top:6px">声調を解析中…</div>
-      </div>`;
-    } else if(S.pitchAnalysis&&!S.pitchAnalysis.error){
-      html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:7px 0">
-        <div style="font-size:10px;font-weight:700;color:var(--text-faint);letter-spacing:.5px;margin-bottom:6px">声調（ピッチ）グラフ</div>
-        <canvas id="pitch-chart" width="300" height="144" style="width:100%"></canvas>
-        <div style="display:flex;gap:14px;font-size:10px;color:var(--text-muted);margin-top:4px">
-          <span><span style="color:var(--accent-text)">●</span> あなたの声</span>
-          <span><span style="color:#c7c7c7">┄</span> 期待される概形</span>
-        </div>
-        ${S.pitchAnalysis.tips.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-          ${S.pitchAnalysis.tips.map(t=>`<div style="font-size:12px;color:var(--text-sec);margin-top:3px">・${esc(t)}</div>`).join("")}
-        </div>`:`<div style="font-size:12px;color:#16a34a;margin-top:6px">✅ 声調のパターンは概ね一致しています</div>`}
-      </div>`;
-    }
     // 関連ニュース検索リンク（追加API不要・検索エンジンへのリンク方式）
     // 文中の重要単語（generateSentence()が抽出したvocab）で検索し、トピック名だけの検索より内容に即した結果にする
     if(S.topic&&!S.customMode){
@@ -2764,7 +2739,6 @@ function render(){
     });
   }
   if(ph==="result")body.scrollTop=body.scrollHeight;
-  if(ph==="result"&&S.pitchAnalysis&&!S.pitchAnalysis.error) drawPitchChart(S.pitchAnalysis);
 }
 
 // ══ Keyboard shortcuts ═══════════════════════════════════
