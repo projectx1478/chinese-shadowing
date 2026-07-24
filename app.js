@@ -288,11 +288,11 @@ document.getElementById("start-btn").onclick=()=>{
 };
 
 function showSetupTab(name){
-  ["main","coach","custom","weak","history","dex","shortcuts"].forEach(t=>{
+  ["main","coach","custom","compose","weak","history","dex","shortcuts"].forEach(t=>{
     document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
   });
   document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","coach","custom","weak","history","dex","shortcuts"][i]===name);
+    b.classList.toggle("active",["main","coach","custom","compose","weak","history","dex","shortcuts"][i]===name);
   });
   if(name==="coach") renderCoachTab();
   if(name==="weak") renderWeakList();
@@ -315,6 +315,102 @@ function startWithCustom(){
       if(S.sentence&&S.sentence.zh===text){S.sentence.py=py;S.sentence.ja=ja;render();}
     }catch(e){console.warn(e);}
   })();
+}
+
+// ══ 作文練習（SNSメッセージ作成）══════════════════════════
+let composeRecognition=null;
+let composeLastResult=null;
+
+function toggleComposeVoiceInput(which){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("この端末は音声入力に対応していません");return;}
+  const field=document.getElementById(which==="ja"?"compose-ja-input":"compose-zh-input");
+  const btn=document.getElementById(which==="ja"?"compose-ja-mic":"compose-zh-mic");
+  if(composeRecognition){composeRecognition.stop();return;}
+  const rec=new SR();
+  rec.lang=which==="ja"?"ja-JP":"zh-CN";
+  rec.interimResults=false;
+  rec.maxAlternatives=1;
+  composeRecognition=rec;
+  btn.textContent="⏹";btn.style.color="#ef4444";
+  rec.onresult=e=>{
+    const text=e.results[0][0].transcript;
+    field.value=(field.value.trim()?field.value.trim()+" ":"")+text;
+  };
+  rec.onerror=e=>console.warn("音声入力エラー:",e.error);
+  rec.onend=()=>{composeRecognition=null;btn.textContent="🎤";btn.style.color="";};
+  rec.start();
+}
+
+async function submitCompose(){
+  const jaInput=document.getElementById("compose-ja-input");
+  const zhInput=document.getElementById("compose-zh-input");
+  const btn=document.getElementById("compose-submit-btn");
+  const resultBox=document.getElementById("compose-result");
+  const ja=jaInput.value.trim();
+  const zh=zhInput.value.trim();
+  if(!ja){alert("① 日本語で伝えたいことを入力してください");return;}
+  if(!zh){alert("② 中国語で書いてみてください（わからない部分があってもOKです）");return;}
+  btn.disabled=true;btn.textContent="添削中…";
+  resultBox.classList.remove("hidden");
+  resultBox.innerHTML=`<div style="color:var(--text-faint);font-size:13px;padding:10px 0">AIが添削中です…</div>`;
+  try{
+    const raw=await gemini([{role:"user",content:
+`あなたは中国語ネイティブの友人です。日本人学習者が中国人の友達にSNS（微信・微博など）でメッセージを送りたいと考えています。
+
+【伝えたいこと（日本語）】
+${ja}
+
+【学習者が書いた中国語（練習として書いたもの）】
+${zh}
+
+学習者の中国語を添削してください。文法・語彙の誤りだけでなく、SNSで実際にネイティブが使う自然でカジュアルな言い回しになっているかも評価してください。
+
+以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
+
+{
+  "feedback": "<学習者の中国語への添削コメント。良い点・直すべき点を日本語で100字程度で>",
+  "corrected": "<SNSでそのまま送れる自然な中国語の模範解答>",
+  "correctedPy": "<correctedのピンイン（声調記号付き）>",
+  "correctedJa": "<correctedの日本語訳>"
+}`
+    }]);
+    const json=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    composeLastResult={corrected:json.corrected||""};
+    resultBox.innerHTML=`
+      <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">添削コメント</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.7">${esc(json.feedback||"")}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border-strong);border-radius:12px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">SNSで使える模範解答</div>
+        <div style="font-size:19px;color:var(--text);font-weight:600">${esc(json.corrected||"")}</div>
+        ${json.correctedPy?`<div style="font-size:14px;color:var(--accent-text);margin-top:4px">${esc(json.correctedPy)}</div>`:""}
+        ${json.correctedJa?`<div style="font-size:13px;color:var(--text-faint);margin-top:3px">${esc(json.correctedJa)}</div>`:""}
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="topic-btn" onclick="speakComposeResult()">🔊 発音を聞く</button>
+          <button class="topic-btn" id="compose-copy-btn" onclick="copyComposeResult()">📋 コピー</button>
+        </div>
+      </div>`;
+  }catch(e){
+    console.warn("作文添削エラー:",e);
+    resultBox.innerHTML=`<div style="color:#ef4444;font-size:13px;padding:10px 0">添削に失敗しました：${esc(e.message||"エラー")}</div>`;
+  }finally{
+    btn.disabled=false;btn.textContent="✍️ 添削してもらう →";
+  }
+}
+
+function speakComposeResult(){
+  if(!composeLastResult?.corrected)return;
+  speak(composeLastResult.corrected,S.speed,()=>{});
+}
+
+function copyComposeResult(){
+  if(!composeLastResult?.corrected)return;
+  const btn=document.getElementById("compose-copy-btn");
+  navigator.clipboard?.writeText(composeLastResult.corrected).then(()=>{
+    if(btn){const orig=btn.textContent;btn.textContent="コピーしました";setTimeout(()=>{btn.textContent=orig;},1500);}
+  }).catch(()=>alert("コピーに失敗しました"));
 }
 
 function saveSet(){

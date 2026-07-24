@@ -547,3 +547,94 @@ test.describe('バックワードビルドアップ（8-4、mode-bbu）', () => 
     expect(spokenText).toBe('吃饭'); // 全文「今天我们一起吃饭。」ではなく現在の段階のみ
   });
 });
+
+test.describe('作文練習（SNSメッセージ作成、stab-compose）', () => {
+  test('タブを開くと入力欄・マイクボタンが表示され、他タブは隠れる', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+
+    const state = await page.evaluate(() => ({
+      visible: !document.getElementById('stab-compose').classList.contains('hidden'),
+      mainHidden: document.getElementById('stab-main').classList.contains('hidden'),
+      jaExists: !!document.getElementById('compose-ja-input'),
+      zhExists: !!document.getElementById('compose-zh-input'),
+      micJaExists: !!document.getElementById('compose-ja-mic'),
+      micZhExists: !!document.getElementById('compose-zh-mic'),
+    }));
+    expect(state).toEqual({
+      visible: true, mainHidden: true, jaExists: true, zhExists: true, micJaExists: true, micZhExists: true,
+    });
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('未入力での送信はアラートで警告し、AI呼び出しを行わない', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+
+    const dialogs = [];
+    page.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
+
+    // ①未入力
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(50);
+    // ①のみ入力、②未入力
+    await page.fill('#compose-ja-input', '週末映画に誘いたい');
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(50);
+
+    expect(dialogs.length).toBe(2);
+    expect(dialogs[0]).toContain('日本語');
+    expect(dialogs[1]).toContain('中国語');
+  });
+
+  test('添削成功時：AIの結果が表示され、コピーボタンでcorrectedがクリップボードへ渡る', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '週末一緒に映画見に行かない？と誘いたい');
+    await page.fill('#compose-zh-input', '这周末一起看电影吗？');
+
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        feedback: 'とても自然です。',
+        corrected: '这周末要不要一起看电影？',
+        correctedPy: 'zhè zhōumò yào bu yào yìqǐ kàn diànyǐng？',
+        correctedJa: '今週末、一緒に映画見ない？',
+      });
+      Object.assign(navigator.clipboard, {
+        writeText: (t) => { window.__copied = t; return Promise.resolve(); },
+      });
+    });
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(200);
+
+    const html = await page.evaluate(() => document.getElementById('compose-result').innerHTML);
+    expect(html).toContain('这周末要不要一起看电影？');
+    expect(html).toContain('とても自然です。');
+
+    await page.evaluate(() => copyComposeResult());
+    const copied = await page.evaluate(() => window.__copied);
+    expect(copied).toBe('这周末要不要一起看电影？');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('添削失敗時：エラーメッセージを表示し、送信ボタンは再度有効になる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '週末映画に誘いたい');
+    await page.fill('#compose-zh-input', '这周末看电影吗');
+
+    await page.evaluate(() => { window.gemini = async () => { throw new Error('テストエラー'); }; });
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(200);
+
+    const html = await page.evaluate(() => document.getElementById('compose-result').innerHTML);
+    expect(html).toContain('添削に失敗しました');
+    const btnState = await page.evaluate(() => ({
+      disabled: document.getElementById('compose-submit-btn').disabled,
+      text: document.getElementById('compose-submit-btn').textContent,
+    }));
+    expect(btnState.disabled).toBe(false);
+    expect(btnState.text).toContain('添削してもらう');
+  });
+});
