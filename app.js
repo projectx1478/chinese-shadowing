@@ -418,12 +418,12 @@ function toggleComposeVoiceInput(which){
 
 // 8-6b ステップガイド：①の内容をAIが2〜4個の意味のまとまりに分解し、1つずつ順番に中国語を組み立てさせる。
 // ステップごとのAIチェックは行わず（追加API呼び出しを避けるため）、完成した文を②に流し込んで既存のsubmitCompose()にそのままつなぐ。
-let composeGuide={mode:"free",status:"idle",steps:null,index:0,current:"",answers:[]};
+let composeGuide={mode:"free",status:"idle",steps:null,index:0,current:"",answers:[],target:""};
 
 function setComposeMode(mode){
   composeGuide.mode=mode;
   if(mode==="guide"&&composeGuide.status==="done"){
-    composeGuide.status="idle";composeGuide.steps=null;composeGuide.index=0;composeGuide.answers=[];composeGuide.current="";
+    composeGuide.status="idle";composeGuide.steps=null;composeGuide.index=0;composeGuide.answers=[];composeGuide.current="";composeGuide.target="";
   }
   document.getElementById("compose-mode-free")?.classList.toggle("active",mode==="free");
   document.getElementById("compose-mode-guide")?.classList.toggle("active",mode==="guide");
@@ -477,14 +477,18 @@ async function startComposeGuide(){
 【伝えたいこと（日本語）】
 ${ja}
 
-各ステップは「そのステップで表す内容（日本語の短いフレーズ）」と「使えそうな単語・文法のヒント（日本語で15字程度）」をセットにしてください。ステップを順番につなげると元の内容全体を表せるようにしてください。
+制約：
+・各ステップの「ヒント」は、そのステップで実際に使える中国語の単語・フレーズの具体例を1つ、拼音付きで含めること（学習者がそれを参考にしながら自分で組み立てられるように）
+・各ステップの回答例（ヒントの中国語部分）を登場順にそのまま連結（区切り文字なし）すると、①の意図を正確に表す自然な中国語の1文になるようにすること。助詞・语气词などが欠けて不自然にならないよう、必要なものは各ステップのヒント側に含めておくこと
+・"target"には、ステップをすべて連結した場合の模範的な中国語1文を入れること（学習者には見せない内部参照用）
 
 以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
 
 {
+  "target": "<ステップをすべてつなげた場合の模範的な中国語1文>",
   "steps": [
-    {"ja": "<ステップ1の内容>", "hint": "<ヒント>"},
-    {"ja": "<ステップ2の内容>", "hint": "<ヒント>"}
+    {"ja": "<ステップ1の内容>", "hint": "<中国語表現の例（拼音付き）>"},
+    {"ja": "<ステップ2の内容>", "hint": "<中国語表現の例（拼音付き）>"}
   ]
 }`
     }]);
@@ -495,6 +499,7 @@ ${ja}
     composeGuide.index=0;
     composeGuide.current="";
     composeGuide.answers=new Array(steps.length).fill("");
+    composeGuide.target=json.target||"";
     composeGuide.status="active";
   }catch(e){
     console.warn("ステップ生成エラー:",e);
@@ -543,6 +548,10 @@ async function submitCompose(){
   btn.disabled=true;btn.textContent="添削中…";
   resultBox.classList.remove("hidden");
   resultBox.innerHTML=`<div style="color:var(--text-faint);font-size:13px;padding:10px 0">AIが添削中です…</div>`;
+  const guideBreakdown=(composeGuide.status==="done"&&composeGuide.steps)
+    ?"\n\n【ステップガイドでの内訳（参考）】\n"+composeGuide.steps.map((s,i)=>`ステップ${i+1}「${s.ja}」→ 学習者の回答：${composeGuide.answers[i]||"(空欄)"}`).join("\n")
+      +(composeGuide.target?`\n\n【ステップ分解時の模範例（参考、学習者には非公開）】\n${composeGuide.target}`:"")
+    :"";
   try{
     const raw=await gemini([{role:"user",content:
 `あなたは中国語ネイティブの友人です。日本人学習者が中国人の友達にSNS（微信・微博など）でメッセージを送りたいと考えています。
@@ -551,9 +560,10 @@ async function submitCompose(){
 ${ja}
 
 【学習者が書いた中国語（練習として書いたもの）】
-${zh}
+${zh}${guideBreakdown}
 
 学習者の中国語を添削してください。文法・語彙の誤りだけでなく、SNSで実際にネイティブが使う自然でカジュアルな言い回しになっているかも評価してください。
+最重要：「corrected」は必ず【伝えたいこと（日本語）】の意図を正確に反映すること。学習者が書いた中国語が①の意図からずれていたり不自然な場合は、②の表現に引きずられず、①の意図に沿った自然な中国語を作成すること。
 
 以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
 
@@ -565,7 +575,7 @@ ${zh}
 }`
     }]);
     const json=JSON.parse(raw.replace(/```json|```/g,"").trim());
-    composeLastResult={corrected:json.corrected||""};
+    composeLastResult={corrected:json.corrected||"",py:json.correctedPy||"",ja:json.correctedJa||""};
     resultBox.innerHTML=`
       <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;color:var(--accent-text);letter-spacing:1px;margin-bottom:4px">添削コメント</div>
@@ -576,9 +586,10 @@ ${zh}
         <div style="font-size:19px;color:var(--text);font-weight:600">${esc(json.corrected||"")}</div>
         ${json.correctedPy?`<div style="font-size:14px;color:var(--accent-text);margin-top:4px">${esc(json.correctedPy)}</div>`:""}
         ${json.correctedJa?`<div style="font-size:13px;color:var(--text-faint);margin-top:3px">${esc(json.correctedJa)}</div>`:""}
-        <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <button class="topic-btn" onclick="speakComposeResult()">🔊 発音を聞く</button>
           <button class="topic-btn" id="compose-copy-btn" onclick="copyComposeResult()">📋 コピー</button>
+          <button class="topic-btn" style="background:var(--accent);color:var(--accent-fg)" onclick="composeStartShadowing()">🎙 この文でシャドーイング</button>
         </div>
       </div>`;
   }catch(e){
@@ -600,6 +611,14 @@ function copyComposeResult(){
   navigator.clipboard?.writeText(composeLastResult.corrected).then(()=>{
     if(btn){const orig=btn.textContent;btn.textContent="コピーしました";setTimeout(()=>{btn.textContent=orig;},1500);}
   }).catch(()=>alert("コピーに失敗しました"));
+}
+
+function composeStartShadowing(){
+  if(!composeLastResult?.corrected)return;
+  S.customMode=true;
+  S.customSentence={zh:composeLastResult.corrected,py:composeLastResult.py||"",ja:composeLastResult.ja||""};
+  setMode("shadow");
+  startPractice();
 }
 
 function saveSet(){

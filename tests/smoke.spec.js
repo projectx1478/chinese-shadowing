@@ -815,4 +815,87 @@ test.describe('作文練習：ステップガイドモード（composeGuide）',
     const state = await page.evaluate(() => ({ status: composeGuide.status, steps: composeGuide.steps }));
     expect(state).toEqual({ status: 'idle', steps: null });
   });
+
+  test('ステップガイド経由の添削では、ステップ内訳と①優先の指示が添削プロンプトに含まれる（結果が①の意図からずれる問題への対策）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '週末一緒に映画見に行かない？と誘いたい');
+    await page.click('#compose-mode-guide');
+
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        target: '这周末要不要一起去看电影？',
+        steps: [
+          { ja: '今週末に', hint: '这周末' },
+          { ja: '一緒に映画を見に行こうと誘う', hint: '要不要一起去看电影' },
+        ],
+      });
+    });
+    await page.evaluate(() => startComposeGuide());
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => composeGuide.target)).toBe('这周末要不要一起去看电影？');
+
+    await page.fill('#compose-guide-input', '这周末');
+    await page.click('#compose-guide-panel >> text=次へ');
+    await page.fill('#compose-guide-input', '要不要一起去看电影？');
+    await page.click('#compose-guide-panel >> text=完了');
+    await page.waitForTimeout(100);
+
+    await page.evaluate(() => {
+      window.gemini = async (messages) => {
+        window.__capturedPrompt = messages[0].content;
+        return JSON.stringify({ feedback: 'ok', corrected: '这周末要不要一起去看电影？', correctedPy: '', correctedJa: '' });
+      };
+    });
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(200);
+
+    const prompt = await page.evaluate(() => window.__capturedPrompt);
+    expect(prompt).toContain('ステップガイドでの内訳');
+    expect(prompt).toContain('这周末要不要一起去看电影？'); // target reference included
+    expect(prompt).toContain('最重要');
+    expect(prompt).toContain('①の意図');
+  });
+
+  test('添削結果の「この文でシャドーイング」ボタンで、カスタム文としてシャドーイング練習に直接遷移する（追加API呼び出しなし）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '週末一緒に映画見に行かない？と誘いたい');
+    await page.fill('#compose-zh-input', '这周末一起看电影吗？');
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        feedback: '自然です。', corrected: '这周末要不要一起去看电影？',
+        correctedPy: 'zhè zhōumò yào bu yào yìqǐ qù kàn diànyǐng？', correctedJa: '今週末、一緒に映画見に行かない？',
+      });
+    });
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(200);
+
+    const hasBtn = await page.evaluate(() => document.getElementById('compose-result').innerHTML.includes('この文でシャドーイング'));
+    expect(hasBtn).toBe(true);
+
+    // gemini()呼び出しを検知できるようにしてから遷移（追加呼び出しがないことを確認）
+    let geminiCalled = false;
+    await page.evaluate(() => {
+      const orig = window.gemini;
+      window.gemini = async (...args) => { window.__geminiCalledAgain = true; return orig(...args); };
+    });
+    await page.evaluate(() => composeStartShadowing());
+    await page.waitForTimeout(200);
+
+    const state = await page.evaluate(() => ({
+      practiceMode: S.practiceMode,
+      customMode: S.customMode,
+      customSentence: S.customSentence,
+      geminiCalledAgain: window.__geminiCalledAgain || false,
+    }));
+    expect(state.practiceMode).toBe('shadow');
+    expect(state.customMode).toBe(true);
+    expect(state.customSentence).toEqual({
+      zh: '这周末要不要一起去看电影？',
+      py: 'zhè zhōumò yào bu yào yìqǐ qù kàn diànyǐng？',
+      ja: '今週末、一緒に映画見に行かない？',
+    });
+    expect(state.geminiCalledAgain).toBe(false);
+  });
 });
