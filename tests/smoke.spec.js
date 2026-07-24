@@ -638,3 +638,72 @@ test.describe('作文練習（SNSメッセージ作成、stab-compose）', () =>
     expect(btnState.text).toContain('添削してもらう');
   });
 });
+
+test.describe('設定タブの大分類ナビゲーション（cat-bar/setup-cat-menu）', () => {
+  test('初期状態は「練習設定」カテゴリでmainタブが直接表示される（カテゴリ内タブが1個のためメニューを経由しない）', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    const state = await page.evaluate(() => ({
+      setupCategory: S.setupCategory,
+      setupTab: S.setupTab,
+      mainHidden: document.getElementById('stab-main').classList.contains('hidden'),
+      menuHidden: document.getElementById('setup-cat-menu').classList.contains('hidden'),
+      backHidden: document.getElementById('setup-back-link').classList.contains('hidden'),
+    }));
+    expect(state).toEqual({
+      setupCategory: 'settings', setupTab: 'main', mainHidden: false, menuHidden: true, backHidden: true,
+    });
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('タブが複数あるカテゴリはカードメニューを経由し、選択後は戻るリンクでメニューへ戻れる', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    await page.evaluate(() => showCategory('support'));
+
+    let state = await page.evaluate(() => ({
+      setupTab: S.setupTab,
+      menuHidden: document.getElementById('setup-cat-menu').classList.contains('hidden'),
+      cardNames: Array.from(document.querySelectorAll('#setup-cat-menu .mode-card .mode-name')).map((e) => e.textContent),
+    }));
+    expect(state.setupTab).toBeNull();
+    expect(state.menuHidden).toBe(false);
+    expect(state.cardNames).toEqual(['AIコーチ', '作文', '苦手リスト']);
+
+    await page.evaluate(() => showSetupTab('compose'));
+    state = await page.evaluate(() => ({
+      setupTab: S.setupTab,
+      composeVisible: !document.getElementById('stab-compose').classList.contains('hidden'),
+      backHidden: document.getElementById('setup-back-link').classList.contains('hidden'),
+      backText: document.getElementById('setup-back-link').textContent,
+    }));
+    expect(state.setupTab).toBe('compose');
+    expect(state.composeVisible).toBe(true);
+    expect(state.backHidden).toBe(false);
+    expect(state.backText).toContain('学習支援');
+
+    // 戻るリンクでカードメニューへ戻る
+    await page.evaluate(() => showCategory(S.setupCategory));
+    state = await page.evaluate(() => ({
+      setupTab: S.setupTab,
+      menuHidden: document.getElementById('setup-cat-menu').classList.contains('hidden'),
+    }));
+    expect(state.setupTab).toBeNull();
+    expect(state.menuHidden).toBe(false);
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('showSetupTab()の直接呼び出しはカードメニューを経由せず対象タブへ直接遷移する（既存呼び出し箇所の互換性）', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('custom'));
+    const state = await page.evaluate(() => ({
+      setupCategory: S.setupCategory,
+      setupTab: S.setupTab,
+      customVisible: !document.getElementById('stab-custom').classList.contains('hidden'),
+      otherTabsHidden: ['main', 'coach', 'compose', 'weak', 'history', 'dex', 'shortcuts']
+        .every((id) => document.getElementById('stab-' + id).classList.contains('hidden')),
+    }));
+    expect(state).toEqual({
+      setupCategory: 'other', setupTab: 'custom', customVisible: true, otherTabsHidden: true,
+    });
+  });
+});

@@ -16,6 +16,24 @@ const STEPS = [
 ];
 const HSK5_WORDS = ["虽然","但是","因为","所以","不仅","而且","尽管","既然","无论","只要","即使","否则","随着","关于","对于","通过","由于","根据","按照","除了","影响","发展","提高","解决","表示","认为","认识","了解","掌握","重视","强调","确保","实现","建立","形成","培养","提供","改善","促进","保护"];
 
+// 設定タブ（8個）が大分類タブ4個の下に整理される構成。カテゴリ内にタブが2個以上ある場合はカードメニューを経由する
+const SETUP_CATEGORIES = [
+  {id:"settings", label:"練習設定"},
+  {id:"support",  label:"学習支援"},
+  {id:"records",  label:"記録"},
+  {id:"other",    label:"その他"},
+];
+const SETUP_TABS = [
+  {id:"main",       label:"設定",           icon:"⚙️", cat:"settings"},
+  {id:"coach",      label:"AIコーチ",       icon:"🤖", cat:"support"},
+  {id:"compose",    label:"作文",           icon:"✍️", cat:"support"},
+  {id:"weak",       label:"苦手リスト",     icon:"⚠️", cat:"support"},
+  {id:"history",    label:"履歴・分析",     icon:"📊", cat:"records"},
+  {id:"dex",        label:"図鑑",           icon:"📖", cat:"records"},
+  {id:"custom",     label:"カスタム文",     icon:"📝", cat:"other"},
+  {id:"shortcuts",  label:"ショートカット", icon:"⌨️", cat:"other"},
+];
+
 // 8-3 ミニマルペア聞き分け：声調・紛らわしい子音母音の弁別ペア（静的データ、API不使用）
 const MINIMAL_PAIRS = [
   // 声調
@@ -287,19 +305,75 @@ document.getElementById("start-btn").onclick=()=>{
   startPractice();
 };
 
+function catTabs(catId){ return SETUP_TABS.filter(t=>t.cat===catId); }
+
+function showCategory(catId){
+  S.setupCategory=catId;
+  const tabs=catTabs(catId);
+  S.setupTab = tabs.length===1 ? tabs[0].id : null;
+  renderSetupNav();
+  if(S.setupTab) fireSetupTabSideEffects(S.setupTab);
+}
+
 function showSetupTab(name){
-  ["main","coach","custom","compose","weak","history","dex","shortcuts"].forEach(t=>{
-    document.getElementById("stab-"+t)?.classList.toggle("hidden",t!==name);
-  });
-  document.querySelectorAll(".tab").forEach((b,i)=>{
-    b.classList.toggle("active",["main","coach","custom","compose","weak","history","dex","shortcuts"][i]===name);
-  });
+  const tab=SETUP_TABS.find(t=>t.id===name);
+  if(!tab)return;
+  S.setupCategory=tab.cat;
+  S.setupTab=name;
+  renderSetupNav();
+  fireSetupTabSideEffects(name);
+}
+
+function fireSetupTabSideEffects(name){
   if(name==="coach") renderCoachTab();
   if(name==="weak") renderWeakList();
   if(name==="custom") renderSavedSets();
   if(name==="history") renderHistoryTab();
   if(name==="dex") renderDexTab();
 }
+
+function renderSetupNav(){
+  const catBar=document.getElementById("cat-bar");
+  if(catBar){
+    catBar.innerHTML=SETUP_CATEGORIES.map(c=>
+      `<button class="tab${c.id===S.setupCategory?" active":""}" onclick="showCategory('${c.id}')">${esc(c.label)}</button>`
+    ).join("");
+  }
+
+  SETUP_TABS.forEach(t=>{
+    document.getElementById("stab-"+t.id)?.classList.toggle("hidden", t.id!==S.setupTab);
+  });
+
+  const tabs=catTabs(S.setupCategory);
+  const menu=document.getElementById("setup-cat-menu");
+  if(menu){
+    if(!S.setupTab && tabs.length>1){
+      menu.classList.remove("hidden");
+      menu.innerHTML=`<div class="mode-grid">`+tabs.map(t=>
+        `<button class="mode-card" onclick="showSetupTab('${t.id}')">
+          <div class="mode-icon">${t.icon}</div>
+          <div class="mode-name">${esc(t.label)}</div>
+        </button>`
+      ).join("")+`</div>`;
+    } else {
+      menu.classList.add("hidden");
+      menu.innerHTML="";
+    }
+  }
+
+  const back=document.getElementById("setup-back-link");
+  if(back){
+    if(S.setupTab && tabs.length>1){
+      back.classList.remove("hidden");
+      const catLabel=SETUP_CATEGORIES.find(c=>c.id===S.setupCategory)?.label||"";
+      back.innerHTML=`<button class="back-link-btn" onclick="showCategory('${S.setupCategory}')">← ${esc(catLabel)}に戻る</button>`;
+    } else {
+      back.classList.add("hidden");
+      back.innerHTML="";
+    }
+  }
+}
+showCategory("settings");
 
 function startWithCustom(){
   const text=document.getElementById("custom-input").value.trim();

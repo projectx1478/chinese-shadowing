@@ -41,16 +41,9 @@
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="showSetupTab('main')">設定</button>
-    <button class="tab" onclick="showSetupTab('coach')">🤖 AIコーチ</button>
-    <button class="tab" onclick="showSetupTab('custom')">カスタム文</button>
-    <button class="tab" onclick="showSetupTab('compose')">✍️ 作文</button>
-    <button class="tab" onclick="showSetupTab('weak')">苦手リスト</button>
-    <button class="tab" onclick="showSetupTab('history')">履歴・分析</button>
-    <button class="tab" onclick="showSetupTab('dex')">📖 図鑑</button>
-    <button class="tab" onclick="showSetupTab('shortcuts')">ショートカット</button>
-  </div>
+  <div class="tabs" id="cat-bar"></div>
+  <div id="setup-back-link" class="hidden" style="padding:8px 15px 0"></div>
+  <div id="setup-cat-menu" class="setup-body hidden"></div>
 
   <!-- Main settings -->
   <div id="stab-main" class="setup-body">
