@@ -44,6 +44,15 @@ body { font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif; backgr
 .topic-grid { display:flex; flex-wrap:wrap; gap:6px; }
 .topic-btn { background:var(--card); border:1.5px solid var(--border-strong); border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer; font-family:inherit; transition:all .15s; }
 .topic-btn.active { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+.mode-group-label { font-size:11px; font-weight:700; color:var(--text-muted); margin:14px 0 6px; }
+.mode-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.mode-card { background:var(--card); border:2px solid var(--border-strong); border-radius:14px; padding:12px 8px 10px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; text-align:center; gap:3px; transition:all .15s; }
+.mode-card.active { background:var(--accent); border-color:var(--accent); }
+.mode-icon { font-size:28px; line-height:1; }
+.mode-name { font-size:12.5px; font-weight:700; color:var(--text); line-height:1.3; }
+.mode-card.active .mode-name { color:var(--accent-fg); }
+.mode-desc { font-size:10px; color:var(--text-faint); line-height:1.4; }
+.mode-card.active .mode-desc { color:var(--accent-fg); opacity:.85; }
 .speed-row { display:flex; align-items:center; gap:10px; }
 .speed-row input { flex:1; accent-color:var(--accent-text); }
 .start-btn { width:100%; padding:13px; font-size:15px; font-weight:700; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:18px; letter-spacing:1px; font-family:inherit; }
