@@ -898,4 +898,46 @@ test.describe('作文練習：ステップガイドモード（composeGuide）',
     });
     expect(state.geminiCalledAgain).toBe(false);
   });
+
+  test('ステップガイドのヒント表示：最初は非表示→「ヒントを見る」で表示→次ステップで再び非表示', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '昨日の会議について話したい');
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        target: '昨天的会议很有意义。',
+        steps: [
+          { ja: '時間・対象', hint: '4文字・名詞句・「昨天的」で始まる' },
+          { ja: '話題・評価', hint: '5字程度・形容詞・「有」「意义」等を含む' },
+        ],
+      });
+    });
+
+    // ステップガイド作成
+    await page.click('#compose-mode-toggle button:has-text("ステップガイド")');
+    await page.evaluate(() => startComposeGuide());
+    await page.waitForTimeout(200);
+
+    // ステップ1：初期状態でヒント非表示、ボタン表示を確認
+    let html = await page.evaluate(() => document.getElementById('compose-guide-panel').innerHTML);
+    expect(html).not.toContain('4文字・名詞句');
+    expect(html).toContain('ヒントを見る');
+
+    // ボタンをクリックしてヒント表示
+    await page.evaluate(() => composeGuideShowHint());
+    await page.waitForTimeout(100);
+    html = await page.evaluate(() => document.getElementById('compose-guide-panel').innerHTML);
+    expect(html).toContain('4文字・名詞句・「昨天的」で始まる');
+    expect(html).not.toContain('ヒントを見る');
+
+    // 次ステップに進む（入力を追加して次へ）
+    await page.fill('#compose-guide-input', '昨天的会议');
+    await page.evaluate(() => composeGuideNext());
+    await page.waitForTimeout(100);
+
+    // ステップ2：新しいステップのヒントは再び非表示
+    html = await page.evaluate(() => document.getElementById('compose-guide-panel').innerHTML);
+    expect(html).not.toContain('5字程度・形容詞');
+    expect(html).toContain('ヒントを見る');
+  });
 });

@@ -451,11 +451,12 @@ function renderComposeGuidePanel(){
   } else if(composeGuide.status==="active"){
     const total=composeGuide.steps.length;
     const step=composeGuide.steps[composeGuide.index];
+    const showHint=composeGuide.hintsShown[composeGuide.index];
     panel.innerHTML=`
       <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">ステップ ${composeGuide.index+1} / ${total}</div>
       <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
         <div style="font-size:15px;color:var(--text);font-weight:600">${esc(step.ja)}</div>
-        ${step.hint?`<div style="font-size:12px;color:var(--accent-text);margin-top:4px">💡 ${esc(step.hint)}</div>`:""}
+        ${step.hint?(showHint?`<div style="font-size:12px;color:var(--accent-text);margin-top:4px">💡 ${esc(step.hint)}</div>`:`<button class="topic-btn" style="font-size:12px;padding:4px 8px;margin-top:4px" onclick="composeGuideShowHint()">ヒントを見る</button>`):""}
       </div>
       <textarea class="custom-textarea" id="compose-guide-input" placeholder="このまとまりを中国語で" style="min-height:56px">${esc(composeGuide.current)}</textarea>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -478,8 +479,8 @@ async function startComposeGuide(){
 ${ja}
 
 制約：
-・各ステップの「ヒント」は、そのステップで実際に使える中国語の単語・フレーズの具体例を1つ、拼音付きで含めること（学習者がそれを参考にしながら自分で組み立てられるように）
-・各ステップの回答例（ヒントの中国語部分）を登場順にそのまま連結（区切り文字なし）すると、①の意図を正確に表す自然な中国語の1文になるようにすること。助詞・语气词などが欠けて不自然にならないよう、必要なものは各ステップのヒント側に含めておくこと
+・各ステップの「ヒント」は「文字数」「品詞」「先頭文字」「語義の方向性」など最小限の情報のみ。具体的な中国語表現例は返さないこと
+・各ステップの学習者の回答を登場順にそのまま連結（区切り文字なし）すると、①の意図を正確に表す自然な中国語の1文になるようにすること。助詞・语气词などが欠けて不自然にならないよう、ステップ分解時に工夫すること
 ・"target"には、ステップをすべて連結した場合の模範的な中国語1文を入れること（学習者には見せない内部参照用）
 
 以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
@@ -487,8 +488,8 @@ ${ja}
 {
   "target": "<ステップをすべてつなげた場合の模範的な中国語1文>",
   "steps": [
-    {"ja": "<ステップ1の内容>", "hint": "<中国語表現の例（拼音付き）>"},
-    {"ja": "<ステップ2の内容>", "hint": "<中国語表現の例（拼音付き）>"}
+    {"ja": "<ステップ1の内容>", "hint": "<最小限のヒント：文字数・品詞・先頭文字・語義の方向性など>"},
+    {"ja": "<ステップ2の内容>", "hint": "<最小限のヒント：文字数・品詞・先頭文字・語義の方向性など>"}
   ]
 }`
     }]);
@@ -499,6 +500,7 @@ ${ja}
     composeGuide.index=0;
     composeGuide.current="";
     composeGuide.answers=new Array(steps.length).fill("");
+    composeGuide.hintsShown=new Array(steps.length).fill(false);
     composeGuide.target=json.target||"";
     composeGuide.status="active";
   }catch(e){
@@ -526,6 +528,11 @@ function composeGuidePrev(){
   composeGuide.answers[composeGuide.index]=input.value.trim();
   composeGuide.index--;
   composeGuide.current=composeGuide.answers[composeGuide.index]||"";
+  renderComposeGuidePanel();
+}
+
+function composeGuideShowHint(){
+  composeGuide.hintsShown[composeGuide.index]=true;
   renderComposeGuidePanel();
 }
 
