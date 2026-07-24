@@ -196,7 +196,14 @@
     </div>
 
     <div class="sec-label" style="margin-top:16px">② 中国語で書いてみる</div>
-    <div style="display:flex;gap:8px;align-items:flex-start">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="topic-btn active" id="compose-mode-free" onclick="setComposeMode('free')">自分で考える</button>
+      <button class="topic-btn" id="compose-mode-guide" onclick="setComposeMode('guide')">🧭 ステップガイド</button>
+    </div>
+
+    <div id="compose-guide-panel" class="hidden"></div>
+
+    <div id="compose-zh-free-row" style="display:flex;gap:8px;align-items:flex-start">
       <textarea class="custom-textarea" id="compose-zh-input" placeholder="自分なりに中国語で入力してみましょう（例：这周末要不要一起看电影？）" style="flex:1"></textarea>
       <button class="topic-btn" id="compose-zh-mic" onclick="toggleComposeVoiceInput('zh')" style="white-space:nowrap;padding:9px 12px">🎤</button>
     </div>

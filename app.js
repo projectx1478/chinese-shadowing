@@ -416,6 +416,121 @@ function toggleComposeVoiceInput(which){
   rec.start();
 }
 
+// 8-6b ステップガイド：①の内容をAIが2〜4個の意味のまとまりに分解し、1つずつ順番に中国語を組み立てさせる。
+// ステップごとのAIチェックは行わず（追加API呼び出しを避けるため）、完成した文を②に流し込んで既存のsubmitCompose()にそのままつなぐ。
+let composeGuide={mode:"free",status:"idle",steps:null,index:0,current:"",answers:[]};
+
+function setComposeMode(mode){
+  composeGuide.mode=mode;
+  if(mode==="guide"&&composeGuide.status==="done"){
+    composeGuide.status="idle";composeGuide.steps=null;composeGuide.index=0;composeGuide.answers=[];composeGuide.current="";
+  }
+  document.getElementById("compose-mode-free")?.classList.toggle("active",mode==="free");
+  document.getElementById("compose-mode-guide")?.classList.toggle("active",mode==="guide");
+  renderComposeGuidePanel();
+}
+
+function renderComposeGuidePanel(){
+  const panel=document.getElementById("compose-guide-panel");
+  const freeRow=document.getElementById("compose-zh-free-row");
+  if(!panel||!freeRow)return;
+
+  if(composeGuide.mode!=="guide"||composeGuide.status==="done"){
+    panel.classList.add("hidden");panel.innerHTML="";
+    freeRow.classList.remove("hidden");
+    return;
+  }
+  freeRow.classList.add("hidden");
+  panel.classList.remove("hidden");
+
+  if(composeGuide.status==="idle"){
+    panel.innerHTML=`<div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text-sec);line-height:1.7">①の内容をもとに、AIが文を2〜4個の意味のまとまりに分解します。1つずつ順番に中国語を組み立てていきましょう。</div>
+      <button class="topic-btn" style="margin-top:8px" onclick="startComposeGuide()">🧭 ステップを作成</button>`;
+  } else if(composeGuide.status==="loading"){
+    panel.innerHTML=`<div style="color:var(--text-faint);font-size:13px;padding:10px 0">AIがステップを考えています…</div>`;
+  } else if(composeGuide.status==="active"){
+    const total=composeGuide.steps.length;
+    const step=composeGuide.steps[composeGuide.index];
+    panel.innerHTML=`
+      <div style="font-size:11px;color:var(--text-faint);margin-bottom:6px">ステップ ${composeGuide.index+1} / ${total}</div>
+      <div style="background:var(--card-alt);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+        <div style="font-size:15px;color:var(--text);font-weight:600">${esc(step.ja)}</div>
+        ${step.hint?`<div style="font-size:12px;color:var(--accent-text);margin-top:4px">💡 ${esc(step.hint)}</div>`:""}
+      </div>
+      <textarea class="custom-textarea" id="compose-guide-input" placeholder="このまとまりを中国語で" style="min-height:56px">${esc(composeGuide.current)}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        ${composeGuide.index>0?`<button class="topic-btn" onclick="composeGuidePrev()">← 戻る</button>`:""}
+        <button class="topic-btn" style="background:var(--accent);color:var(--accent-fg)" onclick="composeGuideNext()">${composeGuide.index+1<total?"次へ →":"完了"}</button>
+      </div>`;
+  }
+}
+
+async function startComposeGuide(){
+  const ja=document.getElementById("compose-ja-input").value.trim();
+  if(!ja){alert("① 日本語で伝えたいことを入力してください");return;}
+  composeGuide.status="loading";
+  renderComposeGuidePanel();
+  try{
+    const raw=await gemini([{role:"user",content:
+`日本人が中国語学習のために次の内容を中国語で書こうとしています。作文が苦手な人でも迷わず進められるよう、2〜4個の意味のまとまりに分解してください。
+
+【伝えたいこと（日本語）】
+${ja}
+
+各ステップは「そのステップで表す内容（日本語の短いフレーズ）」と「使えそうな単語・文法のヒント（日本語で15字程度）」をセットにしてください。ステップを順番につなげると元の内容全体を表せるようにしてください。
+
+以下のJSON形式のみで回答してください。前置き・説明・コードブロック記号は不要です。
+
+{
+  "steps": [
+    {"ja": "<ステップ1の内容>", "hint": "<ヒント>"},
+    {"ja": "<ステップ2の内容>", "hint": "<ヒント>"}
+  ]
+}`
+    }]);
+    const json=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    const steps=(json.steps||[]).filter(s=>s?.ja);
+    if(!steps.length)throw new Error("ステップを生成できませんでした");
+    composeGuide.steps=steps;
+    composeGuide.index=0;
+    composeGuide.current="";
+    composeGuide.answers=new Array(steps.length).fill("");
+    composeGuide.status="active";
+  }catch(e){
+    console.warn("ステップ生成エラー:",e);
+    composeGuide.status="idle";
+    alert("ステップの生成に失敗しました："+(e.message||"エラー"));
+  }
+  renderComposeGuidePanel();
+}
+
+function composeGuideNext(){
+  const input=document.getElementById("compose-guide-input");
+  composeGuide.answers[composeGuide.index]=input.value.trim();
+  if(composeGuide.index+1<composeGuide.steps.length){
+    composeGuide.index++;
+    composeGuide.current=composeGuide.answers[composeGuide.index]||"";
+    renderComposeGuidePanel();
+  } else {
+    finishComposeGuide();
+  }
+}
+
+function composeGuidePrev(){
+  const input=document.getElementById("compose-guide-input");
+  composeGuide.answers[composeGuide.index]=input.value.trim();
+  composeGuide.index--;
+  composeGuide.current=composeGuide.answers[composeGuide.index]||"";
+  renderComposeGuidePanel();
+}
+
+function finishComposeGuide(){
+  const assembled=composeGuide.answers.filter(Boolean).join("");
+  document.getElementById("compose-zh-input").value=assembled;
+  composeGuide.status="done";
+  renderComposeGuidePanel();
+}
+
 async function submitCompose(){
   const jaInput=document.getElementById("compose-ja-input");
   const zhInput=document.getElementById("compose-zh-input");

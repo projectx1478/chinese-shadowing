@@ -707,3 +707,112 @@ test.describe('設定タブの大分類ナビゲーション（cat-bar/setup-cat
     });
   });
 });
+
+test.describe('作文練習：ステップガイドモード（composeGuide）', () => {
+  test('デフォルトは自分で考えるモードで、ステップガイドに切り替えると①未入力ならアラートで警告する', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+
+    let state = await page.evaluate(() => ({
+      mode: composeGuide.mode,
+      freeVisible: !document.getElementById('compose-zh-free-row').classList.contains('hidden'),
+      guideHidden: document.getElementById('compose-guide-panel').classList.contains('hidden'),
+    }));
+    expect(state).toEqual({ mode: 'free', freeVisible: true, guideHidden: true });
+
+    await page.click('#compose-mode-guide');
+    state = await page.evaluate(() => ({
+      mode: composeGuide.mode, status: composeGuide.status,
+      freeHidden: document.getElementById('compose-zh-free-row').classList.contains('hidden'),
+      hasStartBtn: document.getElementById('compose-guide-panel').textContent.includes('ステップを作成'),
+    }));
+    expect(state).toEqual({ mode: 'guide', status: 'idle', freeHidden: true, hasStartBtn: true });
+
+    const dialogs = [];
+    page.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
+    await page.evaluate(() => startComposeGuide());
+    await page.waitForTimeout(50);
+    expect(dialogs.length).toBe(1);
+    expect(dialogs[0]).toContain('日本語');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('ステップを進めて完了すると、組み立てた文が②のテキストエリアに入り既存の添削フローへそのままつながる', async ({ page }) => {
+    const errors = await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    await page.fill('#compose-ja-input', '週末一緒に映画見に行かない？と誘いたい');
+    await page.click('#compose-mode-guide');
+
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        steps: [
+          { ja: '今週末に', hint: '这周末' },
+          { ja: '一緒に映画を見に行こうと誘う', hint: '一起去看电影' },
+        ],
+      });
+    });
+    await page.evaluate(() => startComposeGuide());
+    await page.waitForTimeout(100);
+
+    let state = await page.evaluate(() => ({ status: composeGuide.status, stepsLen: composeGuide.steps.length, index: composeGuide.index }));
+    expect(state).toEqual({ status: 'active', stepsLen: 2, index: 0 });
+
+    // ステップ1入力 → 次へ
+    await page.fill('#compose-guide-input', '这周末');
+    await page.click('#compose-guide-panel >> text=次へ');
+    await page.waitForTimeout(50);
+    state = await page.evaluate(() => ({ index: composeGuide.index, answers: composeGuide.answers }));
+    expect(state).toEqual({ index: 1, answers: ['这周末', ''] });
+
+    // 戻る → 入力済みの内容が保持されている
+    await page.click('#compose-guide-panel >> text=戻る');
+    const backValue = await page.inputValue('#compose-guide-input');
+    expect(backValue).toBe('这周末');
+    await page.click('#compose-guide-panel >> text=次へ');
+
+    // ステップ2入力 → 完了
+    await page.fill('#compose-guide-input', '一起去看电影吗？');
+    await page.click('#compose-guide-panel >> text=完了');
+    await page.waitForTimeout(100);
+
+    state = await page.evaluate(() => ({
+      status: composeGuide.status,
+      zhValue: document.getElementById('compose-zh-input').value,
+      freeVisible: !document.getElementById('compose-zh-free-row').classList.contains('hidden'),
+      guideHidden: document.getElementById('compose-guide-panel').classList.contains('hidden'),
+    }));
+    expect(state).toEqual({
+      status: 'done', zhValue: '这周末一起去看电影吗？', freeVisible: true, guideHidden: true,
+    });
+
+    // 既存の添削フローがそのまま動く（submitCompose()は無変更）
+    await page.evaluate(() => {
+      window.gemini = async () => JSON.stringify({
+        feedback: '自然です。', corrected: '这周末一起去看电影吧？',
+        correctedPy: 'zhè zhōumò yìqǐ qù kàn diànyǐng ba？', correctedJa: '今週末一緒に映画見に行こう？',
+      });
+    });
+    await page.evaluate(() => submitCompose());
+    await page.waitForTimeout(200);
+    const resultHtml = await page.evaluate(() => document.getElementById('compose-result').innerHTML);
+    expect(resultHtml).toContain('这周末一起去看电影吧？');
+
+    expect(errors, `想定外のJSエラー: ${errors.join(' / ')}`).toEqual([]);
+  });
+
+  test('完了後に自分で考えるモード→ステップガイドへ戻ると、新規セッションとしてリセットされる', async ({ page }) => {
+    await openSetup(page, 'dark');
+    await page.evaluate(() => showSetupTab('compose'));
+    // status:'done'を直接注入して遷移だけを検証する（API呼び出し不要）
+    await page.evaluate(() => {
+      composeGuide.mode = 'guide';
+      composeGuide.status = 'done';
+      composeGuide.steps = [{ ja: 'x', hint: '' }];
+    });
+    await page.click('#compose-mode-free');
+    await page.click('#compose-mode-guide');
+    const state = await page.evaluate(() => ({ status: composeGuide.status, steps: composeGuide.steps }));
+    expect(state).toEqual({ status: 'idle', steps: null });
+  });
+});
